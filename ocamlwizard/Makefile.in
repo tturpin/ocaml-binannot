@@ -1,0 +1,793 @@
+##########################################################################
+#                                                                        #
+#  Ocamlwizard                                                           #
+#  David Baudet and Mohamed Iguernelala                                  #
+#  Copyright 2008 INRIA Saclay - Ile-de-France                           #
+#                                                                        #
+#  This software is free software; you can redistribute it and/or        #
+#  modify it under the terms of the GNU Library General Public           #
+#  License version 2.1, with the special exception on linking            #
+#  described in file LICENSE.                                            #
+#                                                                        #
+#  This software is distributed in the hope that it will be useful,      #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of        #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.                  #
+#                                                                        #
+##########################################################################
+
+# where to install the binaries
+prefix       = @prefix@
+exec_prefix  = @exec_prefix@
+BINDIR       = @bindir@
+LIBDIR       = @libdir@/ocamlwizard
+
+# where to install the man page
+MANDIR       = @mandir@
+
+# other variables set by ./configure
+# OCAMLC       = @OCAMLC@
+# OCAMLOPT     = @OCAMLOPT@
+# OCAMLDEP     = @OCAMLDEP@
+# OCAMLLEX     = @OCAMLLEX@
+# OCAMLYACC    = @OCAMLYACC@
+# OCAMLLIB     = @OCAMLLIB@
+# OCAMLBEST    = @OCAMLBEST@
+# OCAMLVERSION = @OCAMLVERSION@
+# OCAMLWEB     = @OCAMLWEB@
+# OCAMLWIN32   = @OCAMLWIN32@
+# EXE          = @EXE@
+
+OCAMLC       = ../boot/ocamlrun ../ocamlc
+OCAMLOPT     = ../boot/ocamlrun ../ocamlopt
+OCAMLDEP     = ../boot/ocamlrun ../ocamldep
+OCAMLLEX     = ../boot/ocamlrun ../boot/ocamllex
+OCAMLYACC    = ../boot/ocamlyacc
+OCAMLDEP     = ../boot/ocamlrun ../tools/ocamldep
+OCAMLBEST    = opt
+
+PATH_OWZ        = ./
+#path in labo (to add)
+
+#path in ocamlwizard
+PATH_COMMON     = $(PATH_OWZ)common/
+PATH_COMPLETION = $(PATH_OWZ)completion/
+PATH_REFACTOR   = $(PATH_OWZ)refactoring/
+PATH_MAIN       = $(PATH_OWZ)main/
+
+#path in common
+PATH_OCAML      = ../
+
+#path in ocaml3-11
+PATH_PARSING    = $(PATH_OCAML)parsing/
+PATH_TYPING     = $(PATH_OCAML)typing/
+PATH_UTILS      = $(PATH_OCAML)utils/
+PATH_BYTECOMP   = $(PATH_OCAML)bytecomp/
+PATH_DRIVER     = $(PATH_OCAML)driver/
+PATH_STDLIB     = $(PATH_OCAML)stdlib/
+PATH_OTHERLIBS     = $(PATH_OCAML)otherlibs/
+PATH_STR     = $(PATH_OCAML)otherlibs/str/
+
+#path in completion
+PATH_SYNTACTIC  = $(PATH_COMPLETION)syntactic/
+PATH_C_TYPING   = $(PATH_COMPLETION)typing/
+PATH_EXTRACT    = $(PATH_COMPLETION)extraction/
+PATH_FILTER     = $(PATH_COMPLETION)filtering/
+PATH_PRINT      = $(PATH_COMPLETION)printing/
+
+GEN_ANNOT = #@OCAMLANNOT@
+
+
+################################################
+
+################################################
+FLAG_GTK        = -I +lablgtk2 -w s lablgtk.cma gtkInit.cmo
+FLAG_DRIVER     = -I $(PATH_DRIVER)
+FLAG_TYPING     = -I $(PATH_TYPING)
+FLAG_PARSING    = -I $(PATH_PARSING)
+FLAG_STDLIB     = -I $(PATH_STDLIB)
+FLAG_OTHERLIBS  = -I $(PATH_OTHERLIBS) -I $(PATH_STR)
+FLAG_COMPLETION = -I $(PATH_COMPLETION)
+FLAG_UTILS      = -I $(PATH_UTILS)
+FLAG_COMMON     = -I $(PATH_COMMON)
+FLAG_SYNTACTIC  = -I $(PATH_SYNTACTIC)
+FLAG_C_TYPING   = -I $(PATH_C_TYPING)
+FLAG_EXTRACT    = -I $(PATH_EXTRACT)
+FLAG_FILTER     = -I $(PATH_FILTER)
+FLAG_PRINT      = -I $(PATH_PRINT)
+FLAG_REFACTOR   = -I $(PATH_REFACTOR)
+FLAG_MAIN       = -I $(PATH_MAIN)
+
+
+INCLUDES_OCAML = $(FLAG_STDLIB) $(FLAG_OTHERLIBS) $(FLAG_UTILS) $(FLAG_PARSING) $(FLAG_TYPING)		\
+ $(FLAG_DRIVER)
+
+INCLUDES_NO_GRAPH = $(FLAG_COMMON) $(FLAG_MAIN) $(FLAG_SYNTACTIC)	\
+ $(FLAG_C_TYPING) $(FLAG_EXTRACT) $(FLAG_FILTER) $(FLAG_PRINT)			\
+ $(FLAG_COMPLETION)
+
+# $(FLAG_REFACTOR)
+
+INCLUDES = $(INCLUDES_OCAML) @OCAMLGRAPHLIB@ $(INCLUDES_NO_GRAPH)
+
+BFLAGS   = -g $(GEN_ANNOT) $(INCLUDES)
+OFLAGS   = $(INCLUDES)
+
+BIN       = owz
+BIN_ANNOT = test-annot
+BIN_GUI   = gui
+BIN_SCAN  = scan
+
+GENERATED=                              \
+	$(PATH_PARSING)lexer.ml         \
+	$(PATH_PARSING)parser.ml        \
+	$(PATH_PARSING)parser.mli       \
+	$(PATH_PARSING)linenum.ml       \
+	$(PATH_SYNTACTIC)owz_lexer.ml   \
+	$(PATH_SYNTACTIC)owz_parser.mli \
+	$(PATH_SYNTACTIC)owz_parser.ml  \
+	$(PATH_C_TYPING)annotlexer.ml   \
+	$(PATH_C_TYPING)annotparser.mli \
+	$(PATH_C_TYPING)annotparser.ml
+
+CMO = $(PATH_MAIN)ocamlwizard.cmo 
+CMX = $(CMO:.cmo=.cmx)
+
+################################################
+#CMO completion
+################################################
+CMO_SYNTACTIC = \
+	$(PATH_SYNTACTIC)tags.cmo		\
+	$(PATH_SYNTACTIC)parsing_env.cmo	\
+	$(PATH_SYNTACTIC)owz_parser.cmo       	\
+	$(PATH_SYNTACTIC)owz_lexer.cmo       	\
+	$(PATH_SYNTACTIC)syntax_completion.cmo
+
+
+CMX_SYNTACTIC = $(CMO_SYNTACTIC:.cmo=.cmx)
+
+CMO_C_TYPING =                          	\
+	$(PATH_C_TYPING)annotparser.cmo 	\
+	$(PATH_C_TYPING)annotlexer.cmo  	\
+	$(PATH_C_TYPING)expression_typing.cmo
+CMX_C_TYPING = $(CMO_C_TYPING:.cmo=.cmx)
+
+CMO_FILTER =                      	\
+	$(PATH_FILTER)match_filter.cmo	\
+	$(PATH_FILTER)path_filter.cmo	\
+	$(PATH_FILTER)proposal_filtering.cmo
+CMX_FILTER = $(CMO_FILTER:.cmo=.cmx)
+
+CMO_EXTRACT = \
+	$(PATH_EXTRACT)cmireader.cmo        \
+	$(PATH_EXTRACT)match_extraction.cmo \
+	$(PATH_EXTRACT)path_extraction.cmo  \
+	$(PATH_EXTRACT)proposal_extraction.cmo
+
+CMX_EXTRACT = $(CMO_EXTRACT:.cmo=.cmx)
+
+CMO_COMMON =                           	\
+	$(PATH_COMMON)debug.cmo         \
+	$(PATH_COMMON)common_config.cmo \
+	$(PATH_COMMON)util.cmo          \
+	$(PATH_COMMON)owz_ref_printer.cmo	\
+	$(PATH_COMMON)stdr_types.cmo       	\
+	$(PATH_COMPLETION)sc_completion.cmo
+
+#	$(PATH_REFACTOR)xml_ref_printer.cmo	\
+
+CMX_COMMON = $(CMO_COMMON:.cmo=.cmx)
+
+CMO_COMPLETION =                        \
+	$(PATH_COMPLETION)completion.cmo
+
+CMX_COMPLETION = $(CMO_COMPLETION:.cmo=.cmx)
+
+CMO_PRINT =                            	\
+	$(PATH_PRINT)xml_printer.cmo	\
+	$(PATH_PRINT)ocaml_printer.cmo	\
+	$(PATH_PRINT)proposal_printing.cmo
+CMX_PRINT = $(CMO_PRINT:.cmo=.cmx)
+
+
+################################################
+#CMO REFACTORING
+################################################
+CMO_REFACTOR = \
+	$(PATH_REFACTOR)refactor_env.cmo 
+
+
+CMX_REFACTOR = $(CMO_REFACTOR:.cmo=.cmx)
+
+
+################################################
+#CMO du parser de caml3-11
+################################################
+CMO_TYPING =                        	\
+	$(PATH_TYPING)unused_var.cmo 	\
+	$(PATH_TYPING)ident.cmo 	\
+	$(PATH_TYPING)path.cmo 		\
+	$(PATH_TYPING)primitive.cmo 	\
+	$(PATH_TYPING)types.cmo 	\
+	$(PATH_TYPING)btype.cmo 	\
+	$(PATH_TYPING)subst.cmo 	\
+	$(PATH_TYPING)predef.cmo 	\
+	$(PATH_TYPING)datarepr.cmo 	\
+	$(PATH_TYPING)env.cmo 		\
+	$(PATH_TYPING)oprint.cmo 	\
+	$(PATH_TYPING)ctype.cmo 	\
+	$(PATH_TYPING)printtyp.cmo 	\
+	$(PATH_TYPING)typedtree.cmo 	\
+	$(PATH_TYPING)includeclass.cmo 	\
+	$(PATH_TYPING)mtype.cmo 	\
+	$(PATH_TYPING)includecore.cmo 	\
+	$(PATH_TYPING)includemod.cmo 	\
+	$(PATH_TYPING)parmatch.cmo 	\
+	$(PATH_TYPING)typetexp.cmo 	\
+	$(PATH_TYPING)stypes.cmo 	\
+	$(PATH_TYPING)typecore.cmo 	\
+	$(PATH_TYPING)typedecl.cmo	\
+	$(PATH_TYPING)typeclass.cmo 	\
+	$(PATH_TYPING)typemod.cmo
+#	$(PATH_REFACTOR)locate.cmo 	\
+#	$(PATH_REFACTOR)owz_merge.cmo 	\
+#	$(PATH_REFACTOR)rename.cmo \
+#	$(PATH_REFACTOR)refactor_debug.cmo 	\
+#	$(PATH_REFACTOR)refactor.cmo 	\
+#	$(PATH_TYPING)old_types.cmo 	\
+
+CMX_TYPING = $(CMO_TYPING:.cmo=.cmx)
+
+CMO_UTILS =                       	\
+	$(PATH_COMMON)setting.cmo         \
+	$(PATH_UTILS)misc.cmo 		\
+	$(PATH_UTILS)tbl.cmo 		\
+	$(PATH_UTILS)config.cmo 	\
+	$(PATH_UTILS)clflags.cmo 	\
+	$(PATH_UTILS)terminfo.cmo 	\
+	$(PATH_UTILS)ccomp.cmo 		\
+	$(PATH_UTILS)warnings.cmo 	\
+	$(PATH_UTILS)consistbl.cmo
+CMX_UTILS = $(CMO_UTILS:.cmo=.cmx)
+
+CMO_PARSING =				\
+	$(PATH_PARSING)linenum.cmo      \
+	$(PATH_PARSING)location.cmo     \
+	$(PATH_PARSING)syntaxerr.cmo    \
+	$(PATH_PARSING)longident.cmo    \
+	$(PATH_PARSING)parser.cmo       \
+	$(PATH_PARSING)lexer.cmo        \
+	$(PATH_PARSING)parse.cmo        \
+	$(PATH_PARSING)printast.cmo
+CMX_PARSING = $(CMO_PARSING:.cmo=.cmx)
+
+CMO_BYTECOMP = \
+	$(PATH_BYTECOMP)lambda.cmo 	\
+	$(PATH_BYTECOMP)printlambda.cmo 	\
+	$(PATH_BYTECOMP)typeopt.cmo 	\
+	$(PATH_BYTECOMP)switch.cmo 	\
+	$(PATH_BYTECOMP)matching.cmo 	\
+	$(PATH_BYTECOMP)translobj.cmo 	\
+	$(PATH_BYTECOMP)translcore.cmo 	\
+	$(PATH_BYTECOMP)translclass.cmo 	\
+	$(PATH_BYTECOMP)translmod.cmo 	\
+	$(PATH_BYTECOMP)dll.cmo 	\
+	$(PATH_BYTECOMP)bytesections.cmo 	\
+	$(PATH_BYTECOMP)runtimedef.cmo 	\
+	$(PATH_BYTECOMP)symtable.cmo 	\
+	$(PATH_BYTECOMP)opcodes.cmo 	\
+	$(PATH_BYTECOMP)bytelink.cmo 	\
+	$(PATH_BYTECOMP)bytelibrarian.cmo 	\
+	$(PATH_BYTECOMP)instruct.cmo 	\
+	$(PATH_BYTECOMP)bytegen.cmo 	\
+	$(PATH_BYTECOMP)bytepackager.cmo
+
+CMO_DRIVER =                            \
+	$(PATH_DRIVER)pparse.cmo 	\
+	$(PATH_DRIVER)errors.cmo 	\
+	$(PATH_DRIVER)compile.cmo 	\
+        $(PATH_DRIVER)main_args.cmo 	\
+	$(PATH_DRIVER)main.cmo
+
+CMX_DRIVER = $(CMO_DRIVER:.cmo=.cmx)
+
+CMO_OCAML = $(CMO_UTILS) $(CMO_PARSING) $(CMO_TYPING)
+# $(CMO_DRIVER)
+
+################################################
+#Fin des CMO
+################################################
+CMO_ALL = $(CMO_COMMON) \
+	$(CMO_SYNTACTIC) $(CMO_EXTRACT) $(CMO_FILTER) $(CMO_C_TYPING) $(CMO_PRINT)	\
+	$(CMO_COMPLETION) $(CMO)
+# $(CMO_REFACTOR)
+
+CMX_ALL = $(CMO_ALL:.cmo=.cmx)
+
+LIBS = graph.cma str.cma unix.cma 
+OLIBS = $(LIBS:.cma=.cmxa)
+
+
+all: $(BIN).$(OCAMLBEST) stdlib
+
+
+ABSOLUTE_INCS = \
+-I `pwd`/$(PATH_DRIVER) \
+-I `pwd`/$(PATH_TYPING) \
+-I `pwd`/$(PATH_PARSING) \
+-I `pwd`/$(PATH_COMPLETION) \
+-I `pwd`/$(PATH_UTILS) \
+-I `pwd`/$(PATH_COMMON) \
+-I `pwd`/$(PATH_SYNTACTIC) \
+-I `pwd`/$(PATH_C_TYPING) \
+-I `pwd`/$(PATH_EXTRACT) \
+-I `pwd`/$(PATH_FILTER) \
+-I `pwd`/$(PATH_PRINT) \
+-I `pwd`/$(PATH_REFACTOR) \
+-I `pwd`/$(PATH_MAIN) \
+
+dot_ocamlwizard:
+	echo $(ABSOLUTE_INCS) > $(PATH_COMMON).ocamlwizard
+	echo $(ABSOLUTE_INCS) > $(PATH_SYNTACTIC).ocamlwizard
+	echo $(ABSOLUTE_INCS) > $(PATH_C_TYPING).ocamlwizard
+	echo $(ABSOLUTE_INCS) > $(PATH_EXTRACT).ocamlwizard
+	echo $(ABSOLUTE_INCS) > $(PATH_FILTER).ocamlwizard
+	echo $(ABSOLUTE_INCS) > $(PATH_PRINT).ocamlwizard
+	echo $(ABSOLUTE_INCS) > $(PATH_REFACTOR).ocamlwizard
+	echo $(ABSOLUTE_INCS) > $(PATH_COMPLETION).ocamlwizard
+	echo $(ABSOLUTE_INCS) > $(PATH_MAIN).ocamlwizard
+	echo $(ABSOLUTE_INCS) > $(PATH_DRIVER).ocamlwizard
+	echo $(ABSOLUTE_INCS) > $(PATH_TYPING).ocamlwizard
+	echo $(ABSOLUTE_INCS) > $(PATH_PARSING).ocamlwizard
+	echo $(ABSOLUTE_INCS) > $(PATH_UTILS).ocamlwizard
+	chmod 666 $(PATH_COMMON).ocamlwizard
+	chmod 666 $(PATH_SYNTACTIC).ocamlwizard
+	chmod 666 $(PATH_C_TYPING).ocamlwizard
+	chmod 666 $(PATH_EXTRACT).ocamlwizard
+	chmod 666 $(PATH_FILTER).ocamlwizard
+	chmod 666 $(PATH_PRINT).ocamlwizard
+	chmod 666 $(PATH_REFACTOR).ocamlwizard
+	chmod 666 $(PATH_COMPLETION).ocamlwizard
+	chmod 666 $(PATH_MAIN).ocamlwizard
+	chmod 666 $(PATH_DRIVER).ocamlwizard
+	chmod 666 $(PATH_TYPING).ocamlwizard
+	chmod 666 $(PATH_PARSING).ocamlwizard
+	chmod 666 $(PATH_UTILS).ocamlwizard
+
+
+
+#Don't remove, these rules are for local compilation of .annot (for emacs annotation)
+.PHONY: ocamlwizard completion
+
+ocamlwizard:
+	unset LANG;make $(CMO)
+
+typing:
+	unset LANG;make $(CMO_TYPING)
+parsing:
+	unset LANG;make $(CMO_PARSING)
+utils:
+	unset LANG;make $(CMO_UTILS)
+
+syntactic:
+	unset LANG;make $(CMO_SYNTACTIC)
+filter:
+	unset LANG;make $(CMO_FILTER)
+ctyping:
+	unset LANG;make $(CMO_C_TYPING)
+completion:
+	unset LANG;make $(CMO_COMPLETION)
+extraction:
+	unset LANG;make $(CMO_EXTRACT)
+common:
+	unset LANG;make $(CMO_COMMON)
+print:
+	unset LANG;make $(CMO_PRINT)
+
+#END
+
+$(BIN).byte: $(CMO_ALL)
+	$(OCAMLC) $(CMO_OCAML) $(LIBS) $(BFLAGS) $(CMO_ALL) -o $@
+
+$(BIN).opt: $(CMX_ALL)
+	$(OCAMLOPT) $(OFLAGS) $(OLIBS) $(CMX_ALL) -o $@
+
+
+$(CMO):$(CMO_COMPLETION)
+
+$(CMO_COMPLETION):$(CMO_COMMON) $(CMO_SYNTACTIC) $(CMO_C_TYPING) $(CMO_EXTRACT) $(CMO_FILTER) $(CMO_PRINT)
+#$(CMO_SYNTACTIC) :$(CMO_PARSER) $(CMO_COMMON)
+#$(CMO_C_TYPING)  :$(CMO_TYPING) $(CMO_COMMON)
+#$(CMO_FILTER) 	 :$(CMO_TYPING) $(CMO_COMMON)
+$(CMO_PRINT)     :$(CMO_COMMON)
+$(CMO_EXTRACT)   :$(CMO_COMMON)
+
+
+$(CMO_OCAML):$(CMO_UTILS) $(CMO_PARSING) $(CMO_TYPING) 
+
+#$(CMO_TYPING):$(CMO_UTILS) $(CMO_PARSING)
+
+#$(CMO_PARSING):$(CMO_UTILS)
+
+common/setting.ml: config.status
+	echo "let stdlib = \""$(LIBDIR)"\"" > $@
+
+########################################################
+# CMX = Copy of CMO RULES
+########################################################
+$(CMX):$(CMX_COMPLETION)
+
+$(CMX_COMPLETION):$(CMX_COMMON) $(CMX_SYNTACTIC) $(CMX_C_TYPING) $(CMX_EXTRACT) $(CMX_FILTER) $(CMX_PRINT)
+$(CMX_SYNTACTIC) :$(CMX_PARSER) $(CMX_COMMON)
+$(CMX_C_TYPING)  :$(CMO_TYPING) $(CMX_COMMON)
+$(CMX_FILTER) 	 :$(CMX_TYPING) $(CMX_COMMON)
+$(CMX_PRINT)     :$(CMX_COMMON)
+$(CMX_EXTRACT)   :$(CMX_COMMON)
+
+
+$(CMX_OCAML):$(CMX_UTILS) $(CMX_PARSING) $(CMX_TYPING) 
+
+$(CMX_TYPING):$(CMX_UTILS) $(CMX_PARSING)
+
+$(CMX_PARSING):$(CMX_UTILS)
+########################################################
+
+.SUFFIXES: .mli .ml .cmi .cmo .mll .mly .o .cmx
+
+.mli.cmi:
+	-ocamlwizard compile $(BFLAGS) `pwd`/$< 
+	$(OCAMLC) -c $(BFLAGS) $<
+
+.ml.cmo:
+	-ocamlwizard compile $(BFLAGS) `pwd`/$< 
+	$(OCAMLC) -c $(BFLAGS) $<
+
+.ml.o:
+	-ocamlwizard compile $(OFLAGS) `pwd`/$< 
+	$(OCAMLOPT) -c $(OFLAGS) $<
+
+.ml.cmx:
+	-ocamlwizard compile $(OFLAGS) `pwd`/$< 
+	$(OCAMLOPT) -c $(OFLAGS) $<
+
+.mll.ml:
+	$(OCAMLLEX) $<
+
+.mly.ml:
+	$(OCAMLYACC) -v $<
+
+.mly.mli:
+	$(OCAMLYACC) -v $<
+
+# running ocamlwizard on ocaml std lib
+######################################
+
+stdlib: $(BIN).$(OCAMLBEST)
+	make -k -j 1 -C standard_library
+
+
+# headers
+#########
+
+headers:
+	headache -c misc/headache_config.txt -h misc/header.txt \
+		Makefile.in configure.in README.txt \
+		$(PATH_COMMON)*.ml* \
+		$(PATH_SYNTACTIC)*.ml* \
+		$(PATH_C_TYPING)*.ml* \
+		$(PATH_EXTRACT)*.ml* \
+		$(PATH_FILTER)*.ml* \
+		$(PATH_PRINT)*.ml* \
+		$(PATH_REFACTOR)*.ml* \
+		$(PATH_COMPLETION)*.ml* \
+		$(PATH_MAIN)*.ml* \
+		emacs/ocamlwizard.el
+
+# export
+########
+
+NAME=ocamlwizard
+VERSION=3.10.2
+
+EXPORTDIR=$(NAME)-$(VERSION)
+TAR=$(EXPORTDIR).tar
+
+WWW = /users/www-perso/projets/ocamlwizard
+FTP = $(WWW)/download
+
+FILES = */*.ml* */*/*.ml* \
+	emacs/*.el doc/*.tex \
+	Makefile.in configure configure.in .depend \
+	standard_library/Makefile.in \
+	.depend README.txt INSTALL LICENSE \
+	eclipse/plugins/*.jar eclipse/features/*/*.xml
+
+export: source 
+	cp README.txt INSTALL LICENSE $(FTP)
+
+source: .depend
+	mkdir -p export/$(EXPORTDIR)
+	cp --parents $(FILES) export/$(EXPORTDIR)
+	cd export ; tar cf $(TAR) $(EXPORTDIR) ; gzip -f --best $(TAR)
+	cp export/$(TAR).gz $(FTP)
+
+# documentation
+###############
+
+.PHONY: doc
+doc: 
+	make -C doc
+
+doc/version.tex: Makefile
+	printf '\\newcommand{\\version}{'$(VERSION)'}\n' > $@
+
+# installation
+##############
+
+install: $(BIN).$(OCAMLBEST) 
+	cp -f $(BIN).$(OCAMLBEST) $(BINDIR)/ocamlwizard
+	mkdir -p $(LIBDIR)
+	cp -f standard_library/*.owz $(LIBDIR)
+
+# 	-mkdir ~/.ocamlwizard
+# 	-mkdir ~/.ocamlwizard/standard_library
+# 	-cp Makefile.stdlib ~/.ocamlwizard/standard_library/Makefile
+# 	-cd ~/.ocamlwizard/standard_library/; make copy ; make compile
+# 	-rm -f ~/.ocamlwizard/standard_library/*.ml*
+# 	-rm -f ~/.ocamlwizard/standard_library/Makefile
+# 	-rm -f ~/.ocamlwizard/standard_library/.depend
+# 	-mv  ~/.ocamlwizard/standard_library/*.owz $(OCAMLLIB)
+# 	-rmdir ~/.ocamlwizard/standard_library/
+# 	-rmdir ~/.ocamlwizard/
+
+# bootstrap
+##############
+
+bootstrap: 
+	rm -f owz ; 
+	make clean ; 
+	make ; 
+	make clean ;
+	make
+
+
+# Makefile is rebuilt whenever Makefile.in or configure.in is modified
+######################################################################
+
+Makefile: Makefile.in config.status
+	./config.status
+
+config.status: configure
+	./config.status --recheck
+
+configure: configure.in
+	autoconf 
+
+docu:
+	rm -rf owz-doc
+	mkdir owz-doc
+	ocamldoc -I $(PATH_UTILS) -I $(PATH_PARSING)  \
+	-I $(PATH_TYPING) -I $(PATH_COMPLETION) -I $(PATH_OWZ) \
+	$(PATH_UTILS)*.ml $(PATH_PARSING)*.ml  \
+	$(PATH_TYPING)*.ml $(PATH_COMPLETION)*.ml $(PATH_OWZ)*.ml \
+	-v -d owz-doc -html
+
+dep:
+	$(OCAMLDEP) $(INCLUDES_NO_GRAPH) *.ml* */*.ml* */*/*.ml* | ocamldot | dot -Tps | gv -
+
+dep.svg:
+	$(OCAMLDEP) $(INCLUDES_NO_GRAPH) *.ml* */*.ml* */*/*.ml* \
+	| ocamldot \
+	| dot -Gratio=compress -Tsvg -o $@
+
+rmcmd= rm -f *.owz *.o *.annot *.cm[iox] *~*  *.output .depend
+
+clean:
+	cd $(PATH_MAIN) ; $(rmcmd)
+	cd $(PATH_REFACTOR) ; $(rmcmd)
+	cd $(PATH_COMMON) ; $(rmcmd)
+	cd $(PATH_C_TYPING) ; $(rmcmd)
+	cd $(PATH_SYNTACTIC) ; $(rmcmd)
+	cd $(PATH_FILTER) ; $(rmcmd)
+	cd $(PATH_EXTRACT) ; $(rmcmd)
+	cd $(PATH_PRINT) ;$(rmcmd)
+	cd $(PATH_OWZ) ; $(rmcmd)
+	cd $(PATH_COMPLETION) ; $(rmcmd)
+	cd $(PATH_UTILS) ; $(rmcmd)
+	cd $(PATH_PARSING) ; $(rmcmd)
+	cd $(PATH_TYPING) ; $(rmcmd)
+	cd $(PATH_DRIVER) ; $(rmcmd)
+	rm $(GENERATED)
+	rm -f $(BIN).* $(BIN_GUI).* $(BIN_SCAN).* $(BIN_ANNOT).*
+	make -C standard_library clean
+
+clean_all:clean
+	cd labo/auto-test ; make clean
+	cd iguernelala-lemdani ; make clean
+	cd bitv-0.1-final ; make clean
+	./auto ./ -q cl -rec 
+
+.depend depend:$(GENERATED)
+	rm -f .depend
+	$(OCAMLDEP) $(INCLUDES_NO_GRAPH) \
+	$(PATH_COMMON)*.ml \
+	$(PATH_COMMON)*.mli \
+	$(PATH_SYNTACTIC)*.ml \
+	$(PATH_SYNTACTIC)*.mli \
+	$(PATH_C_TYPING)*.ml \
+	$(PATH_C_TYPING)*.mli \
+	$(PATH_EXTRACT)*.ml \
+	$(PATH_EXTRACT)*.mli \
+	$(PATH_FILTER)*.ml \
+	$(PATH_FILTER)*.mli \
+	$(PATH_PRINT)*.ml \
+	$(PATH_PRINT)*.mli \
+	$(PATH_COMPLETION)*.ml \
+	$(PATH_COMPLETION)*.mli \
+	$(PATH_MAIN)*.ml \
+	$(PATH_MAIN)*.mli \
+	>.depend
+
+#	$(PATH_UTILS)*.ml \
+#	$(PATH_UTILS)*.mli \
+#	$(PATH_PARSING)*.ml \
+#	$(PATH_PARSING)*.mli \
+#	$(PATH_TYPING)*.ml \
+#	$(PATH_TYPING)*.mli \
+#	$(PATH_DRIVER)*.ml \
+#	$(PATH_DRIVER)*.mli \
+
+
+#	$(PATH_REFACTOR)*.ml \
+#	$(PATH_REFACTOR)*.mli \
+
+FLAG_PRINT      = -I $(PATH_PRINT)
+FLAG_REFACTOR   = -I $(PATH_REFACTOR)
+
+include .depend
+
+##################################################################
+4g_cl:
+	./auto ../4g-tests/tests/ -ext ml -rec -q cl
+
+compilo:
+	cd ../4g-tests/include_compilo/; make
+
+bitv:
+	cd ../4g-tests/include_bitv; make
+
+
+test_foo: 
+	cd ../3g-tests/records/access/foo/;ocamlc -c types.ml; ocamlc -c tps.ml
+
+##################################################################
+4g_match_compilo_qt:
+	make compilo
+	./auto ../4g-tests/tests/match_compilo -ext ml -rec -q qt \
+	-I ../4g-tests/include_compilo \
+
+4g_match_compilo_qt_co:
+	make compilo
+	./auto ../4g-tests/tests/match_compilo -ext ml -rec -q qt \
+	-I ../4g-tests/include_compilo -compile-only \
+
+4g_match_compilo_it:
+	make compilo
+	./auto ../4g-tests/tests/match_compilo -ext ml -rec -q it \
+	-I ../4g-tests/include_compilo \
+
+
+4g_match_compilo_it_co:
+	make compilo
+	./auto ../4g-tests/tests/match_compilo -ext ml -rec -q it \
+	-I ../4g-tests/include_compilo -compile-only \
+
+
+4g_match_compilo_cl:
+	./auto ../4g-tests/tests/match_compilo -ext ml -rec -q cl \
+
+
+##################################################################
+4g_match_bitv_qt:
+	make bitv
+	./auto ../4g-tests/tests/match_bitv -ext ml -rec -q qt \
+	-I ../4g-tests/include_bitv \
+
+4g_match_bitv_qt_co:
+	make bitv
+	./auto ../4g-tests/tests/match_bitv -ext ml -rec -q qt \
+	-I ../4g-tests/include_bitv -compile-only \
+
+4g_match_bitv_it:
+	make bitv
+	./auto ../4g-tests/tests/match_bitv -ext ml -rec -q it \
+	-I ../4g-tests/include_bitv \
+
+4g_match_bitv_cl:
+	./auto ../4g-tests/tests/match_bitv -ext ml -rec -q cl \
+
+
+##################################################################
+4g_match_ccx_qt:
+	./auto ../4g-tests/tests/match_ccx -ext ml -rec -q qt \
+	-I ../4g-tests/include_ccx 
+
+4g_match_ccx_qt_co:
+	./auto ../4g-tests/tests/match_ccx -ext ml -rec -q qt \
+	-I ../4g-tests/include_ccx -compile-only \
+
+4g_match_ccx_it:
+	./auto ../4g-tests/tests/match_ccx -ext ml -rec -q it \
+	-I ../4g-tests/include_ccx \
+
+4g_match_ccx_cl:
+	./auto ../4g-tests/tests/match_ccx -ext ml -rec -q cl \
+
+
+##################################################################
+3g_qt:
+	make test_foo
+	 ./auto -rec ../3g-tests/ -ext ml \
+	-I ../3g-tests/records/access/foo/ \
+	-I ../3g-tests/records/access/ \
+	-I ../3g-tests/values/ -q qt
+
+3g_it:
+	make test_foo
+	 ./auto -rec ../3g-tests/ -ext ml \
+	-I ../3g-tests/records/access/foo/ \
+	-I ../3g-tests/records/access/ \
+	-I ../3g-tests/values/ -q it
+3g_cl:
+	./auto -rec ../3g-tests/ -ext ml -q cl
+
+3g_qt_co:
+	make test_foo
+	 ./auto -rec ../3g-tests/ -ext ml \
+	-I ../3g-tests/records/access/foo/ \
+	-I ../3g-tests/records/access/ \
+	-I ../3g-tests/values/ -q qt -compile-only
+
+##################################################################
+2g_qt:
+	 ./auto -rec ../2g-tests/ -ext ml -q qt
+
+2g_it:
+	 ./auto -rec ../2g-tests/ -ext ml  -q it
+2g_cl:
+	./auto -rec ../2g-tests/ -ext ml -q cl
+
+
+##################################################################
+4g_match_og_qt:
+	./auto ../4g-tests/tests/match_ocamlgraph -ext ml -rec -q qt \
+	-I ../4g-tests/include_ocamlgraph \
+
+4g_match_og_qt_co:
+	./auto ../4g-tests/tests/match_ocamlgraph -ext ml -rec -q qt \
+	-I ../4g-tests/include_ocamlgraph -compile-only \
+
+4g_match_og_it:
+	./auto ../4g-tests/tests/match_ocamlgraph -ext ml -rec -q it \
+	-I ../4g-tests/include_ocamlgraph \
+
+4g_match_og_cl:
+	./auto ../4g-tests/tests/match_ocamlgraph -ext ml -rec -q cl \
+
+
+
+##################################################################
+4g_match_ow_qt:
+	./auto ../4g-tests/tests/match_ocamlweb -ext ml -rec -q qt \
+	-I ../4g-tests/include_ocamlweb \
+
+4g_match_ow_qt_co:
+	./auto ../4g-tests/tests/match_ocamlweb -ext ml -rec -q qt \
+	-I ../4g-tests/include_ocamlweb -compile-only \
+
+4g_match_ow_it:
+	./auto ../4g-tests/tests/match_ocamlweb -ext ml -rec -q it \
+	-I ../4g-tests/include_ocamlweb \
+
+4g_match_ow_cl:
+	./auto ../4g-tests/tests/match_ocamlweb -ext ml -rec -q cl \
+
