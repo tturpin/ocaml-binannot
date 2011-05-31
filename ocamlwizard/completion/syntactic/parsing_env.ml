@@ -27,6 +27,7 @@ let parser_state = {
     subs_code    = "";
     closing      = [];
     c_sort       = Other;
+    match_exp  = None;
     c_cut_pos    = -1;
     rec_inited   = false;
     eof_pos         = - 1;
@@ -155,7 +156,8 @@ let update_pattern is_match exp given p_end closing =
     cond
       
 (** *)
-let update_match exp given p_end closing = 
+let update_match exp given p_end closing =
+  parser_state.match_exp <- Some exp;
   update_pattern true  exp given p_end closing
     
 (** *)

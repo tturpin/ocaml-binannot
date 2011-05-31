@@ -29,7 +29,7 @@ val get_expr : int -> int -> string
 val add_closing : string -> string -> int -> int -> unit
 val patterns : ('a * 'b) list -> 'a list
 val mod_and_ident : unit -> string list * string
-val update_match : 'a -> Interface.pm_completion -> int -> string -> bool
+val update_match : Parsetree.expression -> Interface.pm_completion -> int -> string -> bool
 val update_try : 'a -> Interface.pm_completion -> int -> string -> unit
 val update_module : string list -> string -> int -> int -> unit
 val update_value :

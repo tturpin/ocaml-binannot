@@ -1210,7 +1210,7 @@ class_sig_field:
    | MATCH seq_expr WITH EOF { 
 	   
 	 
-	 let _ = update_match exp AllCs (symbol_end ()) "" in ();
+	 let _ = update_match $2 AllCs (symbol_end ()) "" in ();
 	 update_cut_pos (symbol_start());
 	 let s = Format.sprintf " %s with %s -> %s"
 	   (get_expr (symbol_start())(rhs_end 2)) Tags.tagged_any Tags.asf
@@ -1222,7 +1222,7 @@ class_sig_field:
 
     /* _correct2 */
    | MATCH seq_expr EOF {
-	 if update_match exp AllCs (symbol_end ()) "" then
+	 if update_match $2 AllCs (symbol_end ()) "" then
 	   begin   
 	     update_cut_pos (symbol_start());
 	     let s = Format.sprintf " (*>*)( %s with %s -> %s )(*<*)"

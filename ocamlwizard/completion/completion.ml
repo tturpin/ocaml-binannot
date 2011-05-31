@@ -43,7 +43,36 @@ let compile_file ce =
     | _ -> 
 	if !Common_config.debug then
 	  Format.eprintf "compilation failed@."
-	    
+
+(* Copied from driver/compile (to avoid many dependencies) *)
+let initial_env () =
+  Ident.reinit();
+  try
+    if !Clflags.nopervasives
+    then Env.initial
+    else Env.open_pers_signature "Pervasives" Env.initial
+  with Not_found ->
+    Misc.fatal_error "cannot open pervasives.cmi"
+
+let compile_file s_env c_env =
+  let modulename =
+    String.capitalize (Filename.basename (Filename.chop_extension c_env.fb_name))
+  in
+  Clflags.include_dirs := (*! Clflags.include_dirs @*) c_env.includ;
+  let exp_dirs =
+    List.map (Misc.expand_directory Config.standard_library) !Clflags.include_dirs in
+  Config.load_path := "" :: List.rev_append exp_dirs (Clflags.std_include_dir ());
+  Clflags.compile_only := true;
+  let env = initial_env () in
+  (* The source file is used to look for a .mli, thus we give the name
+     of the temp file. *)
+  let res =
+    Typemod.type_implementation
+      c_env.fb_name c_env.fb_name modulename env s_env.ast
+  in
+  Stypes.dump (c_env.fb_name ^ ".annot");
+  res
+
 (** *)
 let write_to_file ce se = 
   let ce = { ce with fb_name = ce.fb_name ^ "ocamlwizard_tmp_file" } in
@@ -105,7 +134,7 @@ let main ce =
  
   (* + compiling the completed file *)
   step "Compiling the completed file";
-  compile_file ce;
+  let structure, coercion = compile_file se ce in
   
   (* Exiting with the error code (for auto-test) *)
   if !Common_config.compile_only then
@@ -114,7 +143,13 @@ let main ce =
   (* 2.1 - Reading the type from .annot *)
   step "Expression typing";
   let ty_lis = 
+(*
     Expression_typing.main (ce.fb_name^".annot")(mk_list_rg se) 
+*)
+    let range = match Parsing_env.parser_state.match_exp with
+      | Some e -> e.Parsetree.pexp_loc
+      | None -> assert false in
+    [Expression_typing.type_of_pat structure range]
   in
   out_types_from_annot ty_lis ;
   

@@ -72,6 +72,8 @@ type parser_env = {
   mutable subs_code    : string;
   mutable c_sort       : completion_sort ; (* The kind of completion
 					      to perform *)
+  mutable match_exp : Parsetree.expression option; (* The matched
+						      expression *)
   mutable c_cut_pos    : int;
   mutable rec_inited   : bool;
   mutable closing      : string list;

@@ -88,6 +88,7 @@ let default_parser c_env s =
   
   (** Initialize environnements and complete syntaxically code with parser *)
   let buf = from_string str in
+  prerr_endline (str ^ "EOF");
   init_completion_env str;
   let s_env = {
       ast      = [];

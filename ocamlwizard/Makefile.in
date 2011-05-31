@@ -291,6 +291,12 @@ CMO_DRIVER =                            \
 CMX_DRIVER = $(CMO_DRIVER:.cmo=.cmx)
 
 CMO_OCAML = $(CMO_UTILS) $(CMO_PARSING) $(CMO_TYPING)
+
+#	$(PATH_BYTECOMP)command_line.cmo
+#	$(PATH_BYTECOMP)emitcode.cmo 	\
+#	$(PATH_DRIVER)pparse.cmo 	\
+#	$(PATH_DRIVER)compile.cmo 	\
+
 # $(CMO_DRIVER)
 
 ################################################

@@ -123,6 +123,10 @@ let rec type_expr_path ty_exp =
 *)
 
 (** @return a list of pattern to complete the current match *)
+(* ty is the type of the pattern to complete (after .annot). It is used
+   in build_match_comp.
+   ty_check is the environment in which the constructor are interpreted.
+   It is used in extract_match_cases and best_qualification *)
 let complete_match ce se ty pm_comp ty_check = 
   let (gvn_pats, depth) = 
     match pm_comp with

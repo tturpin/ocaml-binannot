@@ -25,3 +25,4 @@ val main : string -> Interface.range list -> Outcometree.out_type list
       ast. The order of the types in the result is the same as
       the order of the ranges *)
   
+val type_of_pat : Typedtree.structure -> Location.t -> Outcometree.out_type
