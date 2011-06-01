@@ -248,23 +248,18 @@ let index_variables fct tbl pat =
     }
   in index_vars pat  
       
-let check_unicity ty_check var i =  
+let check_unicity (env, _) var i =  
   let rec next_free env var i = 
     try 
       let lid = if i = 1 then Lident var else Lident (sprintf "%s%d" var i) in
       let _ = Env.lookup_value lid env in
       next_free env var (i + 1)
     with Not_found -> i
-  in 
-  match ty_check with
-      None ->  i
-    | Some (env,_) -> next_free env var i
-	    
+  in next_free env var i
 	
 let extract_match_cases max ty ty_check = 
   if !Common_config.debug then
-    Format.eprintf "> Extract match cases : %s @."
-      (if ty_check = None then "[Without Env]" else "[With Env]");
+    Format.eprintf "> Extract match cases : %s @." "[With Env]";
  let rec f cpt acc = 
     if cpt = 0 then acc
     else 

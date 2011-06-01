@@ -251,8 +251,11 @@ let filter_match mi_lis pm_comp =
 	let res = 
 	  let depth  = !Common_config.match_depth in
 	  let assoc = L.assoc 1 mi_lis in 
+	  assoc
+(*
 	  if depth = 1 && L.length assoc <> 1 then  assoc
 	  else L.assoc 2 mi_lis
+*)
 	in 
 	if !Common_config.debug then
 	  begin

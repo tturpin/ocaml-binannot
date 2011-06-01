@@ -75,7 +75,7 @@ PATH_FILTER     = $(PATH_COMPLETION)filtering/
 PATH_PRINT      = $(PATH_COMPLETION)printing/
 
 GEN_ANNOT = #@OCAMLANNOT@
-
+GEN_ANNOT = -annot
 
 ################################################
 
@@ -118,10 +118,6 @@ BIN_GUI   = gui
 BIN_SCAN  = scan
 
 GENERATED=                              \
-	$(PATH_PARSING)lexer.ml         \
-	$(PATH_PARSING)parser.ml        \
-	$(PATH_PARSING)parser.mli       \
-	$(PATH_PARSING)linenum.ml       \
 	$(PATH_SYNTACTIC)owz_lexer.ml   \
 	$(PATH_SYNTACTIC)owz_parser.mli \
 	$(PATH_SYNTACTIC)owz_parser.ml  \
@@ -166,6 +162,7 @@ CMO_EXTRACT = \
 CMX_EXTRACT = $(CMO_EXTRACT:.cmo=.cmx)
 
 CMO_COMMON =                           	\
+	$(PATH_COMMON)setting.cmo         \
 	$(PATH_COMMON)debug.cmo         \
 	$(PATH_COMMON)common_config.cmo \
 	$(PATH_COMMON)util.cmo          \
@@ -227,7 +224,8 @@ CMO_TYPING =                        	\
 	$(PATH_TYPING)typecore.cmo 	\
 	$(PATH_TYPING)typedecl.cmo	\
 	$(PATH_TYPING)typeclass.cmo 	\
-	$(PATH_TYPING)typemod.cmo
+	$(PATH_TYPING)typemod.cmo      \
+	$(PATH_TYPING)untypeast.cmo
 #	$(PATH_REFACTOR)locate.cmo 	\
 #	$(PATH_REFACTOR)owz_merge.cmo 	\
 #	$(PATH_REFACTOR)rename.cmo \
@@ -238,7 +236,6 @@ CMO_TYPING =                        	\
 CMX_TYPING = $(CMO_TYPING:.cmo=.cmx)
 
 CMO_UTILS =                       	\
-	$(PATH_COMMON)setting.cmo         \
 	$(PATH_UTILS)misc.cmo 		\
 	$(PATH_UTILS)tbl.cmo 		\
 	$(PATH_UTILS)config.cmo 	\
@@ -407,13 +404,7 @@ $(CMO_COMPLETION):$(CMO_COMMON) $(CMO_SYNTACTIC) $(CMO_C_TYPING) $(CMO_EXTRACT) 
 $(CMO_PRINT)     :$(CMO_COMMON)
 $(CMO_EXTRACT)   :$(CMO_COMMON)
 
-
-$(CMO_OCAML):$(CMO_UTILS) $(CMO_PARSING) $(CMO_TYPING) 
-
-#$(CMO_TYPING):$(CMO_UTILS) $(CMO_PARSING)
-
-#$(CMO_PARSING):$(CMO_UTILS)
-
+ 
 common/setting.ml: config.status
 	echo "let stdlib = \""$(LIBDIR)"\"" > $@
 
@@ -598,10 +589,6 @@ clean:
 	cd $(PATH_PRINT) ;$(rmcmd)
 	cd $(PATH_OWZ) ; $(rmcmd)
 	cd $(PATH_COMPLETION) ; $(rmcmd)
-	cd $(PATH_UTILS) ; $(rmcmd)
-	cd $(PATH_PARSING) ; $(rmcmd)
-	cd $(PATH_TYPING) ; $(rmcmd)
-	cd $(PATH_DRIVER) ; $(rmcmd)
 	rm $(GENERATED)
 	rm -f $(BIN).* $(BIN_GUI).* $(BIN_SCAN).* $(BIN_ANNOT).*
 	make -C standard_library clean

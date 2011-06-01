@@ -209,7 +209,13 @@ module Lpp = struct
 		fprintf fmt "%a %a" print_lid lid print_pattern p.ppat_desc
 	end
 	  
-    | Ppat_variant (la, pat_option)    -> assert false
+    | Ppat_variant (lbl, pat_opt)    ->
+	begin
+	  match pat_opt with
+	    | None -> fprintf fmt "`%s" lbl
+	    | Some p -> 
+		fprintf fmt "`%s %a" lbl print_pattern p.ppat_desc
+	end
     | Ppat_record (c_lis, _)           -> fprintf fmt "{ %a }" print_record c_lis
     | Ppat_array pat_lis               -> fprintf fmt "[%a]" print_array pat_lis
     | Ppat_or (pat1, pat2)             -> 

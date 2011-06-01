@@ -30,6 +30,6 @@ val build_match_comp :
 val extract_match_cases :
   int ->
   Outcometree.out_type ->
-  (Env.t * 'a) option -> (int * Parsetree.pattern list) list
+  Env.t * 'a -> (int * Parsetree.pattern list) list
   (** Builds cases a list from the mais type of match expression's type
       The environment is used to choose fresh variable names. *)

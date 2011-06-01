@@ -82,19 +82,19 @@ let main annot_name range_list =
   let ast = parse_annot annot_name 
   in List.map (get_type ast) range_list
 
-exception Found of Types.type_expr
+exception Found of Typedtree.expression
   
-let type_of_pat structure loc =
+let type_of_exp structure loc =
   let module Type_of_pat =
 	Typedtree.MakeIterator (struct
 	  include Typedtree.DefaultIteratorArgument
 	  let enter_expression e =
 	    if e.Typedtree.exp_loc = loc then
-	      raise (Found e.Typedtree.exp_type)
+	      raise (Found e)
 	end)
   in
   try
     Type_of_pat.iter_structure structure;
     raise Not_found
   with
-      Found t -> Printtyp.tree_of_typexp false t
+      Found t -> t

@@ -28,22 +28,6 @@ open Interface
 
 exception Compilation_failed
 
-(** *)
-let compile_file ce = 
-  let f_aux e ac = sprintf "-I %s %s" e ac in
-  let dirs = List.fold_right f_aux  ce.includ "" in
-  let cmd = 
-    sprintf "%s %s %s.ml " Common_config.ocaml_compiler dirs ce.fb_name 
-  in
-  let cmd_res = Unix.system cmd in
-  match cmd_res with 
-    | Unix.WEXITED 0 ->
-	if !Common_config.debug then
-	  Format.eprintf "compilation succeeded@."
-    | _ -> 
-	if !Common_config.debug then
-	  Format.eprintf "compilation failed@."
-
 (* Copied from driver/compile (to avoid many dependencies) *)
 let initial_env () =
   Ident.reinit();
@@ -55,9 +39,12 @@ let initial_env () =
     Misc.fatal_error "cannot open pervasives.cmi"
 
 let compile_file s_env c_env =
-  let modulename =
-    String.capitalize (Filename.basename (Filename.chop_extension c_env.fb_name))
-  in
+  let prefix = Filename.chop_extension c_env.fb_name in
+  (* Maybe we should avoid using ".". *)
+  let outputprefix = prefix ^ ".ocamlwizard" in
+  (* We change the module name accordingly because it is checked against
+     the file name when reading .cmi files. *)
+  let modulename = String.capitalize (Filename.basename outputprefix) in
   Clflags.include_dirs := (*! Clflags.include_dirs @*) c_env.includ;
   let exp_dirs =
     List.map (Misc.expand_directory Config.standard_library) !Clflags.include_dirs in
@@ -65,13 +52,10 @@ let compile_file s_env c_env =
   Clflags.compile_only := true;
   let env = initial_env () in
   (* The source file is used to look for a .mli, thus we give the name
-     of the temp file. *)
-  let res =
-    Typemod.type_implementation
-      c_env.fb_name c_env.fb_name modulename env s_env.ast
-  in
-  Stypes.dump (c_env.fb_name ^ ".annot");
-  res
+     of the (non-existing) temp .ml file. *)
+  Typemod.type_implementation
+    (outputprefix ^ ".ml") outputprefix modulename env s_env.ast,
+  {c_env with fb_name = outputprefix}
 
 (** *)
 let write_to_file ce se = 
@@ -128,66 +112,47 @@ let main ce =
   step "Sytactic completion";
   let se, ce  = Syntax_completion.main ce in
   if !Common_config.debug then Debug.print_c_sort se.comp;
- 
+
+(* 
   (* + writing the completed file *)
   let ce = write_to_file ce se in
- 
+*)
+
   (* + compiling the completed file *)
   step "Compiling the completed file";
-  let structure, coercion = compile_file se ce in
+  let (structure, coercion), ce = compile_file se ce in
   
   (* Exiting with the error code (for auto-test) *)
   if !Common_config.compile_only then
     Debug.exit_with_code (!Common_config.dot_test) se.comp;
     
-  (* 2.1 - Reading the type from .annot *)
   step "Expression typing";
-  let ty_lis = 
-(*
-    Expression_typing.main (ce.fb_name^".annot")(mk_list_rg se) 
-*)
-    let range = match Parsing_env.parser_state.match_exp with
-      | Some e -> e.Parsetree.pexp_loc
-      | None -> assert false in
-    [Expression_typing.type_of_pat structure range]
+  let match_exp =
+    match Parsing_env.parser_state.match_exp with
+      | Some e ->
+	Expression_typing.type_of_exp structure e.Parsetree.pexp_loc
+      | None -> assert false
   in
+
+  let pattern_type = match_exp.Typedtree.exp_type in
+
+  let ty_lis = [
+    Printtyp.tree_of_typexp false pattern_type
+  ] in
   out_types_from_annot ty_lis ;
   
   (* 2.2 - Type_checking*)
   step "Additionnal step : type-checking the file [ for pattern matching]";
-  let ty_check = 
-    None
-(*
-    if !Common_config.match_annot then None
-    else 
-      match se.comp with
-	| Match _ ->
-	    begin
-	      try
-		Common_config.loc := (se.exp_rg.b, se.exp_rg.e) ;
-		List.iter (fun s -> 
-		  Clflags.include_dirs := s :: !Clflags.include_dirs)
-		  (List.rev ce.includ);
-		
-		Main.main [| "ocamlwizard"; ce.fb_name ^ ".ml" |];
-		Debug.unreachable "Completion" 1
-	      with 
-		| Sc_completion.Partial_env (env,ty_pat) ->
-		    Printtyp.type_expr Format.err_formatter ty_pat;
-		    Some (env, ty_pat)
-	    end
-	| _  -> None
-*)
-  in
+  let ty_check = match_exp.Typedtree.exp_env, pattern_type in
   
   (* 3 - Extracting propositions *)
   step "Proposal extraction";
   let c_res = Proposal_extraction.main ce se ty_lis ty_check in
-  
+
   (* 4 - Filtering propositions *)
   step "Proposal filtering";
   let c_res  = Proposal_filtering.main c_res ty_lis in
-  
+
   (* 5 - Printing the result in a formatter *)
   step "Proposal printing";
   Proposal_printing.main std_formatter ty_lis c_res ce.c_printer;

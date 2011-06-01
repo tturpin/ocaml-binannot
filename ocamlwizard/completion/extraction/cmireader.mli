@@ -17,6 +17,8 @@
 
 (** This module extracts information about types from .cmi files *)
 
+(* values_of_type is used by match_extraction ; the other functions
+   by path_extraction. *)
 
 val get_signature : string -> Outcometree.out_sig_item list
   (** reads a .cmi file and builds a signature = item list *)

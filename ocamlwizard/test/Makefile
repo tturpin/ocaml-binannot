@@ -1,5 +1,5 @@
 test:
-	OCAMLRUNPARAM=b ../owz.byte completion test.ml -pos 28 -printer ocaml-pp
+	OCAMLRUNPARAM=b ../owz.byte completion test.ml -pos `wc -c test.ml` -printer ocaml-pp
 
 clean:
 	rm -f *~ *.cm* *ocamlwizard_tmp_file.* *.annot
