@@ -1,0 +1,5 @@
+OCAMLRUNPARAM=b OCAMLLIB=/usr/local/lib/ocaml \
+~/experiences/ocaml-binannot/boot/ocamlrun \
+~/experiences/ocaml-binannot/ocamlwizard/owz.byte -debug $* \
+2>~/experiences/ocaml-binannot/ocamlwizard/emacs/error-output \
+| tee ~/experiences/ocaml-binannot/ocamlwizard/emacs/standard-output

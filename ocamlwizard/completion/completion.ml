@@ -38,7 +38,7 @@ let initial_env () =
   with Not_found ->
     Misc.fatal_error "cannot open pervasives.cmi"
 
-let compile_file s_env c_env =
+let compile_file ast c_env =
   let prefix = Filename.chop_extension c_env.fb_name in
   (* Maybe we should avoid using ".". *)
   let outputprefix = prefix ^ ".ocamlwizard" in
@@ -51,20 +51,10 @@ let compile_file s_env c_env =
   Config.load_path := "" :: List.rev_append exp_dirs (Clflags.std_include_dir ());
   Clflags.compile_only := true;
   let env = initial_env () in
-  (* The source file is used to look for a .mli, thus we give the name
-     of the (non-existing) temp .ml file. *)
-  Typemod.type_implementation
-    (outputprefix ^ ".ml") outputprefix modulename env s_env.ast,
-  {c_env with fb_name = outputprefix}
-
-(** *)
-let write_to_file ce se = 
-  let ce = { ce with fb_name = ce.fb_name ^ "ocamlwizard_tmp_file" } in
-  let out_ch = open_out (ce.fb_name ^ ".ml") in
-  output_string out_ch se.cprog;
-  flush out_ch ; 
-  close_out out_ch;
-  ce
+  (* This is probably not needed *)
+  Typecore.reset_delayed_checks ();
+  let str, _, _ = Typemod.type_structure env ast Location.none in
+  str, {c_env with fb_name = outputprefix}
 
 (** *)
 let mk_list_rg se = 
@@ -74,15 +64,6 @@ let mk_list_rg se =
   in 
   if se.exp_rg = Parsing_env.dummy_range then lis 
   else se.exp_rg::lis
-
-(** *)
-let rec find_qualif env lid = function
-  |[] -> Env.lookup_constructor lid env
-  | p::r -> 
-      begin
-	try Env.lookup_constructor lid env
-	with _ -> find_qualif env (Longident.Ldot (lid,p)) r
-      end
 
 (** *)
 let step msg = 
@@ -105,7 +86,7 @@ let out_types_from_annot ty_lis =
 	| _   -> 
 	    Debug.unreachable "Comletion" 7
     )
-  
+
 (** *)
 let main ce = 
   (* 1 - parsing the file *)
@@ -113,14 +94,12 @@ let main ce =
   let se, ce  = Syntax_completion.main ce in
   if !Common_config.debug then Debug.print_c_sort se.comp;
 
-(* 
-  (* + writing the completed file *)
-  let ce = write_to_file ce se in
-*)
+  (* Avoids an error when trying to locate a warning *)
+  Location.input_name := "";
 
   (* + compiling the completed file *)
   step "Compiling the completed file";
-  let (structure, coercion), ce = compile_file se ce in
+  let structure, ce = compile_file se.ast ce in
   
   (* Exiting with the error code (for auto-test) *)
   if !Common_config.compile_only then

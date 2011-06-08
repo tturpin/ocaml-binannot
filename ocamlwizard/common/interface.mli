@@ -55,9 +55,12 @@ type path_completion = {
     
   (** *)
 type pm_completion =
-    | AllCs 
+    | AllCs
+    (* match e with . EOF *)
     | MissCs   of Parsetree.pattern list
+    (* match e with p -> e' . EOF *)
     | BranchCs of (Parsetree.pattern * Parsetree.pattern list)
+    (* match e with p -> e' | (.. x. ..) -> EOF *)
 	
 (** Sort of approptiate completion, determined by parsing *)
 type completion_sort = 
@@ -67,14 +70,14 @@ type completion_sort =
     | Other 
     | Error of exn
 	
-
+(* Parser state with respect to completion. *)
 type parser_env = {
   mutable subs_code    : string;
   mutable c_sort       : completion_sort ; (* The kind of completion
 					      to perform *)
   mutable match_exp : Parsetree.expression option; (* The matched
 						      expression *)
-  mutable c_cut_pos    : int;
+  mutable c_cut_pos    : int; (* *)
   mutable rec_inited   : bool;
   mutable closing      : string list;
   mutable prog      : string;

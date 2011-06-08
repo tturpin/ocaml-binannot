@@ -306,13 +306,13 @@ let rec patterns env t =
     | Tvar _ -> failwith "var"
     | _ -> [mk_pattern Ppat_any]
 
-let complete_match ce se ty pm_comp (env, t) =
+let complete_match ce ty pm_comp (env, t) =
   let ps = patterns env t in
   C_match (ME [1, ps], pm_comp)
 
 let main ce se ty_lis ty_check = 
   match se.comp, ty_lis with
-    | Match pm_comp, [ty] -> complete_match ce se ty pm_comp ty_check
+    | Match pm_comp, [ty] -> complete_match ce ty pm_comp ty_check
     | (Path  pc, _)       -> complete_path ce se pc ty_lis
     | (Try pm,  [])       -> assert false
     | _                   -> unreachable "Proposal_extraction" 4

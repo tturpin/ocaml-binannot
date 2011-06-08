@@ -128,6 +128,12 @@ let string_start_loc = ref Location.none;;
 let comment_start_loc = ref [];;
 let in_comment () = !comment_start_loc <> [];;
 
+(** Reset the string and comment state. *)
+let reset () =
+  reset_string_buffer ();
+  string_start_loc := Location.none;
+  comment_start_loc := []
+
 (* To translate escape sequences *)
 
 let char_for_backslash = function
@@ -420,7 +426,7 @@ and comment = parse
         with Error (Unterminated_string, _) ->
           match !comment_start_loc with
           | [] -> assert false
-          | loc :: _ -> comment_start_loc := [];
+          | loc :: _ -> (*comment_start_loc := [];*)
                         raise (Error (Unterminated_string_in_comment, loc))
         end;
         reset_string_buffer ();
@@ -442,7 +448,7 @@ and comment = parse
   | eof
       { match !comment_start_loc with
         | [] -> assert false
-        | loc :: _ -> comment_start_loc := [];
+        | loc :: _ -> (*comment_start_loc := [];*)
                       raise (Error (Unterminated_comment, loc))
       }
   | newline

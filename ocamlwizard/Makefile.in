@@ -66,6 +66,7 @@ PATH_DRIVER     = $(PATH_OCAML)driver/
 PATH_STDLIB     = $(PATH_OCAML)stdlib/
 PATH_OTHERLIBS     = $(PATH_OCAML)otherlibs/
 PATH_STR     = $(PATH_OCAML)otherlibs/str/
+PATH_UNIX     = $(PATH_OCAML)otherlibs/unix/
 
 #path in completion
 PATH_SYNTACTIC  = $(PATH_COMPLETION)syntactic/
@@ -85,7 +86,7 @@ FLAG_DRIVER     = -I $(PATH_DRIVER)
 FLAG_TYPING     = -I $(PATH_TYPING)
 FLAG_PARSING    = -I $(PATH_PARSING)
 FLAG_STDLIB     = -I $(PATH_STDLIB)
-FLAG_OTHERLIBS  = -I $(PATH_OTHERLIBS) -I $(PATH_STR)
+FLAG_OTHERLIBS  = -I $(PATH_OTHERLIBS) -I $(PATH_STR) -I $(PATH_UNIX)
 FLAG_COMPLETION = -I $(PATH_COMPLETION)
 FLAG_UTILS      = -I $(PATH_UTILS)
 FLAG_COMMON     = -I $(PATH_COMMON)
@@ -119,11 +120,13 @@ BIN_SCAN  = scan
 
 GENERATED=                              \
 	$(PATH_SYNTACTIC)owz_lexer.ml   \
-	$(PATH_SYNTACTIC)owz_parser.mli \
 	$(PATH_SYNTACTIC)owz_parser.ml  \
 	$(PATH_C_TYPING)annotlexer.ml   \
 	$(PATH_C_TYPING)annotparser.mli \
 	$(PATH_C_TYPING)annotparser.ml
+
+# removed to directly access the parser table
+#	$(PATH_SYNTACTIC)owz_parser.mli \
 
 CMO = $(PATH_MAIN)ocamlwizard.cmo 
 CMX = $(CMO:.cmo=.cmx)
@@ -136,6 +139,9 @@ CMO_SYNTACTIC = \
 	$(PATH_SYNTACTIC)parsing_env.cmo	\
 	$(PATH_SYNTACTIC)owz_parser.cmo       	\
 	$(PATH_SYNTACTIC)owz_lexer.cmo       	\
+	$(PATH_COMMON)diff.cmo       	\
+	$(PATH_COMMON)incLexer.cmo       	\
+	$(PATH_COMMON)incParser.cmo       	\
 	$(PATH_SYNTACTIC)syntax_completion.cmo
 
 
@@ -306,7 +312,8 @@ CMO_ALL = $(CMO_COMMON) \
 
 CMX_ALL = $(CMO_ALL:.cmo=.cmx)
 
-LIBS = graph.cma str.cma unix.cma 
+LIBS = str.cma unix.cma 
+# graph.cma
 OLIBS = $(LIBS:.cma=.cmxa)
 
 
@@ -431,29 +438,34 @@ $(CMX_PARSING):$(CMX_UTILS)
 .SUFFIXES: .mli .ml .cmi .cmo .mll .mly .o .cmx
 
 .mli.cmi:
-	-ocamlwizard compile $(BFLAGS) `pwd`/$< 
 	$(OCAMLC) -c $(BFLAGS) $<
+
+#	-ocamlwizard compile $(BFLAGS) `pwd`/$< 
 
 .ml.cmo:
-	-ocamlwizard compile $(BFLAGS) `pwd`/$< 
 	$(OCAMLC) -c $(BFLAGS) $<
 
+#	-ocamlwizard compile $(BFLAGS) `pwd`/$< 
+
 .ml.o:
-	-ocamlwizard compile $(OFLAGS) `pwd`/$< 
 	$(OCAMLOPT) -c $(OFLAGS) $<
 
+#	-ocamlwizard compile $(OFLAGS) `pwd`/$< 
+
 .ml.cmx:
-	-ocamlwizard compile $(OFLAGS) `pwd`/$< 
 	$(OCAMLOPT) -c $(OFLAGS) $<
+
+#	-ocamlwizard compile $(OFLAGS) `pwd`/$< 
 
 .mll.ml:
 	$(OCAMLLEX) $<
 
 .mly.ml:
 	$(OCAMLYACC) -v $<
+	rm $@i
 
-.mly.mli:
-	$(OCAMLYACC) -v $<
+#.mly.mli:
+#	$(OCAMLYACC) -v $<
 
 # running ocamlwizard on ocaml std lib
 ######################################

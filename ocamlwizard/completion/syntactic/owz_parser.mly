@@ -187,6 +187,9 @@ let mkuplus name arg =
    raise(Syntaxerr.Error(Syntaxerr.Unclosed(rhs_loc opening_num, opening_name,
 					    rhs_loc closing_num, closing_name)))
 
+ (* This would interfer with backtracking. *)
+ let unclosed _ _ _ _ = raise Parse_error
+
  let bigarray_function str name =
    Ldot(Ldot(Lident "Bigarray", str), name)
 
@@ -447,6 +450,15 @@ let mkuplus name arg =
  top_structure:
      structure_item                       { [$1] }
    | structure_item top_structure         { $1 :: $2 }
+/*
+   | error structure_tail {
+       let loc_start = rhs_start 1 and loc_end = rhs_end 1 in
+	 if assert false then
+	   $2
+	 else
+	   raise Parse_error
+     }
+*/
  ;
  use_file:
      use_file_tail                        { $1 }

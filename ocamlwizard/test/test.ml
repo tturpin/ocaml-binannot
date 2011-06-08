@@ -5,4 +5,6 @@ end
 
 open M
 
-let () = match M.A with 
+let () = match {a = () ; b = ()} with _ -> assert false
+
+let _ = ()
