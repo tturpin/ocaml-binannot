@@ -40,3 +40,6 @@ module Lpp :
 sig
   val print_pattern : Format.formatter -> Parsetree.pattern_desc -> unit
 end
+
+val debug : ('a, out_channel, unit) format -> 'a
+val debugln : ('a, out_channel, unit) format -> 'a

@@ -21,6 +21,7 @@ open Tags
 open Format
 open Lexing
 open Interface
+open Util
 
 (** Transform a flux/stream in string and close flux/stream *)
 let close_flux_to_str flux_in = 
@@ -75,20 +76,33 @@ let completed_file ce se state prog  =
 	Format.eprintf "Completion non geree:\n%s"
 	  "type de completion specifie differe de celui calcule par le parser.";
 	exit 2
-	  
-let default_parser c_env s = 
+
+(* We don't want to backtrack on the last chunk. *)
+let rec enforce_last_modification = function
+  | [] | [Diff.Same _] as m -> m
+  | [Diff.Changed (_, s)] -> [Diff.Same s]
+  | t :: q -> t :: enforce_last_modification q
+
+let default_parser c_env s f = 
   let pos = c_env.c_rg.e in
   let s_sz = String.length s in
-  
   if s_sz < pos then (
       Format.eprintf " Error : The (-pos) is greater than the file's size\n@?";
       exit 1
     );
   let str = if pos < 0 then s else String.sub s 0 pos in
+  debug "Cutting at position %d..." pos;
+  let f =
+    enforce_last_modification
+      (if pos < 0 then f else Diff.cut_new pos f)
+  in
+  debugln " OK";
+  if !Common_config.debug then (
+    Diff.print_modified stderr f ; prerr_endline "EOF"
+  );
   
   (** Initialize environnements and complete syntaxically code with parser *)
   let buf = from_string str in
-  prerr_endline (str ^ "EOF");
   init_completion_env str;
   let s_env = {
       ast      = [];
@@ -98,9 +112,22 @@ let default_parser c_env s =
       closures = [];
       exp_rg   = dummy_range;
       asf_rg   = dummy_range}
-  in 
+  in
   try  
+(*
     let caml_ast = Owz_parser.implementation Owz_lexer.token buf in 
+*)
+   debug "Parsing...";
+   let caml_ast =
+     try IncParser.implementation f
+     with e ->
+       prerr_endline (Printexc.to_string e);
+       Printexc.print_backtrace stderr;
+       raise e
+   in
+   debugln " OK";
+   if !Common_config.debug then
+     Printast.implementation Format.err_formatter caml_ast;
     let s_env = { 
 	s_env with 
 	  ast      = caml_ast ; 
@@ -110,9 +137,13 @@ let default_parser c_env s =
       }
     in completed_file c_env s_env parser_state str
   with e ->  { s_env with comp = Error e }, c_env
-		
-let main c_env = 
+
+let main c_env =
+  debug "Reading modified file...";
+  let f = Diff.read_modified_file
+    (c_env.fb_name ^ ".last_compiled") c_env.fb_name in
+  debugln " OK";
   let s = close_flux_to_str (open_in c_env.fb_name) in
   match c_env.c_parser with
-    | Default_parser -> default_parser c_env s
+    | Default_parser -> default_parser c_env s f
 

@@ -94,6 +94,8 @@ type parser_env =
     mutable state : int;                (* Saved state for parse_engine *)
     mutable errflag : int }             (* Saved error flag for parse_engine *)
 
+val env : parser_env
+
 type parse_tables =
   { actions : (parser_env -> Obj.t) array;
     transl_const : int array;

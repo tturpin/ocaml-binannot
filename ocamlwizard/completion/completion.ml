@@ -94,7 +94,7 @@ let main ce =
   let se, ce  = Syntax_completion.main ce in
   if !Common_config.debug then Debug.print_c_sort se.comp;
 
-  (* Avoids an error when trying to locate a warning *)
+  (* Avoids an error when type inference tries to locate a warning *)
   Location.input_name := "";
 
   (* + compiling the completed file *)

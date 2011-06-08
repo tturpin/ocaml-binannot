@@ -225,3 +225,14 @@ module Lpp = struct
 	
 end
   
+let debug f =
+  if !Common_config.debug then
+    Printf.kfprintf flush stderr f
+  else
+    Printf.ifprintf stderr f
+
+let debugln f =
+  if !Common_config.debug then
+    Printf.kfprintf (function c -> Printf.fprintf c "\n%!") stderr f
+  else
+    Printf.ifprintf stderr f

@@ -82,6 +82,29 @@ type chunk =
   | Same of string
   | Changed of string * string (* old, new *)
 
+let rec cut_new count = function
+  | (Same s | Changed (_, s)) as c :: chunks ->
+    let l = String.length s in
+    if count <= l then
+      let s = String.sub s 0 count in
+      let c =
+	match c with
+	  | Same _ -> Same s
+	  | Changed (old, _) -> Changed (old, s)
+      in
+      [c]
+    else
+      c :: cut_new (count - l) chunks
+  | [] ->  if count = 0 then [] else invalid_arg "cut_new"
+
+let print_modified c =
+  List.iter
+    (function
+      | Same s -> Printf.fprintf c "%s" s
+      | Changed (old, last) ->
+	Printf.fprintf c "*** REPLACED ***\n%s*** WITH ***\n%s*** END ***\n"
+	  old last)
+
 (* goto b acc (count, l) pops elements from l while incrementing
    counts and pushes them on acc, until count >= b (so, we move b -
    count elements, or 0 if count > b). *)
@@ -104,15 +127,21 @@ let rec modified_file = function
    versions. *)
 let modified_file old diff = modified_file (1, diff, old)
 
-let read_modified_file old_file new_file =
-  let diff_file = Filename.temp_file
-    (Filename.basename new_file ^ "-" ^ Filename.basename old_file) ".diff" in
-  (match Sys.command ("diff -f " ^ old_file ^ " " ^ new_file ^ " >" ^ diff_file) with
-    | 1 -> ()
-    | _ -> failwith "error when invoking diff");
-  let old = lines_of old_file
-  and diff = parse_diff_file diff_file in
-  modified_file old diff
+let read_modified_file ?(empty_absent = true) old_file new_file =
+  match Sys.file_exists old_file, Sys.file_exists new_file with
+    | true, true ->
+      let diff_file = Filename.temp_file
+	(Filename.basename new_file ^ "-" ^ Filename.basename old_file) ".diff" in
+      (match Sys.command ("diff -f " ^ old_file ^ " " ^ new_file ^ " >" ^ diff_file) with
+	| 1 -> ()
+	| _ -> failwith "error when invoking diff");
+      let old = lines_of old_file
+      and diff = parse_diff_file diff_file in
+      modified_file old diff
+    | _ when not empty_absent -> invalid_arg "read_modified_file"
+    | false, true -> [Changed ("", List.fold_left ( ^ ) "" (lines_of new_file))]
+    | true, false -> [Changed (List.fold_left ( ^ ) "" (lines_of old_file), "")]
+    | false, false -> [Same ""]
 
 (*
   let o = lines_of "../test/test.ml"

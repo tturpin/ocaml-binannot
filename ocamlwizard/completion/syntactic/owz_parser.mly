@@ -1221,12 +1221,14 @@ class_sig_field:
      /* _correct_1 */
    | MATCH seq_expr WITH EOF { 
 	   
-	 
+	 Util.debug "MATCH seq_expr WITH EOF...";
 	 let _ = update_match $2 AllCs (symbol_end ()) "" in ();
 	 update_cut_pos (symbol_start());
 	 let s = Format.sprintf " %s with %s -> %s"
 	   (get_expr (symbol_start())(rhs_end 2)) Tags.tagged_any Tags.asf
-	 in print s;
+	 in
+	 print s;
+	 Util.debugln " OK";
 	 
 	 mkexp(Pexp_match($2, [(pat_any,exp_af)]))
        

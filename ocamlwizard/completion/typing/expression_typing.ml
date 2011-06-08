@@ -24,6 +24,7 @@ open Lexing
 open Outcometree
 open Annotast
 open Debug
+open Util
 
 (** This exception is raised by the function get_type if there is no
     type in the given range *)
@@ -85,6 +86,10 @@ let main annot_name range_list =
 exception Found of Typedtree.expression
   
 let type_of_exp structure loc =
+  debugln "looking for expression at loc:";
+  if !Common_config.debug then
+    Location.print Format.err_formatter loc;
+  debugln "";
   let module Type_of_pat =
 	Typedtree.MakeIterator (struct
 	  include Typedtree.DefaultIteratorArgument

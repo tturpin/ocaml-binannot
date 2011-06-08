@@ -122,10 +122,10 @@ GENERATED=                              \
 	$(PATH_SYNTACTIC)owz_lexer.ml   \
 	$(PATH_SYNTACTIC)owz_parser.ml  \
 	$(PATH_C_TYPING)annotlexer.ml   \
-	$(PATH_C_TYPING)annotparser.mli \
 	$(PATH_C_TYPING)annotparser.ml
 
 # removed to directly access the parser table
+#	$(PATH_C_TYPING)annotparser.mli \
 #	$(PATH_SYNTACTIC)owz_parser.mli \
 
 CMO = $(PATH_MAIN)ocamlwizard.cmo 
@@ -444,6 +444,7 @@ $(CMX_PARSING):$(CMX_UTILS)
 
 .ml.cmo:
 	$(OCAMLC) -c $(BFLAGS) $<
+	cp $< $<.last_compiled
 
 #	-ocamlwizard compile $(BFLAGS) `pwd`/$< 
 
@@ -588,7 +589,7 @@ dep.svg:
 	| ocamldot \
 	| dot -Gratio=compress -Tsvg -o $@
 
-rmcmd= rm -f *.owz *.o *.annot *.cm[iox] *~*  *.output .depend
+rmcmd= rm -f *.cmt *.cmti *.o *.annot *.cm[iox] *~*  *.output .depend *.last_compiled
 
 clean:
 	cd $(PATH_MAIN) ; $(rmcmd)

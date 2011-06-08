@@ -164,7 +164,7 @@ let parse_with_errors parse lexer old_file new_file =
     and diff = parse_diff_file diff_file in
       best_lexicographic [] (try_parse parse lexer old) diff
 *)
-
+(*
 let initial_env () =
   { s_stack = Array.create 100 0;
     v_stack = Array.create 100 (Obj.repr ());
@@ -182,6 +182,7 @@ let initial_env () =
     sp = 0;
     state = 0;
     errflag = 0 }
+*)
 
 let print_env env =
   Printf.printf "stackbase=%d ; curr_char=%d, asp=%d, sp=%d\n%!"
@@ -212,12 +213,12 @@ let copy_env env = {
     symb_start_stack = Array.copy env.symb_start_stack;
     symb_end_stack = Array.copy env.symb_end_stack
   }
-(*
+
 let restore_env_from env =
-  Parsing.env.s_stack <- env.s_stack;
-  Parsing.env.v_stack <- env.v_stack;
-  Parsing.env.symb_start_stack env.symb_start_stack;
-  Parsing.env.symb_end_stack <- env.symb_end_stack;
+  Parsing.env.s_stack <- Array.copy env.s_stack;
+  Parsing.env.v_stack <- Array.copy env.v_stack;
+  Parsing.env.symb_start_stack <- Array.copy env.symb_start_stack;
+  Parsing.env.symb_end_stack <- Array.copy env.symb_end_stack;
   Parsing.env.stacksize <- env.stacksize;
   Parsing.env.stackbase <- env.stackbase;
   Parsing.env.curr_char <- env.curr_char;
@@ -230,7 +231,7 @@ let restore_env_from env =
   Parsing.env.sp <- env.sp;
   Parsing.env.state <- env.state;
   Parsing.env.errflag <- env.errflag
-*)
+
 
 (* Backtracking version of Parsing.yyparse. The lexer function now
    takes two additional arguments: push is called by the lexer when it
@@ -240,17 +241,19 @@ let restore_env_from env =
    returned together with the lexer, which should be called in case of
    parse error. *)
 let backtracking_yyparse tables start make_lexer =
+(*
   let env = ref (initial_env ())
-  and env_snapshot = ref (initial_env ())
+*)
+  let env_snapshot = ref (copy_env env) (*(initial_env ())*)
   and cmd = ref Start
   and arg = ref (Obj.repr ())
   and stack = Stack.create ()
   and current_lookahead_fun = ref (fun (x : Obj.t) -> false) in
   let push () =
-(*
-    print_endline "pushing snapshot";
-    print_env ! env_snapshot;
-*)
+    (*
+      print_endline "pushing snapshot";
+      print_env ! env_snapshot;
+    *)
     Stack.push
       Owz_lexer.(
 	!string_buff, !string_index, !string_start_loc, !comment_start_loc,
@@ -267,58 +270,61 @@ let backtracking_yyparse tables start make_lexer =
       comment_start_loc := comment_start;
       (* We need a second copy because the snapshot can be shared
 	 between several states on the backtracking stack. *)
+(*
       env := copy_env env';
-      env_snapshot := !env;
+*)
+      restore_env_from env';
+      env_snapshot := env';
       cmd := cmd';
       arg := arg'
     )
   in
   let initial_pos, lexe, backtrack = make_lexer ~push ~pop in
 
-  let init_asp = !env.asp
-  and init_sp = !env.sp
-  and init_stackbase = !env.stackbase
-  and init_state = !env.state
-  and init_curr_char = !env.curr_char
-  and init_errflag = !env.errflag in
-  !env.stackbase <- !env.sp + 1;
-  !env.curr_char <- start;
-  !env.symb_end <- initial_pos;
+  let init_asp = env.asp
+  and init_sp = env.sp
+  and init_stackbase = env.stackbase
+  and init_state = env.state
+  and init_curr_char = env.curr_char
+  and init_errflag = env.errflag in
+  env.stackbase <- env.sp + 1;
+  env.curr_char <- start;
+  env.symb_end <- initial_pos;
   try
     let loop c a = cmd := c ; arg := a in
     while true do
-      env_snapshot := copy_env !env;
-(*
-      print_env !env;
-*)
+      env_snapshot := copy_env env;
+      (*
+	print_env env;
+      *)
       try 
-	match Parsing.parse_engine tables !env !cmd !arg with
+	match Parsing.parse_engine tables env !cmd !arg with
 	    Read_token ->
 	      let t, s, e = lexe () in
-              !env.symb_start <- s;
-              !env.symb_end <- e;
+              env.symb_start <- s;
+              env.symb_end <- e;
               loop Token_read (Obj.repr t)
 	  | Raise_parse_error ->
 	    raise Parse_error
 	  | Compute_semantic_action ->
             let (action, value) =
               try
-		(Semantic_action_computed, tables.actions.(!env.rule_number) !env)
+		(Semantic_action_computed, tables.actions.(env.rule_number) env)
               with Parse_error ->
 		(Error_detected, Obj.repr ()) in
             loop action value
 	  | Grow_stacks_1 ->
-            grow_stacks !env; loop Stacks_grown_1 (Obj.repr ())
+            grow_stacks env; loop Stacks_grown_1 (Obj.repr ())
 	  | Grow_stacks_2 ->
-            grow_stacks !env; loop Stacks_grown_2 (Obj.repr ())
+            grow_stacks env; loop Stacks_grown_2 (Obj.repr ())
 	  | Call_error_function ->
             tables.error_function "syntax error";
             loop Error_detected (Obj.repr ())
       with
 	| YYexit _ as e ->
-(*
-	  print_endline "OK";
-*)
+	  (*
+	    print_endline "OK";
+	  *)
 	  raise e
 	| e ->
 	  (*
@@ -326,20 +332,20 @@ let backtracking_yyparse tables start make_lexer =
 	    Printexc.print_backtrace stdout;
 	    print_endline "backtrack";
 	  *)
-	  backtrack ();
+	  try backtrack ();
+	  with No_backtracking -> raise e
     done;
     assert false
   with exn ->
-    let curr_char = !env.curr_char in
-    !env.asp <- init_asp;
-    !env.sp <- init_sp;
-    !env.stackbase <- init_stackbase;
-    !env.state <- init_state;
-    !env.curr_char <- init_curr_char;
-    !env.errflag <- init_errflag;
+    let curr_char = env.curr_char in
+    env.asp <- init_asp;
+    env.sp <- init_sp;
+    env.stackbase <- init_stackbase;
+    env.state <- init_state;
+    env.curr_char <- init_curr_char;
+    env.errflag <- init_errflag;
     match exn with
       | YYexit v -> Obj.magic v
-      | No_backtracking -> raise Parse_error
       | _ ->
         current_lookahead_fun :=
           (fun tok ->
@@ -356,9 +362,8 @@ let backtracking_parser tables start lexer chunks =
       and lexe () =
 	let t = lexer l.lexbuf in
 	take_snapshot l;
-(*
-	Printf.printf "|%s| %!" (Lexing.lexeme l.lexbuf);
-*)
+	Util.debug "|%d-%d: %s| %!"
+	  l.lexbuf.lex_start_pos l.lexbuf.lex_curr_pos (Lexing.lexeme l.lexbuf);
 	t, l.lexbuf.lex_start_p, l.lexbuf.lex_curr_p
       in
       initial_pos, lexe, backtrack
@@ -378,7 +383,7 @@ let _ = set_trace true
 
 let _ = exit 0
 
-*)
-
 let i = implementation (read_modified_file "test/test.ml" "test/test2.ml")
 let _ = Printast.implementation Format.std_formatter i ; exit 0
+
+*)

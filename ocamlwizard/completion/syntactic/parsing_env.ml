@@ -119,9 +119,13 @@ let update_cut_pos pos = parser_state.c_cut_pos <- pos
   
 (** *)
 let get_expr b_exp e_exp =
+  Util.debugln "get_exp does nothing anymore !";
+  ""
+(*
   try
     String.sub  parser_state.prog b_exp (e_exp - b_exp) 
   with _ -> failwith ( sprintf "\nde : %d to %d \n"  b_exp e_exp)
+*)
     
 (** *)
 let add_closing op cl p_st p_en =
