@@ -1280,7 +1280,7 @@ class_sig_field:
 	 let closing = Format.sprintf "%s | %s -> %s" Tags.asf Tags.tagged_any Tags.asf in  
 	 let _ = update_match exp (BranchCs (br,cs)) (symbol_end ()) closing
 	 in ();
-	 mkexp(Pexp_match(exp, List.rev cases))  
+	 mkexp(Pexp_match(exp, List.rev ((br, exp_af) :: cases)))  
        }
 
      /* _end patch_17
@@ -1321,7 +1321,7 @@ class_sig_field:
 	 let (br,cases) = $5 in
 	 let cs = patterns (List.rev cases) in
 	 update_try exp (BranchCs (br,cs)) (symbol_end ()) "";
-	 mkexp(Pexp_try(exp, List.rev cases))  
+	 mkexp(Pexp_try(exp, List.rev ((br, exp_af) :: cases)))  
        }
 
     /* _end patch_18

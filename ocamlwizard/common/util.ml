@@ -216,7 +216,6 @@ module Lpp = struct
     | Ppat_construct (Lident "::", Some {ppat_desc = Ppat_tuple [t ; q]}, _) ->
       fprintf fmt "%a :: %a" print_pattern t.ppat_desc print_pattern q.ppat_desc
     | Ppat_construct (lid, pat_opt, b) ->
-      debugln "ici";
 	begin
 	  match pat_opt with
 	    | None -> fprintf fmt "%a" print_lid lid

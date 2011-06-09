@@ -27,3 +27,7 @@ val main : string -> Interface.range list -> Outcometree.out_type list
   
 (** Get the type of the expression with given location in an typedtree. *)
 val type_of_exp : Typedtree.structure -> Location.t -> Typedtree.expression
+(*
+val type_of_pat : Typedtree.structure -> Location.t -> Typedtree.pattern
+*)
+val type_of_pat : Typedtree.structure -> int * int -> Typedtree.pattern

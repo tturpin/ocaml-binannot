@@ -1,5 +1,19 @@
+echo ocamlwizard $* >~/experiences/ocaml-binannot/ocamlwizard/emacs/error-output ; \
 OCAMLRUNPARAM=b OCAMLLIB=/usr/local/lib/ocaml \
 ~/experiences/ocaml-binannot/boot/ocamlrun \
-~/experiences/ocaml-binannot/ocamlwizard/owz.byte -debug $* \
-2>~/experiences/ocaml-binannot/ocamlwizard/emacs/error-output \
+~/experiences/ocaml-binannot/ocamlwizard/owz.byte -debug \
+-I ~/experiences/ocaml-binannot/utils \
+-I ~/experiences/ocaml-binannot/parsing \
+-I ~/experiences/ocaml-binannot/typing \
+-I ~/experiences/ocaml-binannot/ocamlwizard/common \
+-I ~/experiences/ocaml-binannot/ocamlwizard/completion \
+-I ~/experiences/ocaml-binannot/ocamlwizard/completion/syntactic \
+-I ~/experiences/ocaml-binannot/ocamlwizard/completion/typing \
+-I ~/experiences/ocaml-binannot/ocamlwizard/completion/extraction \
+-I ~/experiences/ocaml-binannot/ocamlwizard/completion/filtering \
+-I ~/experiences/ocaml-binannot/ocamlwizard/completion/printing \
+-I ~/experiences/ocaml-binannot/ -I +utils -I +parsing -I +typing \
+-I +ocamlwizard -I +common -I +completion -I +syntactic -I +typing \
+-I +extraction -I +filtering -I +printing $* \
+2>>~/experiences/ocaml-binannot/ocamlwizard/emacs/error-output \
 | tee ~/experiences/ocaml-binannot/ocamlwizard/emacs/standard-output

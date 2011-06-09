@@ -53,7 +53,28 @@ let compile_file ast c_env =
   let env = initial_env () in
   (* This is probably not needed *)
   Typecore.reset_delayed_checks ();
-  let str, _, _ = Typemod.type_structure env ast Location.none in
+  let str, _, _ =
+    let ppf = err_formatter in
+    try
+      Typemod.type_structure env ast Location.none
+    with e ->
+      (match e with
+	| Typecore.Error(loc, err) ->
+	  Location.print_error ppf loc; Typecore.report_error ppf err
+	| Typetexp.Error(loc, err) ->
+	  Location.print_error ppf loc; Typetexp.report_error ppf err
+	| Typedecl.Error(loc, err) ->
+	  Location.print_error ppf loc; Typedecl.report_error ppf err
+	| Typeclass.Error(loc, err) ->
+	  Location.print_error ppf loc; Typeclass.report_error ppf err
+	| Includemod.Error err ->
+	  Location.print_error_cur_file ppf;
+	  Includemod.report_error ppf err
+	| Typemod.Error(loc, err) ->
+	  Location.print_error ppf loc; Typemod.report_error ppf err
+	| _ -> raise e);
+      failwith "Error while typing"
+  in
   str, {c_env with fb_name = outputprefix}
 
 (** *)
@@ -69,7 +90,7 @@ let mk_list_rg se =
 let step msg = 
   Util.debugln "\n <+> Step : %s \n-----------------" msg
 
-
+(*
 let out_types_from_annot ty_lis = 
   if !Common_config.debug then (
       Format.eprintf "> Types from .annot : [";
@@ -85,6 +106,7 @@ let out_types_from_annot ty_lis =
 	| _   -> 
 	    Debug.unreachable "Comletion" 7
     )
+*)
 
 (** *)
 let main ce = 
@@ -96,30 +118,45 @@ let main ce =
   (* Avoids an error when type inference tries to locate a warning *)
   Location.input_name := "";
 
-  (* + compiling the completed file *)
+  (* Typing the completed file *)
   step "Typing the the completed parsetree";
   let structure, ce = compile_file se.ast ce in
   
   (* Exiting with the error code (for auto-test) *)
   if !Common_config.compile_only then
     Debug.exit_with_code (!Common_config.dot_test) se.comp;
-    
-  step "Getting the type of the matched expression";
-  let match_exp =
-    match Parsing_env.parser_state.match_exp with
-      | Some e ->
-	Expression_typing.type_of_exp structure e.Parsetree.pexp_loc
-      | None -> assert false
+  
+  let pattern_env, pattern_type =
+    match se.comp with
+      | Match (AllCs | MissCs _) -> (* We should rather look at the pattern. *)
+	step "Getting the type of the matched expression";
+	let match_exp =
+	  match Parsing_env.parser_state.match_exp with
+	    | Some e ->
+	      Expression_typing.type_of_exp structure e.Parsetree.pexp_loc
+	    | None -> assert false
+	in
+	match_exp.Typedtree.exp_env, match_exp.Typedtree.exp_type
+      | Match (BranchCs (p, l)) ->
+	let match_pat =
+	  Expression_typing.type_of_pat structure
+	    ! Common_config.expand_loc
+(*
+ p.Parsetree.ppat_loc
+*)
+	in
+	match_pat.Typedtree.pat_env, match_pat.Typedtree.pat_type
+      | Try _ -> assert false
+      | Path _ -> assert false
+      | Other -> assert false
+      | Error _ -> assert false
   in
-
-  let pattern_type = match_exp.Typedtree.exp_type in
 
   let ty_lis = [
     Printtyp.tree_of_typexp false pattern_type
   ] in
-  out_types_from_annot ty_lis ;
   
-  let ty_check = match_exp.Typedtree.exp_env, pattern_type in
+  let ty_check = pattern_env, pattern_type in
   
   (* 3 - Extracting propositions *)
   step "Proposal extraction";

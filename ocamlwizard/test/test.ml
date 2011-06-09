@@ -22,4 +22,12 @@ let () = match {a = () ; b = ()} with _ -> assert false
 let () = match [] with
   | [] -> assert false
 
+let () = match A with M.A -> assert false
+
+let () = match Some () with
+   None -> assert false
+ | Some   () 
+  -> assert false
+
+
 let _ = ()

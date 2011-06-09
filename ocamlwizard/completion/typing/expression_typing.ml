@@ -84,12 +84,15 @@ let main annot_name range_list =
   in List.map (get_type ast) range_list
 
 exception Found of Typedtree.expression
+exception Found_pat of Typedtree.pattern
+
+open Location
 
 let type_of_exp structure loc =
   debugln "looking for expression at loc:";
   if !Common_config.debug then
-    Location.print Format.err_formatter loc;
-  debugln "";
+    print Format.err_formatter loc;
+  debug "";
   let module Type_of_pat =
 	Typedtree.MakeIterator (struct
 	  include Typedtree.DefaultIteratorArgument
@@ -102,4 +105,34 @@ let type_of_exp structure loc =
     Type_of_pat.iter_structure structure;
     raise Not_found
   with
-      Found t -> t
+      Found t ->
+	debugln "found !";
+	t
+
+let type_of_pat structure loc =
+  debug "looking for pattern at loc:";
+(*
+  if !Common_config.debug then
+    print Format.err_formatter loc;
+  debugln "";
+*)
+  let module Type_of_pat =
+	Typedtree.MakeIterator (struct
+	  include Typedtree.DefaultIteratorArgument
+	  let enter_pattern p =
+(*
+	    if !Common_config.debug then
+	      print Format.err_formatter p.Typedtree.pat_loc;
+*)
+	    let l = p.Typedtree.pat_loc in
+	    if (l.loc_start.pos_cnum, l.loc_end.pos_cnum) = loc then
+	      raise (Found_pat p)
+	end)
+  in
+  try
+    Type_of_pat.iter_structure structure;
+    raise Not_found
+  with
+      Found_pat t ->
+	debugln "found !";
+	t

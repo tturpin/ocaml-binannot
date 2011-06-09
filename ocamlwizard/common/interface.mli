@@ -59,7 +59,9 @@ type pm_completion =
     (* match e with . EOF *)
     | MissCs   of Parsetree.pattern list
     (* match e with p -> e' . EOF *)
-    | BranchCs of (Parsetree.pattern * Parsetree.pattern list)
+    | BranchCs of
+	Parsetree.pattern (* The whole current (and last) case, until -> *)
+      * Parsetree.pattern list (* The other (previous) cases *)
     (* match e with p -> e' | (.. x. ..) -> EOF *)
 	
 (** Sort of approptiate completion, determined by parsing *)

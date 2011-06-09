@@ -107,4 +107,35 @@
    file)
 )
 
+(defun ocamlwizard-expand-patvar ()
+  "expands a pattern-matching variable using Ocamlwizard"
+  (interactive)
+  (save-excursion
+    (search-backward-regexp "[^a-zA-Z._0-9]")
+    (forward-char 1)
+    (setq start (point))
+    (search-forward-regexp "[^a-zA-Z._0-9]")
+    (setq end (- (point) 1))
+    (setq word (buffer-substring start end))
+    (search-forward "->")
+    (setq arrow (point)))
+  (setq file (buffer-name))
+  (setq buffer (get-buffer-create "*ocamlwizard*"))
+  (save-excursion
+    (set-buffer buffer)
+    (compilation-minor-mode 1)
+    (erase-buffer)
+    (insert "\n\n"))
+  (goto-char start)
+  (delete-char (- end start))
+  (setq exit-status 
+	(call-process 
+	 "ocamlwizard" nil (list t nil) nil
+	 "completion" "-printer" "ocaml-pp" "-pos"  (int-to-string (- arrow 1))
+	 "-expand" (concat (int-to-string (- start 1)) "-" (int-to-string (- end 1)))
+	 file))
+  (if (not (eq exit-status 10))
+      (message "ocamlwizard: no completion"))
+)
+
 (global-set-key [f11] 'ocamlwizard-expand-patvar)

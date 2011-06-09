@@ -25,7 +25,9 @@ module F = Format
 
 exception Exist
 exception ProgressMore
-  
+
+(* True if one if one is a suffix of the other. Since this is the same
+   type, t works ! *)
 let constr_include c1 c2 = 
   let user_lg = L.rev (Longident.flatten c1) in
   let best_lg = L.rev (Longident.flatten c2) in
@@ -35,7 +37,7 @@ let constr_include c1 c2 =
   with  
       Exit               -> false 
     | Invalid_argument _ -> true
-	
+      
 let given_is_include special_behv gvn my_p = 
   let rec given_is_include gvn my_p = 
     match gvn.ppat_desc,my_p.ppat_desc with 
@@ -280,7 +282,11 @@ let filter_match mi_lis pm_comp =
 	  end;
 	filter_redencency (r1 @ r2)
 
-    | BranchCs (to_expand, gvn_pl) -> 
+    | BranchCs (to_expand, gvn_pl) ->
+      match mi_lis with
+	| (_, ps) :: _ ->
+	  L.map (mk_mpat true) ps
+(*
 	if !Common_config.expand_loc = (-1,-1) then
 	  failwith "< -expand int-int > is not set"
 	else
@@ -305,4 +311,4 @@ let filter_match mi_lis pm_comp =
 	      Format.eprintf "----------------------------@.";
 	    end;
 	  filter_redencency (r1 @ r2)
-	    
+*)	    

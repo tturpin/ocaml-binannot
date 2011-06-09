@@ -19,6 +19,7 @@ open Format
 open Interface
 open Longident
 open Parsetree
+open Util
 module L = List
 
 let type_to_string ty = 
@@ -56,6 +57,7 @@ let print_cases_completion bol fmt cases =
     )cases
     
 let print_dispatch_completion bol fmt cases =
+  debugln "print_dispatch (%d cases)" (List.length cases);
   let bol = ref bol in
   L.iter
     (fun cs ->
