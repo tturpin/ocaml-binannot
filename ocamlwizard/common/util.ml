@@ -20,6 +20,18 @@ open Outcometree
 open Format
 open Parsetree
 
+let debug f =
+  if !Common_config.debug then
+    Printf.kfprintf flush stderr f
+  else
+    Printf.ifprintf stderr f
+
+let debugln f =
+  if !Common_config.debug then
+    Printf.kfprintf (function c -> Printf.fprintf c "\n%!") stderr f
+  else
+    Printf.ifprintf stderr f
+
 let get_c_num loc = 
   loc.Location.loc_start.Lexing.pos_cnum,
   loc.Location.loc_end.Lexing.pos_cnum
@@ -201,14 +213,16 @@ module Lpp = struct
 		List.iter (fun p -> fprintf fmt ", %a" print_pattern p.ppat_desc ) r;
 		fprintf fmt ")" 
 	end
-    | Ppat_construct (lid, pat_opt, b) -> 
+    | Ppat_construct (Lident "::", Some {ppat_desc = Ppat_tuple [t ; q]}, _) ->
+      fprintf fmt "%a :: %a" print_pattern t.ppat_desc print_pattern q.ppat_desc
+    | Ppat_construct (lid, pat_opt, b) ->
+      debugln "ici";
 	begin
 	  match pat_opt with
 	    | None -> fprintf fmt "%a" print_lid lid
 	    | Some p -> 
 		fprintf fmt "%a %a" print_lid lid print_pattern p.ppat_desc
 	end
-	  
     | Ppat_variant (lbl, pat_opt)    ->
 	begin
 	  match pat_opt with
@@ -217,22 +231,10 @@ module Lpp = struct
 		fprintf fmt "`%s %a" lbl print_pattern p.ppat_desc
 	end
     | Ppat_record (c_lis, _)           -> fprintf fmt "{ %a }" print_record c_lis
-    | Ppat_array pat_lis               -> fprintf fmt "[%a]" print_array pat_lis
+    | Ppat_array pat_lis               -> fprintf fmt "[|%a|]" print_array pat_lis
     | Ppat_or (pat1, pat2)             -> 
 	fprintf fmt "%a | %a" print_pattern pat1.ppat_desc print_pattern pat2.ppat_desc
     | Ppat_constraint (pat, co)        -> assert false
     | Ppat_type lid                    ->fprintf fmt "%a" print_lid lid
-	
+    | Ppat_lazy p -> fprintf fmt "lazy %a" print_pattern p.ppat_desc
 end
-  
-let debug f =
-  if !Common_config.debug then
-    Printf.kfprintf flush stderr f
-  else
-    Printf.ifprintf stderr f
-
-let debugln f =
-  if !Common_config.debug then
-    Printf.kfprintf (function c -> Printf.fprintf c "\n%!") stderr f
-  else
-    Printf.ifprintf stderr f

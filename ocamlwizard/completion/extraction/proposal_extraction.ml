@@ -289,22 +289,33 @@ let polymorphic_variant_patterns r_desc =
       mk_pattern (Ppat_variant (lbl, arg)))
     r_desc.row_fields
 
-(* Simple version *)
+(* Simple version. *)
 let rec patterns env t =
   match t.Types.desc with
+    | Tconstr (tcstr, [_], _) when Path.name tcstr = "array" ->
+      [mk_pattern (Ppat_array [])]
+    | Tconstr (tcstr, [_], _) when Path.name tcstr = "lazy_t" ->
+      [mk_pattern (Ppat_lazy (mk_pattern Ppat_any))]
     | Tconstr (tcstr, args, _) -> (
       let tdecl = Env.find_type tcstr env in
+      debugln "%s" (Path.name tcstr);
       match tdecl.Types.type_kind with
-	| Type_abstract -> []
+	| Type_abstract -> [mk_pattern Ppat_any]
 	| Type_variant cstrs -> variant_patterns env tcstr cstrs
 	| Type_record (fields, _) -> [record_pattern env tcstr fields]
     )
     | Tvariant r_desc -> polymorphic_variant_patterns r_desc
     | Ttuple ts -> [tuple_pattern ts]
-    | Tlink t -> patterns env t
+    | Tlink t | Tsubst t -> patterns env t
     | Tfield _ -> failwith "field"
     | Tvar _ -> failwith "var"
-    | _ -> [mk_pattern Ppat_any]
+    | Tarrow (_, _, t, _) -> patterns env t
+    | Tpackage (_, _, _)
+    | Tpoly (_, _)
+    | Tobject (_, _)
+    | Tunivar
+    | Tnil ->
+      [mk_pattern Ppat_any]
 
 let complete_match ce ty pm_comp (env, t) =
   let ps = patterns env t in
@@ -313,7 +324,8 @@ let complete_match ce ty pm_comp (env, t) =
 let main ce se ty_lis ty_check = 
   match se.comp, ty_lis with
     | Match pm_comp, [ty] -> complete_match ce ty pm_comp ty_check
-    | (Path  pc, _)       -> complete_path ce se pc ty_lis
-    | (Try pm,  [])       -> assert false
-    | _                   -> unreachable "Proposal_extraction" 4
-
+    | (Path  pc, _) -> complete_path ce se pc ty_lis
+    | (Try pm,  []) -> assert false
+    | Other, _ -> assert false
+    | Error e, _ -> raise e
+    | _ -> assert false

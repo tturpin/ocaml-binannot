@@ -67,8 +67,7 @@ let mk_list_rg se =
 
 (** *)
 let step msg = 
-  if !Common_config.debug then
-    Format.eprintf "\n <+> Step : %s \n-----------------@." msg
+  Util.debugln "\n <+> Step : %s \n-----------------" msg
 
 
 let out_types_from_annot ty_lis = 
@@ -90,7 +89,7 @@ let out_types_from_annot ty_lis =
 (** *)
 let main ce = 
   (* 1 - parsing the file *)
-  step "Sytactic completion";
+  step "Parsing with sytactic completion";
   let se, ce  = Syntax_completion.main ce in
   if !Common_config.debug then Debug.print_c_sort se.comp;
 
@@ -98,14 +97,14 @@ let main ce =
   Location.input_name := "";
 
   (* + compiling the completed file *)
-  step "Compiling the completed file";
+  step "Typing the the completed parsetree";
   let structure, ce = compile_file se.ast ce in
   
   (* Exiting with the error code (for auto-test) *)
   if !Common_config.compile_only then
     Debug.exit_with_code (!Common_config.dot_test) se.comp;
     
-  step "Expression typing";
+  step "Getting the type of the matched expression";
   let match_exp =
     match Parsing_env.parser_state.match_exp with
       | Some e ->
@@ -120,8 +119,6 @@ let main ce =
   ] in
   out_types_from_annot ty_lis ;
   
-  (* 2.2 - Type_checking*)
-  step "Additionnal step : type-checking the file [ for pattern matching]";
   let ty_check = match_exp.Typedtree.exp_env, pattern_type in
   
   (* 3 - Extracting propositions *)

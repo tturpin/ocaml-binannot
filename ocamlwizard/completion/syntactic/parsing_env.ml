@@ -90,6 +90,7 @@ let can_up_comp_sort comp_s pos =
 let update_comp_sort comp_s pos = 
   if can_up_comp_sort comp_s pos then 
     begin
+      Util.debugln "SETTING THE COMPLETION SORT";
       parser_state.c_sort <- comp_s;
       true
     end
@@ -161,6 +162,7 @@ let update_pattern is_match exp given p_end closing =
       
 (** *)
 let update_match exp given p_end closing =
+  Util.debugln "UPDATE MATCH";
   parser_state.match_exp <- Some exp;
   update_pattern true  exp given p_end closing
     

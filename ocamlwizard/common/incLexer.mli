@@ -1,8 +1,14 @@
 (** Lexing with backtracking. *)
 
-(** Warning ! currently, the computed locations are wrong : they
-    reffer to the ideal file, which may not correspond to any of the
-    old and new versions. *)
+(** Warning ! in the computed lexing positions, the field pos_cnum
+    always reffers to the new file. Thus, it is only accurate when the
+    input is taken from the new version. In particular, if we
+    backtrack to the old version of a part of the file which is
+    shorter in the new version (e.g., a deletion), then some positions
+    computed for this part may be greater or equal than positions
+    computed for the next part. The other fields of the position
+    (pos_lnum and pos_bol) are wrong : they reffer to the merged file,
+    which may not correspond to any of the old and new versions. *)
 
 (** The backtracking points may only be saved between two tokens
     because ocamllex lexers are recursive, and there is no way to
@@ -15,8 +21,9 @@
 type backtracking_lexbuf = private {
   lexbuf : Lexing.lexbuf;
   mutable snapshot : Lexing.lexbuf;
+  mutable next_shift : int;
   mutable chunks : Diff.chunk list;
-  stack : (Lexing.lexbuf * string * Diff.chunk list) Stack.t;
+  stack : (Lexing.lexbuf * string * int * Diff.chunk list) Stack.t;
 }
 
 (** Raised when the backtracking stack is empty. *)

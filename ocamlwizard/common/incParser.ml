@@ -362,8 +362,10 @@ let backtracking_parser tables start lexer chunks =
       and lexe () =
 	let t = lexer l.lexbuf in
 	take_snapshot l;
+(*
 	Util.debug "|%d-%d: %s| %!"
-	  l.lexbuf.lex_start_pos l.lexbuf.lex_curr_pos (Lexing.lexeme l.lexbuf);
+	  l.lexbuf.lex_start_p.pos_cnum l.lexbuf.lex_curr_p.pos_cnum (Lexing.lexeme l.lexbuf);
+*)
 	t, l.lexbuf.lex_start_p, l.lexbuf.lex_curr_p
       in
       initial_pos, lexe, backtrack

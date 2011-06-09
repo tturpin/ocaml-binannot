@@ -29,10 +29,16 @@ let zero_pos = {
 
 type backtracking_lexbuf = {
   lexbuf : lexbuf;
-  mutable snapshot : lexbuf; (* snapshot of the lexbuff after
+  mutable snapshot : lexbuf; (* Snapshot of the lexbuff after
 				the last successfully read token *)
-  mutable chunks : chunk list; (* what remains to read *)
-  stack : (lexbuf * string * chunk list) Stack.t
+  mutable next_shift : int; (* Number of characters to shift the position
+			       when entering the next chunk. *)
+  mutable chunks : chunk list; (* What remains to read *)
+  stack : (lexbuf * string * int * chunk list) Stack.t
+(* The backtracking stack. We save the last lexbuf snapshot, the old
+   version of the chunk to recover, the length of the new version (the
+   difference between the two will be used to shift the next chunk),
+   and the remaining chunks. *)
 }
 
 (* Call this between each successfull call to the lexer. *)
@@ -46,7 +52,7 @@ exception No_backtracking
    directly ! *)
 let backtrack l =
   try
-    let lexbuf, old, chunks = Stack.pop l.stack in
+    let lexbuf, old, new_len, chunks = Stack.pop l.stack in
     copy_lexbuf_to lexbuf l.lexbuf;
 (*
     print_endline "BACKTRACK";
@@ -55,7 +61,8 @@ let backtrack l =
     l.lexbuf.lex_buffer <- l.lexbuf.lex_buffer ^ old;
     l.lexbuf.lex_buffer_len <- String.length l.lexbuf.lex_buffer;
     take_snapshot l;
-    l.chunks <- chunks
+    l.chunks <- chunks;
+    l.next_shift <- new_len - String.length old
   with
       Stack.Empty -> raise No_backtracking
 
@@ -75,6 +82,12 @@ let refill_buff push l =
 *)
       lexbuf.lex_buffer <- lexbuf.lex_buffer ^ s;
       lexbuf.lex_buffer_len <- String.length lexbuf.lex_buffer;
+(*
+      lexbuf.lex_curr_p <-
+	{ lexbuf.lex_curr_p with pos_cnum = lexbuf.lex_curr_pos + l.next_shift };
+*)
+      lexbuf.lex_abs_pos <- lexbuf.lex_abs_pos + l.next_shift;
+      l.next_shift <- 0;
       l.chunks <- q;
     (* Keep positions consistent... *)
     | Changed (old, last) :: q ->
@@ -90,7 +103,7 @@ let refill_buff push l =
 	({ l.snapshot with
 	  lex_buffer = lexbuf.lex_buffer;
 	  lex_buffer_len = lexbuf.lex_buffer_len
-	}, old, q)
+	}, old, String.length last, q)
 	l.stack;
       lexbuf.lex_buffer <- lexbuf.lex_buffer ^ last;
       lexbuf.lex_buffer_len <- String.length lexbuf.lex_buffer;
@@ -127,6 +140,7 @@ let backtracking_lexbuf ~push ~pop chunks =
   and l = {
     lexbuf = lexbuf;
     snapshot = lexbuf;
+    next_shift = 0;
     chunks = chunks;
     stack = Stack.create ()
   } in

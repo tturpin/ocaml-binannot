@@ -84,7 +84,7 @@ let main annot_name range_list =
   in List.map (get_type ast) range_list
 
 exception Found of Typedtree.expression
-  
+
 let type_of_exp structure loc =
   debugln "looking for expression at loc:";
   if !Common_config.debug then

@@ -133,7 +133,7 @@ let read_modified_file ?(empty_absent = true) old_file new_file =
       let diff_file = Filename.temp_file
 	(Filename.basename new_file ^ "-" ^ Filename.basename old_file) ".diff" in
       (match Sys.command ("diff -f " ^ old_file ^ " " ^ new_file ^ " >" ^ diff_file) with
-	| 1 -> ()
+	| 0 | 1 -> ()
 	| _ -> failwith "error when invoking diff");
       let old = lines_of old_file
       and diff = parse_diff_file diff_file in
