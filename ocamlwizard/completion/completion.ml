@@ -25,6 +25,7 @@
 
 open Format
 open Interface
+open Util
 
 exception Compilation_failed
 
@@ -59,20 +60,21 @@ let compile_file ast c_env =
       Typemod.type_structure env ast Location.none
     with e ->
       (match e with
-	| Typecore.Error(loc, err) ->
+	| Typecore.Error(loc, err) -> debugln "1";
 	  Location.print_error ppf loc; Typecore.report_error ppf err
-	| Typetexp.Error(loc, err) ->
+	| Typetexp.Error(loc, err) -> debugln "2";
 	  Location.print_error ppf loc; Typetexp.report_error ppf err
-	| Typedecl.Error(loc, err) ->
+	| Typedecl.Error(loc, err) -> debugln "3";
 	  Location.print_error ppf loc; Typedecl.report_error ppf err
-	| Typeclass.Error(loc, err) ->
+	| Typeclass.Error(loc, err) -> debugln "5";
 	  Location.print_error ppf loc; Typeclass.report_error ppf err
-	| Includemod.Error err ->
+	| Includemod.Error err -> debugln "6";
 	  Location.print_error_cur_file ppf;
 	  Includemod.report_error ppf err
-	| Typemod.Error(loc, err) ->
+	| Typemod.Error(loc, err) -> debugln "7";
 	  Location.print_error ppf loc; Typemod.report_error ppf err
-	| _ -> raise e);
+	| _ -> debugln "8"; raise e);
+      Format.pp_print_flush err_formatter;
       failwith "Error while typing"
   in
   str, sg, {c_env with fb_name = outputprefix}
@@ -148,6 +150,11 @@ let main ce =
 	in
 	match_pat.Typedtree.pat_env, match_pat.Typedtree.pat_type
       | Try _ -> assert false
+      | Path {p_kd = Record (Faccess e)} ->
+	let match_exp =
+	  Expression_typing.type_of_exp structure e.Parsetree.pexp_loc
+	in
+	match_exp.Typedtree.exp_env, match_exp.Typedtree.exp_type
       | Path _ ->
 	let match_exp =
 	  match Parsing_env.parser_state.match_exp with

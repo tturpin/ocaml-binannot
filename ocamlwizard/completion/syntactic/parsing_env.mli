@@ -35,7 +35,7 @@ val update_module : string list -> string -> int -> int -> unit
 val update_value :
   Parsetree.expression -> string list -> string -> int -> int -> Interface.value_kind -> unit
 val update_lbl_longid : string list -> string -> int -> int -> unit
-val update_expr_longid : string list -> string -> int -> int -> int -> unit
+val update_expr_longid : Parsetree.expression -> string list -> string -> int -> int -> int -> unit
 val update_not_inited_redef :
   string list -> string -> Longident.t list -> int -> int -> int -> unit
 val update_value_kind : Interface.value_kind -> unit

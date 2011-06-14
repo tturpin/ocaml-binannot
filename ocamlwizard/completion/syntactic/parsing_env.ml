@@ -18,7 +18,8 @@
 open Format
 open Interface
 open Tags
-    
+open Util
+
 (** *)
 let dummy_range = { b = -1 ; e = -1 } 
 
@@ -192,16 +193,16 @@ let update_value exp md value p_st p_end kd =
       update_cut_pos p_st
     )
 
-(** *)
+(** Called when reaching EOF in a label (field name). *)
 let update_lbl_longid md id p_st p_end = 
   if no_space () then 
     let cp_s = { p_kd = Record Fdummy; p_md = md; p_id = id } in
     if update_comp_sort (Path cp_s) p_end then update_cut_pos (p_st)
 	
-(** *)
-let update_expr_longid md id exp_st exp_end p_end =
+(** Called after update_lbl_longident, if the context is e.f *)
+let update_expr_longid exp md id exp_st exp_end p_end =
   if no_space () then 
-    let cp_s = { p_kd = Record (Faccess V_all); p_md = md; p_id = id } in
+    let cp_s = { p_kd = Record (Faccess exp); p_md = md; p_id = id } in
     if update_comp_sort (Path cp_s) p_end then 
 	let exp = get_expr exp_st exp_end in
 	let subs = sprintf "(let %s = %s in %s)" tagged_any exp tagged_asf in
@@ -223,7 +224,7 @@ let update_value_kind new_kd =
 	  let p_kd2 = 
 	    match p.p_kd with
 	      | Value v            -> Value new_kd 
-	      | Record (Faccess v) -> Record (Faccess new_kd)
+	      | Record _ as r -> r
 	      | _ as x -> x 
 	  in parser_state.c_sort <- Path { p with p_kd = p_kd2 }
       | _ -> ()
@@ -261,11 +262,14 @@ let update_left_imbr () =
     set_subs_code subs2
       
 (** *)
-let update_pattern md lbl gv p_en = 
+let update_pattern md lbl gv p_en =
+  debugln "update pattern";
   let cp_s = { p_kd = Record (Fpat gv) ; p_md = md ; p_id = lbl } in
-    if update_comp_sort (Path cp_s) p_en then
+    if update_comp_sort (Path cp_s) p_en then (
+      debugln "comp_sort <- path";
       let subs = sprintf "%s as %s2" tagged_ogv ogv in
       set_subs_code subs
+    )
 	
 (** *)
 let untagg_in () =

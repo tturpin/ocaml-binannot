@@ -1617,13 +1617,13 @@ class_sig_field:
 
    | simple_expr DOT label_longident EOF { 
 	 let (md,id) = mod_and_ident () in
-	 update_expr_longid md id (rhs_start 1) (rhs_end 1) (symbol_end ());
-	 mkexp(Pexp_field($1,$3)) 
+	 update_expr_longid $1 md id (rhs_start 1) (rhs_end 1) (symbol_end ());
+	 mkexp (Pexp_apply (exp_af, ["", $1]))
        }
 
    | simple_expr DOT EOF { 
-	 update_expr_longid [] "" (rhs_start 1) (rhs_end 1) (symbol_end ());
-	 mkexp(Pexp_field($1, Lident ""))
+	 update_expr_longid $1 [] "" (rhs_start 1) (rhs_end 1) (symbol_end ());
+	 mkexp (Pexp_apply (exp_af, ["", $1]))
        }
 
      /* _end patch_43
@@ -1695,10 +1695,19 @@ class_sig_field:
 
      /* _correct */
    | LBRACE record_expr EOF {
-	 let (exten,fields) = $2 in 
+	 let (exten,fields) = $2 in
+	 let exten =
+	   match exten with
+	     | Some e -> e
+	     | None -> exp_af
+	 in
 	 set_rec_inited ();
 	 update_cut_pos (symbol_start());
-	 mkexp(Pexp_record(fields, exten)) 
+	 let e = mkexp(Pexp_record(fields, Some exten)) in
+	 (* records could be nested *)
+	 if parser_state.match_exp = None then
+	   parser_state.match_exp <- Some e;
+	 e
        }
 
    | LBRACE record_expr error
@@ -2250,7 +2259,7 @@ lbl_pattern_list:
 	if no_space () then
 	  if rec_is_not_inited () then
 	    let (md,id) = mod_and_ident () in
-	    update_pattern md id [] (rhs_end 1)
+	    update_pattern md id [] (symbol_end ())
 	  else failwith "Parser-7 : This case should not happen"
 	else raise Parse_error;
 	[] 
@@ -2264,7 +2273,7 @@ lbl_pattern_list:
 	  if rec_is_not_inited () then
 	    let given = patterns lbls in
 	    let (md,id) = mod_and_ident () in
-	    update_pattern md id given (rhs_end 1)
+	    update_pattern md id given (symbol_end ())
 	  else failwith "Parser-8 : This case should not happen"
 	else raise Parse_error;
 	lbls 
@@ -2274,7 +2283,8 @@ lbl_pattern_list:
     /* 03 */
   | lbl_pattern_list SEMI EOF 
       { 
-	if rec_is_not_inited () then update_pattern [] "" [] (rhs_end 1)
+	if rec_is_not_inited () then
+	  update_pattern [] "" (patterns $1) (symbol_end ())
 	else failwith "Parser-9 : This case should not happen";
 	
 	$1 

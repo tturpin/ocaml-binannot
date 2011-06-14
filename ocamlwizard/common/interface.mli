@@ -27,23 +27,23 @@ type range = {
     mutable e : int ; (*to_char*)
   }
 
-(** *)    
+(** The acceptable kimd of types for value completion *)    
 type value_kind = 
-    | V_all
-    | V_record
-	
+    | V_all (* accept any type *)
+    | V_record (* only accept record types ( { v } ) *)
+
 (** *)    
 type record_kind = 
     | Fdummy
-    | Faccess of value_kind
+    | Faccess of Parsetree.expression
     | Fdef of Longident.t list
     | Fpat of Longident.t list
 	
-(** *)
+(** Type of path completion to perform *)
 type path_kind =
-    | Module                                             (* 1 *)
-    | Record of record_kind                              (* 2 *)
-    | Value of  value_kind                               (* 3 *)
+    | Module (* Complete a module name *)
+    | Record of record_kind (* Complete a record field name *)
+    | Value of  value_kind (* Complete a value name *)
 	
 	
 (** *)

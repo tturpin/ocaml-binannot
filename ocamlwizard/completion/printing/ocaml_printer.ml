@@ -43,26 +43,26 @@ let print_rec_completion fmt =
 let opt_bar b_ref = 
   if !b_ref then (
       b_ref := false;
-      " "
-    )else "|"
+      ""
+    )else " | "
 
-let print_cases_completion bol fmt cases =
- let bol = ref bol in
+let print_cases_completion ?(first_bar=true) fmt cases =
+ let bol = ref (not first_bar) in
  L.iter 
     (fun cs ->
       if cs.ma_selected then
-	fprintf fmt "@\n %s %a -> assert false" 
+	fprintf fmt "@\n %s%a" (*" -> assert false" *)
 	  (opt_bar bol)
 	  Util.Lpp.print_pattern cs.ma_pattern.ppat_desc
     )cases
     
-let print_dispatch_completion bol fmt cases =
+let print_dispatch_completion fmt cases =
   debugln "print_dispatch (%d cases)" (List.length cases);
-  let bol = ref bol in
+  let bol = ref true in
   L.iter
     (fun cs ->
       if cs.ma_selected then
-	fprintf fmt "%s %a " 
+	fprintf fmt "%s%a" 
 	  (opt_bar bol)
 	  Util.Lpp.print_pattern cs.ma_pattern.ppat_desc
     ) cases
@@ -90,11 +90,10 @@ let print_expr fmt = function
       in 
       (match pm_c with
 	| BranchCs _ ->
-	    fprintf fmt "%a@." (print_dispatch_completion true) p
-	| MissCs _ -> 
-	    fprintf fmt "%a@." (print_cases_completion false) p
+	    fprintf fmt "%a@?" (print_dispatch_completion) p
+	| MissCs _ 
 	| AllCs -> 
-	    fprintf fmt "%a@." (print_cases_completion true) p
+	    fprintf fmt "%a@?" (print_cases_completion ~first_bar:true) p
       )
 	
   | C_module (l,_) -> 

@@ -203,12 +203,9 @@ let mk_record_info lv acc (rc_name,lbls)=
 (** *)
 let mk_records ce se pi ty = function
   | Fdummy -> unreachable "Path_extraction" 1
-  | _      ->   
+  | _      ->
       let path_ty, typ = Cmireader.get_main_type ce se ([],ty) false in
-      let res = match  typ with
-	| Otyp_record fl -> [([path_ty,fl],0)]
+      match typ with
+	| Otyp_record fl -> mk_record_info 0 [] (path_ty,fl)
 	| Otyp_var _     -> [] (* require scope analysis *)
 	| _              ->  unreachable "Path_extraction" 2
-      in  List.fold_left (
-	  fun acc (lrcd,lv) -> List.fold_left (mk_record_info lv) acc lrcd 
-	) []  res

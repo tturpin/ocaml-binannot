@@ -39,7 +39,7 @@ let print_value_kd  = function
   
 let print_rec_kd = function
   | Fdummy    -> eprintf "of ( Fdummy )"
-  | Faccess v -> eprintf "of ( Faccess )"; print_value_kd v
+  | Faccess _ -> eprintf "of ( Faccess )"
   | Fdef _    -> eprintf "of ( Fdef )"
   | Fpat _    -> eprintf "of ( Fpat )"
 

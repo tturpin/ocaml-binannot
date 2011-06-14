@@ -25,10 +25,38 @@ let () = match [] with
 
 let () = match A with M.A -> assert false
 
+
 let () = match Some () with
    None -> assert false
  | Some   () -> assert false
 
+(*
+let () = M.
 let () = M.so
+
+let _ = {a = () ; b = ()}.
+let _ = {a = () ; b = ()}.M
+let _ = {a = () ; b = ()}.M.
+let _ = {a = () ; b = ()}.a
+*)
+
+(* does not work:
+let _ = {a = () 
+let _ = {a = () ; M
+*)
+
+
+let _ = {a = () ; 
+let _ = {a = () ; M.
+let _ = {a = () ; M.b
+
+(* does not work:
+let () = match {a = () ; b = ()} with {a = a 
+let () = match {a = () ; b = ()} with {a = a ; M
+*)
+
+let () = match {a = () ; b = ()} with {a = a ; 
+let () = match {a = () ; b = ()} with {a = a ; M.
+let () = match {a = () ; b = ()} with {a = a ; M.b
 
 let _ = ()
