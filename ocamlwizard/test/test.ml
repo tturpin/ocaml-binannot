@@ -2,6 +2,7 @@ module M = struct
   type t = A | B
   type u = {a : unit ; b : unit}
   let sort = assert false
+  module N = struct end
 end
 
 open M
@@ -44,6 +45,13 @@ let _ = {a = () ; b = ()}.a
 let _ = {a = () 
 let _ = {a = () ; M
 *)
+
+module N = List.
+
+let r = {a = () ; b = ()}
+
+let _ = {r with a = () ; M.b
+let _ = {r with
 
 
 let _ = {a = () ; 

@@ -31,6 +31,7 @@ val lid_to_str : Longident.t -> string
 val add_qualif_oid :
   Outcometree.out_ident -> Outcometree.out_ident -> Outcometree.out_ident
 val flatten : Outcometree.out_ident -> string list
+val flatten_path : Path.t -> string list
 val qualif_from_oid :
   Outcometree.out_ident -> Parsetree.pattern_desc -> Parsetree.pattern_desc
 

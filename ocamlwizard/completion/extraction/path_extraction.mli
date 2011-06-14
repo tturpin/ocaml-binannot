@@ -20,19 +20,19 @@
 
 
 val mk_modules : Types.signature -> Interface.module_info list
-  (** Extracts and makes a list of modules which can complete the module 
-      path *)  
+(** Extracts and makes a list of modules which can complete the module 
+    path *)  
   
 val mk_values : Types.signature -> Interface.syntax_env -> 
   Interface.value_info list
-  (** Extracts and makes a list of modules which can complete 
-      the value path *)  
-  
+(** Extracts and makes a list of modules which can complete 
+    the value path *)  
+    
 val mk_records :
   Interface.completion_infos ->
   Interface.syntax_env ->
   Interface.path_completion ->
-  Outcometree.out_type -> Interface.record_kind -> 
+  Env.t * Types.type_expr -> Interface.record_kind -> 
   Interface.record_info list
   (** Extracts and makes a list of the record fields *)  
   

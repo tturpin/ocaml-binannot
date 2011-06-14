@@ -29,16 +29,16 @@ open Types
 
 
 (** *)
-let complete_path sg ce se pi ty_lis = 
-  match pi.p_kd, ty_lis with
-    | (Module, [])        -> C_module ( mk_modules sg ,pi.p_id )
-    | (Value vk, [ty])    ->
+let complete_path sg ce se pi ty_check = 
+  match pi.p_kd with
+    | Module        -> C_module ( mk_modules sg ,pi.p_id )
+    | Value vk    ->
       C_value (
 	mk_values sg se,
 	vk,
 	List.fold_right (fun m id -> m ^ "." ^ id) pi.p_md pi.p_id
       )
-    | (Record kd, ty::_)  -> C_record ( mk_records ce se pi ty kd, kd,pi.p_id)
+    | Record kd  -> C_record ( mk_records ce se pi ty_check kd, kd,pi.p_id)
     | _                   -> unreachable "Proposal_extraction" 2
 
 
@@ -322,15 +322,14 @@ let rec patterns env t =
     | Tnil ->
       [mk_pattern Ppat_any]
 
-let complete_match ce ty pm_comp (env, t) =
+let complete_match ce pm_comp (env, t) =
   let ps = patterns env t in
   C_match (ME [1, ps], pm_comp)
 
-let main sg ce se ty_lis ty_check = 
-  match se.comp, ty_lis with
-    | Match pm_comp, [ty] -> complete_match ce ty pm_comp ty_check
-    | (Path  pc, _) -> complete_path sg ce se pc ty_lis
-    | (Try pm,  []) -> assert false
-    | Other, _ -> assert false
-    | Error e, _ -> raise e
-    | _ -> assert false
+let main sg ce se ty_check = 
+  match se.comp with
+    | Match pm_comp -> complete_match ce pm_comp ty_check
+    | Path  pc -> complete_path sg ce se pc ty_check
+    | Try pm -> assert false
+    | Other -> assert false
+    | Error e -> raise e

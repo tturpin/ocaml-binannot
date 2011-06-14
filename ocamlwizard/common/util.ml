@@ -19,6 +19,7 @@ open Longident
 open Outcometree
 open Format
 open Parsetree
+open Path
 
 let debug f =
   if !Common_config.debug then
@@ -60,6 +61,13 @@ let flatten oid =
     | Oide_ident s -> s :: accu
     | Oide_dot(lid, s) -> flat (s :: accu) lid
     | Oide_apply(l1, l2) -> assert false
+  in flat [] oid
+
+let flatten_path oid = 
+  let rec flat accu = function
+    | Pident s -> Ident.name s :: accu
+    | Pdot(lid, s, _) -> flat (s :: accu) lid
+    | Papply(l1, l2) -> assert false
   in flat [] oid
 
 let rec add_qualif md = function

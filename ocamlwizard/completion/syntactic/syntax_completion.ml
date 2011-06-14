@@ -136,7 +136,10 @@ let default_parser c_env s f =
 	  comp     = parser_state.c_sort;
       }
     in completed_file c_env s_env parser_state str
-  with e ->  { s_env with comp = Error e }, c_env
+  with e ->
+    prerr_endline (Printexc.to_string e);
+    Printexc.print_backtrace stderr;
+    { s_env with comp = Error e }, c_env
 
 let main c_env =
   debug "Reading modified file...";

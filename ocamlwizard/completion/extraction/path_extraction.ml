@@ -184,9 +184,9 @@ let mk_record_info lv acc (rc_name,lbls)=
   let mk_label_info = List.fold_left (
       fun acc (s,b,otl) ->
 	{ l_name   = s;
-	  l_mut    = b;
+	  l_mut    = b = Asttypes.Mutable;
 	  l_miss   = "";
-	  l_type   = otl;
+	  l_type   = Otyp_abstract; (*otl;*)
 	  l_affect = Tnone;
 	  l_fpat   = true;
 	  l_ftype  = true;
@@ -198,14 +198,26 @@ let mk_record_info lv acc (rc_name,lbls)=
     r_labels = mk_label_info lbls;
     r_level  = lv;
   }::acc
+
+open Types
     
+(* Return the path of a type, if any *)
+let rec type_path t =
+  match t.Types.desc with
+    | Tconstr (tcstr, _, _) -> tcstr
+    | Tlink t | Tsubst t -> type_path t
+    | _ -> invalid_arg "type_path"
 
 (** *)
-let mk_records ce se pi ty = function
+let mk_records ce se pi (env, typ) = function
   | Fdummy -> unreachable "Path_extraction" 1
   | _      ->
+(*
       let path_ty, typ = Cmireader.get_main_type ce se ([],ty) false in
-      match typ with
-	| Otyp_record fl -> mk_record_info 0 [] (path_ty,fl)
-	| Otyp_var _     -> [] (* require scope analysis *)
+*)
+    let path_ty = type_path typ in
+    let tdecl = Env.find_type path_ty env in
+      match tdecl.type_kind with
+	| Type_record (fl, _) -> mk_record_info 0 [] (flatten_path path_ty,fl)
+	| Type_variant _     -> [] (* require scope analysis *)
 	| _              ->  unreachable "Path_extraction" 2

@@ -155,6 +155,9 @@ let main ce =
 	  Expression_typing.type_of_exp structure e.Parsetree.pexp_loc
 	in
 	match_exp.Typedtree.exp_env, match_exp.Typedtree.exp_type
+      | Path {p_kd = Module _} ->
+	(* Que c'est moche ! *)
+	(initial_env ()), {Types.desc = Types.Tvar ; level = 0; id = 0}
       | Path _ ->
 	let match_exp =
 	  match Parsing_env.parser_state.match_exp with
@@ -167,15 +170,13 @@ let main ce =
       | Error _ -> assert false
   in
 
-  let ty_lis = [
-    Printtyp.tree_of_typexp false pattern_type
-  ] in
+  let ty_lis = [Printtyp.tree_of_typexp false pattern_type] in
   
   let ty_check = pattern_env, pattern_type in
   
   (* 3 - Extracting propositions *)
   step "Proposal extraction";
-  let c_res = Proposal_extraction.main sg ce se ty_lis ty_check in
+  let c_res = Proposal_extraction.main sg ce se ty_check in
 
   (* 4 - Filtering propositions *)
   step "Proposal filtering";

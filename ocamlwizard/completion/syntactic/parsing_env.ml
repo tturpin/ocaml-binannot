@@ -163,7 +163,7 @@ let update_pattern is_match exp given p_end closing =
       
 (** *)
 let update_match exp given p_end closing =
-  Util.debugln "UPDATE MATCH";
+  debugln "UPDATE MATCH";
   parser_state.match_exp <- Some exp;
   update_pattern true  exp given p_end closing
     
@@ -174,10 +174,12 @@ let update_try exp given p_end closing  =
   
 (** *)
 let update_module md uid p_st p_end = 
+  debugln "UPDATE MODULE";
   if no_space () then
     let cp_s = { p_kd = Module ; p_md = md ; p_id = uid } in
     if update_comp_sort (Path cp_s) p_end then 
       begin
+	debugln "comp sort <- Path Module";
 	update_cut_pos p_st;
 	set_subs_code "Pervasives"
       end
@@ -263,7 +265,7 @@ let update_left_imbr () =
       
 (** *)
 let update_pattern md lbl gv p_en =
-  debugln "update pattern";
+  debugln "UPDATE PATTERN";
   let cp_s = { p_kd = Record (Fpat gv) ; p_md = md ; p_id = lbl } in
     if update_comp_sort (Path cp_s) p_en then (
       debugln "comp_sort <- path";

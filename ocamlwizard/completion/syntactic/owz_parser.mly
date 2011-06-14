@@ -1703,7 +1703,11 @@ class_sig_field:
 	 in
 	 set_rec_inited ();
 	 update_cut_pos (symbol_start());
-	 let e = mkexp(Pexp_record(fields, Some exten)) in
+	 let e =
+	   match fields with
+	     | [] -> exten
+	     | _ -> mkexp(Pexp_record(fields, Some exten))
+	 in
 	 (* records could be nested *)
 	 if parser_state.match_exp = None then
 	   parser_state.match_exp <- Some e;

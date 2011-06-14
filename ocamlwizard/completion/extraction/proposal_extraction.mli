@@ -20,7 +20,6 @@
 val main : Types.signature ->
   Interface.completion_infos ->
   Interface.syntax_env ->
-  Outcometree.out_type list ->
   Env.t * Types.type_expr -> Interface.completion_result
   (** the entry of the module : 
       it extracts and build a completion result *)
