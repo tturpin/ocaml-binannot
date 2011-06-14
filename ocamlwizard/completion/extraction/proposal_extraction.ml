@@ -29,10 +29,15 @@ open Types
 
 
 (** *)
-let complete_path ce se pi ty_lis = 
+let complete_path sg ce se pi ty_lis = 
   match pi.p_kd, ty_lis with
-    | (Module, [])        -> C_module ( mk_modules ce ,pi.p_id )
-    | (Value vk, [ty])    -> C_value  ( mk_values ce se, vk, pi.p_id )
+    | (Module, [])        -> C_module ( mk_modules sg ,pi.p_id )
+    | (Value vk, [ty])    ->
+      C_value (
+	mk_values sg se,
+	vk,
+	List.fold_right (fun m id -> m ^ "." ^ id) pi.p_md pi.p_id
+      )
     | (Record kd, ty::_)  -> C_record ( mk_records ce se pi ty kd, kd,pi.p_id)
     | _                   -> unreachable "Proposal_extraction" 2
 
@@ -129,7 +134,7 @@ let rec type_expr_path ty_exp =
 *)
 
 (** @return a list of pattern to complete the current match *)
-(* ty is the type of the pattern to complete (after .annot). It is used
+(* ty is the type of the pattern to complete. It is used
    in build_match_comp.
    ty_check is the environment in which the constructor are interpreted.
    It is used in extract_match_cases and best_qualification *)
@@ -321,10 +326,10 @@ let complete_match ce ty pm_comp (env, t) =
   let ps = patterns env t in
   C_match (ME [1, ps], pm_comp)
 
-let main ce se ty_lis ty_check = 
+let main sg ce se ty_lis ty_check = 
   match se.comp, ty_lis with
     | Match pm_comp, [ty] -> complete_match ce ty pm_comp ty_check
-    | (Path  pc, _) -> complete_path ce se pc ty_lis
+    | (Path  pc, _) -> complete_path sg ce se pc ty_lis
     | (Try pm,  []) -> assert false
     | Other, _ -> assert false
     | Error e, _ -> raise e

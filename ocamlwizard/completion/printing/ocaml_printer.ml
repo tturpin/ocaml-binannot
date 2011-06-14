@@ -80,7 +80,7 @@ let print_taffect = function
     type_filter=\"%b\" is_record=\"%b\" level=\"%d\" type=\"%s\"></value>@\n"
 *)
 let print_value_completion fmt = 
-  L.iter (fun v -> if(v.vl_fpat) then fprintf fmt "%s@." v.vl_name)
+  L.iter (fun v -> if(v.vl_fpat) then fprintf fmt "%s@." v.vl_miss)
 
 let print_expr fmt = function
   | C_match (p,pm_c) -> 

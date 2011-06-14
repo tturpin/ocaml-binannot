@@ -182,14 +182,16 @@ let update_module md uid p_st p_end =
       end
 
 (** *)
-let update_value md value p_st p_end kd =
+let update_value exp md value p_st p_end kd =
   if no_space () then
     let cp_s = { p_kd = Value kd ; p_md = md ; p_id = value } in
-    if update_comp_sort (Path cp_s) p_end then
+    if update_comp_sort (Path cp_s) p_end then (
+      parser_state.match_exp <- Some exp;
       let subs =  sprintf "(let %s = assert false in %s)" ogv tagged_ogv in
       set_subs_code subs;
       update_cut_pos p_st
-	  
+    )
+
 (** *)
 let update_lbl_longid md id p_st p_end = 
   if no_space () then 

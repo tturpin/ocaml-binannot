@@ -49,8 +49,8 @@ type path_kind =
 (** *)
 type path_completion = {
     p_kd         : path_kind;
-    p_md         : string list;
-    p_id         : string;
+    p_md         : string list; (* The qualified part (module path) *)
+    p_id         : string; (* The short ident to complete *)
   }
     
   (** *)

@@ -25,6 +25,7 @@ open Format
 open Interface
 open Cmireader
 open Debug
+open Util
 
    
 (** This record is used to store the result of a filtration operated
@@ -105,9 +106,13 @@ let build_arborescence filter_fun out_mod_ty =
     
     
 (**  *)
-let apply_filter filter_fun ci = 
+ let apply_filter filter_fun ci = 
+(*
   let signa =   get_signature (ci.fb_name^".cmi") in
   let gst_mod = get_module "Ocamlwizard_Ghost_Module" signa in
+*)
+   let signa = Printtyp.tree_of_signature ci in
+   let gst_mod = Omty_signature signa in
   build_arborescence filter_fun gst_mod
     
 (**  *)
@@ -165,8 +170,14 @@ let mk_values ce se =
 	  if c <> 0 then c
 	  else compare a.vl_name b.vl_name
       ) vals_inf
-  in values_info (values_tree ce)
-  
+  in
+  let values = values_info (values_tree ce) in
+  debugln "Found %d values:" (List.length values);
+  List.iter
+    (function v ->
+      debugln "  - %s" v.vl_name)
+    values;
+  values
 
 (** *)
 let mk_record_info lv acc (rc_name,lbls)=

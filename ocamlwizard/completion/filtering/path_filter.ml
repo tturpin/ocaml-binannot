@@ -68,7 +68,8 @@ let split_str str pos =
     and returns (part2, true) if and only if part1 = pat 
     (i.e. lbl_nm begins with pat),It returns ("",false) otherwise *)
     
-let filter_by_pattern lbl_nm pat = 
+let filter_by_pattern lbl_nm pat =
+  debugln "filtering %s by pattern %s" lbl_nm pat;
   let ( hd_str , tl_str ) = split_str lbl_nm (String.length pat) in
   if hd_str = pat then (tl_str,true) else ("",false)
     
@@ -83,13 +84,16 @@ let filter_modules pat mds_lst =
 
 (** vl_inf : value info 
     ty_wanted : type searched *)
-let filter_values ty_wanted pat vls_lst v_kd = 
-  let f_sort a b = 
+let filter_values ty_wanted pat vls_lst v_kd =
+  debugln "filtering %d values" (List.length vls_lst);
+  let f_sort a b =
     let c = compare a.vl_level b.vl_level in
     if c <> 0 then c else compare a.vl_name b.vl_name in 
   let f_filter vl_inf =
     let miss, s_pat            = filter_by_pattern vl_inf.vl_name pat in
     let s_type, t_affect, kind = filter_by_type ty_wanted vl_inf.vl_type in
+    debugln "fpat = %B, miss = %s, ftype = %B" (*", affect = %B, kind = %B"*)
+      s_pat miss s_type (*t_affect kind*);
     { vl_inf with
       vl_miss     = miss ^ " ";
       vl_fpat     = s_pat;       (* filtering by pattern   *)

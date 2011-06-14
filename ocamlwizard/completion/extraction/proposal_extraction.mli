@@ -17,7 +17,7 @@
 
 (** This module extracts the proposal from the cmi files *)
 
-val main :
+val main : Types.signature ->
   Interface.completion_infos ->
   Interface.syntax_env ->
   Outcometree.out_type list ->

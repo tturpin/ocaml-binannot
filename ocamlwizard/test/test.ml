@@ -1,6 +1,7 @@
 module M = struct
   type t = A | B
   type u = {a : unit ; b : unit}
+  let sort = assert false
 end
 
 open M
@@ -26,8 +27,8 @@ let () = match A with M.A -> assert false
 
 let () = match Some () with
    None -> assert false
- | Some   () 
-  -> assert false
+ | Some   () -> assert false
 
+let () = M.so
 
 let _ = ()

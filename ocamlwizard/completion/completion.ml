@@ -53,7 +53,7 @@ let compile_file ast c_env =
   let env = initial_env () in
   (* This is probably not needed *)
   Typecore.reset_delayed_checks ();
-  let str, _, _ =
+  let str, sg, _ =
     let ppf = err_formatter in
     try
       Typemod.type_structure env ast Location.none
@@ -75,7 +75,7 @@ let compile_file ast c_env =
 	| _ -> raise e);
       failwith "Error while typing"
   in
-  str, {c_env with fb_name = outputprefix}
+  str, sg, {c_env with fb_name = outputprefix}
 
 (** *)
 let mk_list_rg se = 
@@ -91,9 +91,9 @@ let step msg =
   Util.debugln "\n <+> Step : %s \n-----------------" msg
 
 (*
-let out_types_from_annot ty_lis = 
+let out_types_from ty_lis = 
   if !Common_config.debug then (
-      Format.eprintf "> Types from .annot : [";
+      Format.eprintf "> Types: [";
       match ty_lis with
 	| []   -> 
 	    Format.eprintf "empty]@."; 
@@ -120,7 +120,8 @@ let main ce =
 
   (* Typing the completed file *)
   step "Typing the the completed parsetree";
-  let structure, ce = compile_file se.ast ce in
+  let structure, sg, ce = compile_file se.ast ce in
+  Util.debugln "OK";
   
   (* Exiting with the error code (for auto-test) *)
   if !Common_config.compile_only then
@@ -147,7 +148,14 @@ let main ce =
 	in
 	match_pat.Typedtree.pat_env, match_pat.Typedtree.pat_type
       | Try _ -> assert false
-      | Path _ -> assert false
+      | Path _ ->
+	let match_exp =
+	  match Parsing_env.parser_state.match_exp with
+	    | Some e ->
+	      Expression_typing.type_of_exp structure e.Parsetree.pexp_loc
+	    | None -> assert false
+	in
+	match_exp.Typedtree.exp_env, match_exp.Typedtree.exp_type
       | Other -> assert false
       | Error _ -> assert false
   in
@@ -160,7 +168,7 @@ let main ce =
   
   (* 3 - Extracting propositions *)
   step "Proposal extraction";
-  let c_res = Proposal_extraction.main ce se ty_lis ty_check in
+  let c_res = Proposal_extraction.main sg ce se ty_lis ty_check in
 
   (* 4 - Filtering propositions *)
   step "Proposal filtering";

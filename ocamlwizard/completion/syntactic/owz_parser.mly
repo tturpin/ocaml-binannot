@@ -1557,8 +1557,7 @@ class_sig_field:
      *====================*/
  ;
  simple_expr:
-     val_longident
-       { mkexp(Pexp_ident $1) }
+     val_longident { $1 }
    | constant
        { mkexp(Pexp_constant $1) }
    | constr_longident %prec prec_constant_constructor
@@ -2641,24 +2640,33 @@ constr_ident:
 /* _begin patch_39
 *====================*/
 val_longident:
-  | val_ident                                   { Lident $1  }
+  | val_ident                                   { mkexp(Pexp_ident (Lident $1)) }
     
     /*     idents whith use "_"
-  | UNDERSCORE EOF                              { Lident "_" }
+  | UNDERSCORE EOF                              { mkexp(Pexp_ident (Lident "_")) }
     */
 
   | mod_longident DOT val_ident { (* EOF if end_of_file() = true *)
 	let md = $1 in 
 	let value = $3 in
-	update_value (flatten md) value (symbol_start()) (symbol_end()) V_all;
-	Ldot(md, value)
+	let exp = mkexp(Pexp_ident (Ldot(md, value))) in
+	update_value exp (flatten md) value (symbol_start()) (symbol_end()) V_all;
+	if end_of_file (symbol_end ()) then (
+	  Util.debugln "longident %s" $3;
+	  {exp_af with pexp_loc = exp.pexp_loc}
+	) else
+	  exp
       }
       
   | mod_longident EOF {
 	let res = $1 in
 	let (md,id) = mod_and_ident () in
-	update_value md id (symbol_start()) (symbol_end()) V_all;
-	res
+	let exp = exp_af in
+	update_value exp md id (symbol_start()) (symbol_end()) V_all;
+	exp_af
+(*
+	mkexp(Pexp_ident res)
+*)
       }
 ;
 /* _end patch_39
@@ -2821,7 +2829,9 @@ toplevel_directive:
     SHARP ident                 { Ptop_dir($2, Pdir_none) }
   | SHARP ident STRING          { Ptop_dir($2, Pdir_string $3) }
   | SHARP ident INT             { Ptop_dir($2, Pdir_int $3) }
+/* Removed because we change the type of longident to expression
   | SHARP ident val_longident   { Ptop_dir($2, Pdir_ident $3) }
+*/
   | SHARP ident FALSE           { Ptop_dir($2, Pdir_bool false) }
   | SHARP ident TRUE            { Ptop_dir($2, Pdir_bool true) }
 ;

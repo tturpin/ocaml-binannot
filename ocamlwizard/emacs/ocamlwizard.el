@@ -75,7 +75,7 @@
       ))
   (setq choice 
 	(completing-read "possible completion: " alist nil t))
-  (backward-kill-word 1)
+;  (backward-kill-word 1)
   (insert choice)
 )
 

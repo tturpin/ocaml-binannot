@@ -33,7 +33,7 @@ val update_match : Parsetree.expression -> Interface.pm_completion -> int -> str
 val update_try : 'a -> Interface.pm_completion -> int -> string -> unit
 val update_module : string list -> string -> int -> int -> unit
 val update_value :
-  string list -> string -> int -> int -> Interface.value_kind -> unit
+  Parsetree.expression -> string list -> string -> int -> int -> Interface.value_kind -> unit
 val update_lbl_longid : string list -> string -> int -> int -> unit
 val update_expr_longid : string list -> string -> int -> int -> int -> unit
 val update_not_inited_redef :
