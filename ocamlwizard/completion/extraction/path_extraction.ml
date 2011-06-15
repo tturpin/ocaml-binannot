@@ -23,7 +23,6 @@
 open Outcometree
 open Format
 open Interface
-open Cmireader
 open Debug
 open Util
 
@@ -107,10 +106,6 @@ let build_arborescence filter_fun out_mod_ty =
     
 (**  *)
  let apply_filter filter_fun ci = 
-(*
-  let signa =   get_signature (ci.fb_name^".cmi") in
-  let gst_mod = get_module "Ocamlwizard_Ghost_Module" signa in
-*)
    let signa = Printtyp.tree_of_signature ci in
    let gst_mod = Omty_signature signa in
   build_arborescence filter_fun gst_mod
@@ -212,9 +207,6 @@ let rec type_path t =
 let mk_records ce se pi (env, typ) = function
   | Fdummy -> unreachable "Path_extraction" 1
   | _      ->
-(*
-      let path_ty, typ = Cmireader.get_main_type ce se ([],ty) false in
-*)
     let path_ty = type_path typ in
     let tdecl = Env.find_type path_ty env in
       match tdecl.type_kind with

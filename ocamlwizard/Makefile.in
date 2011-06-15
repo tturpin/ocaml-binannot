@@ -160,8 +160,6 @@ CMO_FILTER =                      	\
 CMX_FILTER = $(CMO_FILTER:.cmo=.cmx)
 
 CMO_EXTRACT = \
-	$(PATH_EXTRACT)cmireader.cmo        \
-	$(PATH_EXTRACT)match_extraction.cmo \
 	$(PATH_EXTRACT)path_extraction.cmo  \
 	$(PATH_EXTRACT)proposal_extraction.cmo
 

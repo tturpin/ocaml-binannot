@@ -18,7 +18,6 @@
 (**  *)
 
 open Path_extraction
-open Match_extraction
 open Interface
 open Format
 open Debug
@@ -26,6 +25,7 @@ open Util
 open Longident
 open Parsetree    
 open Types
+open Path
 
 
 (** *)
@@ -132,52 +132,6 @@ let rec type_expr_path ty_exp =
     | Tunivar -> Format.eprintf "tunivar@.";
     | Tpoly _ -> Format.eprintf "tpoly@."
 *)
-
-(** @return a list of pattern to complete the current match *)
-(* ty is the type of the pattern to complete. It is used
-   in build_match_comp.
-   ty_check is the environment in which the constructor are interpreted.
-   It is used in extract_match_cases and best_qualification *)
-let complete_match ce se ty pm_comp (env, ty_exp) = 
-  let (gvn_pats, depth) = 
-    match pm_comp with
-      | AllCs  -> 
-	  let depth  = !Common_config.match_depth in
-	  let depth = if depth = 1 then 2 else depth in [], depth
-      | MissCs given ->
-	  let depth = max_patterns_depth given in given, depth
-      | BranchCs (_,given)  -> 
-	  let depth = max_patterns_depth given in given, (depth +1)
-  in
-  if !Common_config.debug then
-    Format.eprintf "> Max depth of given patterns : %d@."depth;
-  let can_qualif, typ, final_ty = 
-	  try
-	    let ty_env = Printtyp.tree_of_typexp false ty_exp in
-	    let path = type_expr_path ty_exp in
-(*
-	    let ty_loc = (Env.find_type path env).type_loc in
-*)
-	    let is_pers = Ident.persistent (Path.head path)in 
-	    let cases = 
-	      Match_extraction.build_match_comp depth ce se [] is_pers ty_env in
-	    true, ty_exp, cases
-	  with _ -> 
-	    let cases = Match_extraction.build_match_comp depth ce se [] false ty in
-	    false, (assert false), cases
-  in
-  let type_path = List.rev (type_path ty) in
-  let f g p = g p (env, ty_exp) typ type_path in 
-  let pat_cases = Match_extraction.extract_match_cases depth final_ty (env, ty_exp) in
-  
-  let pm_info =
-    if can_qualif then
-      List.map (fun (cpt,lcases) -> 
-	(cpt, List.map (f best_qualification) lcases)) pat_cases
-    else 
-      let g p a b d = p in
-      List.map (fun (cpt,lcases) -> (cpt, List.map (f g) lcases)) pat_cases
-  in C_match (ME pm_info,pm_comp)
   
 (* Copied from Match_extraction *)
 let mk_pattern desc = { ppat_desc=desc;ppat_loc=Location.none }
@@ -204,8 +158,6 @@ let rec shortest_path cond = function
 	  (function p' -> cond (Lapply (p, p')))
 	  p')
       p
-
-open Path
 
 (* Provisoire, en attendant une solution definitive dans Untypeast *)
 (* reverse lookup of a constructor of field name *)
@@ -322,6 +274,7 @@ let rec patterns env t =
     | Tnil ->
       [mk_pattern Ppat_any]
 
+(** @return a list of pattern to complete the current match *)
 let complete_match ce pm_comp (env, t) =
   let ps = patterns env t in
   C_match (ME [1, ps], pm_comp)
