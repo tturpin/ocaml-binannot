@@ -1,0 +1,4 @@
+Tests cases are build from the two files prefix.ml and tests.ml as
+follows: each line of tests.ml which contains a $ is appended to
+prefix.ml to form a test case, with the -pos argument being the
+position of $.
