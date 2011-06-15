@@ -19,12 +19,6 @@
     an existing annot file or looking for a type corresponding with 
     a given range *)
 
-val main : string -> Interface.range list -> Outcometree.out_type list
-  (** This function gets the ast of the given annot file and, for each
-      range in range_list, Its looks for its corresponding type in the
-      ast. The order of the types in the result is the same as
-      the order of the ranges *)
-  
 (** Get the type of the expression with given location in an typedtree. *)
 val type_of_exp : Typedtree.structure -> Location.t -> Typedtree.expression
 (*

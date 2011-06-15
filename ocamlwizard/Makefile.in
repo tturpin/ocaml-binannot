@@ -121,11 +121,8 @@ BIN_SCAN  = scan
 GENERATED=                              \
 	$(PATH_SYNTACTIC)owz_lexer.ml   \
 	$(PATH_SYNTACTIC)owz_parser.ml  \
-	$(PATH_C_TYPING)annotlexer.ml   \
-	$(PATH_C_TYPING)annotparser.ml
 
 # removed to directly access the parser table
-#	$(PATH_C_TYPING)annotparser.mli \
 #	$(PATH_SYNTACTIC)owz_parser.mli \
 
 CMO = $(PATH_MAIN)ocamlwizard.cmo 
@@ -148,8 +145,6 @@ CMO_SYNTACTIC = \
 CMX_SYNTACTIC = $(CMO_SYNTACTIC:.cmo=.cmx)
 
 CMO_C_TYPING =                          	\
-	$(PATH_C_TYPING)annotparser.cmo 	\
-	$(PATH_C_TYPING)annotlexer.cmo  	\
 	$(PATH_C_TYPING)expression_typing.cmo
 CMX_C_TYPING = $(CMO_C_TYPING:.cmo=.cmx)
 
@@ -172,7 +167,6 @@ CMO_COMMON =                           	\
 	$(PATH_COMMON)util.cmo          \
 	$(PATH_COMMON)owz_ref_printer.cmo	\
 	$(PATH_COMMON)stdr_types.cmo       	\
-	$(PATH_COMPLETION)sc_completion.cmo
 
 #	$(PATH_REFACTOR)xml_ref_printer.cmo	\
 
@@ -292,11 +286,8 @@ CMO_DRIVER =                            \
 CMX_DRIVER = $(CMO_DRIVER:.cmo=.cmx)
 
 CMO_OCAML = $(CMO_UTILS) $(CMO_PARSING) $(CMO_TYPING)
+CMX_OCAML = $(CMO_OCAML:.cmo=.cmx)
 
-#	$(PATH_BYTECOMP)command_line.cmo
-#	$(PATH_BYTECOMP)emitcode.cmo 	\
-#	$(PATH_DRIVER)pparse.cmo 	\
-#	$(PATH_DRIVER)compile.cmo 	\
 
 # $(CMO_DRIVER)
 
@@ -397,7 +388,7 @@ $(BIN).byte: $(CMO_ALL)
 	$(OCAMLC) $(CMO_OCAML) $(LIBS) $(BFLAGS) $(CMO_ALL) -o $@
 
 $(BIN).opt: $(CMX_ALL)
-	$(OCAMLOPT) $(OFLAGS) $(OLIBS) $(CMX_ALL) -o $@
+	$(OCAMLOPT) $(OFLAGS) $(CMX_OCAML) $(OLIBS) $(CMX_ALL) -o $@
 
 
 $(CMO):$(CMO_COMPLETION)
@@ -419,18 +410,13 @@ common/setting.ml: config.status
 $(CMX):$(CMX_COMPLETION)
 
 $(CMX_COMPLETION):$(CMX_COMMON) $(CMX_SYNTACTIC) $(CMX_C_TYPING) $(CMX_EXTRACT) $(CMX_FILTER) $(CMX_PRINT)
-$(CMX_SYNTACTIC) :$(CMX_PARSER) $(CMX_COMMON)
-$(CMX_C_TYPING)  :$(CMO_TYPING) $(CMX_COMMON)
-$(CMX_FILTER) 	 :$(CMX_TYPING) $(CMX_COMMON)
+#$(CMX_SYNTACTIC) :$(CMX_PARSER) $(CMX_COMMON)
+#$(CMX_C_TYPING)  :$(CMO_TYPING) $(CMX_COMMON)
+#$(CMX_FILTER) 	 :$(CMX_TYPING) $(CMX_COMMON)
 $(CMX_PRINT)     :$(CMX_COMMON)
 $(CMX_EXTRACT)   :$(CMX_COMMON)
 
 
-$(CMX_OCAML):$(CMX_UTILS) $(CMX_PARSING) $(CMX_TYPING) 
-
-$(CMX_TYPING):$(CMX_UTILS) $(CMX_PARSING)
-
-$(CMX_PARSING):$(CMX_UTILS)
 ########################################################
 
 .SUFFIXES: .mli .ml .cmi .cmo .mll .mly .o .cmx
@@ -438,23 +424,15 @@ $(CMX_PARSING):$(CMX_UTILS)
 .mli.cmi:
 	$(OCAMLC) -c $(BFLAGS) $<
 
-#	-ocamlwizard compile $(BFLAGS) `pwd`/$< 
-
 .ml.cmo:
 	$(OCAMLC) -c $(BFLAGS) $<
 	cp $< $<.last_compiled
 
-#	-ocamlwizard compile $(BFLAGS) `pwd`/$< 
-
 .ml.o:
 	$(OCAMLOPT) -c $(OFLAGS) $<
 
-#	-ocamlwizard compile $(OFLAGS) `pwd`/$< 
-
 .ml.cmx:
 	$(OCAMLOPT) -c $(OFLAGS) $<
-
-#	-ocamlwizard compile $(OFLAGS) `pwd`/$< 
 
 .mll.ml:
 	$(OCAMLLEX) $<
@@ -630,15 +608,6 @@ clean_all:clean
 	$(PATH_MAIN)*.ml \
 	$(PATH_MAIN)*.mli \
 	>.depend
-
-#	$(PATH_UTILS)*.ml \
-#	$(PATH_UTILS)*.mli \
-#	$(PATH_PARSING)*.ml \
-#	$(PATH_PARSING)*.mli \
-#	$(PATH_TYPING)*.ml \
-#	$(PATH_TYPING)*.mli \
-#	$(PATH_DRIVER)*.ml \
-#	$(PATH_DRIVER)*.mli \
 
 
 #	$(PATH_REFACTOR)*.ml \
