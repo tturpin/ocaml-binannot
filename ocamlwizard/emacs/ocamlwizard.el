@@ -50,6 +50,8 @@
 		      (int-to-string (- (point) 1)) (buffer-name)))
   (if (not (eq exit-status 10))
       (message "ocamlwizard: no completion"))
+  (search-backward "$")
+  (delete-char 1)
 )
 
 (global-set-key [f3] 'ocamlwizard-match-with-completion)
@@ -136,6 +138,8 @@
 	 file))
   (if (not (eq exit-status 10))
       (message "ocamlwizard: no completion"))
+  (search-backward "$")
+  (delete-char 1)
 )
 
 (global-set-key [f11] 'ocamlwizard-expand-patvar)

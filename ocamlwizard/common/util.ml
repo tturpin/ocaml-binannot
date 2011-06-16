@@ -197,20 +197,36 @@ module Lpp = struct
     | Ldot (t, s)   -> fprintf fmt "%a.%s" print_lid t s 
     | Lapply (t, t2) -> fprintf fmt "%a %a" print_lid t print_lid t2
 	
-  let rec print_record fmt lis =
+  let rec print_record ?tag_first_wildcard fmt lis =
     let (hd_lid,hd_pat),tl = List.hd lis, List.tl lis in
-    fprintf fmt "%a = %a" print_lid hd_lid print_pattern hd_pat.ppat_desc;
+    fprintf fmt "%a = %a"
+      print_lid hd_lid
+      (print_pattern ?tag_first_wildcard) hd_pat.ppat_desc;
     List.iter (
-	fun (lid,pat) -> fprintf fmt "; %a = %a" print_lid lid print_pattern pat.ppat_desc
+	fun (lid,pat) -> fprintf fmt "; %a = %a"
+	  print_lid lid
+	  (print_pattern ?tag_first_wildcard) pat.ppat_desc
       ) tl
       
-  and print_array fmt lis = 
-    List.iter (fun pat -> fprintf fmt "%a;" print_pattern pat.ppat_desc ) lis
+  and print_array ?tag_first_wildcard fmt lis = 
+    List.iter
+      (fun pat -> fprintf fmt "%a;"
+	(print_pattern ?tag_first_wildcard) pat.ppat_desc)
+      lis
       
-  and print_pattern fmt = function
-    | Ppat_any                         -> fprintf fmt "_"
+  and print_pattern ?tag_first_wildcard fmt p =
+  let print_pattern = print_pattern ?tag_first_wildcard in
+  match p with
+    | Ppat_any                         ->
+      (match tag_first_wildcard with
+	| Some b when !b = true ->
+	  b := false;
+	  fprintf fmt "$"
+	| _ -> ());
+      fprintf fmt "_"
     | Ppat_var s                       -> fprintf fmt "%s" s
-    | Ppat_alias (pat, s)              -> fprintf fmt "%a = %s" print_pattern pat.ppat_desc s 
+    | Ppat_alias (pat, s) ->
+      fprintf fmt "%a = %s" print_pattern pat.ppat_desc s 
     | Ppat_constant c                  -> fprintf fmt "%a" print_constant c
     | Ppat_tuple pat_lis               -> 
 	begin
@@ -222,7 +238,9 @@ module Lpp = struct
 		fprintf fmt ")" 
 	end
     | Ppat_construct (Lident "::", Some {ppat_desc = Ppat_tuple [t ; q]}, _) ->
-      fprintf fmt "%a :: %a" print_pattern t.ppat_desc print_pattern q.ppat_desc
+      fprintf fmt "%a :: %a"
+	print_pattern t.ppat_desc
+	print_pattern q.ppat_desc
     | Ppat_construct (lid, pat_opt, b) ->
 	begin
 	  match pat_opt with
@@ -237,8 +255,10 @@ module Lpp = struct
 	    | Some p -> 
 		fprintf fmt "`%s %a" lbl print_pattern p.ppat_desc
 	end
-    | Ppat_record (c_lis, _)           -> fprintf fmt "{ %a }" print_record c_lis
-    | Ppat_array pat_lis               -> fprintf fmt "[|%a|]" print_array pat_lis
+    | Ppat_record (c_lis, _) ->
+      fprintf fmt "{ %a }" (print_record ?tag_first_wildcard) c_lis
+    | Ppat_array pat_lis ->
+      fprintf fmt "[|%a|]" (print_array ?tag_first_wildcard) pat_lis
     | Ppat_or (pat1, pat2)             -> 
 	fprintf fmt "%a | %a" print_pattern pat1.ppat_desc print_pattern pat2.ppat_desc
     | Ppat_constraint (pat, co)        -> assert false

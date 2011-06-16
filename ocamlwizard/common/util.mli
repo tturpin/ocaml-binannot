@@ -39,7 +39,7 @@ val is_list : Longident.t -> bool
 
 module Lpp :
 sig
-  val print_pattern : Format.formatter -> Parsetree.pattern_desc -> unit
+  val print_pattern : ?tag_first_wildcard: bool ref -> Format.formatter -> Parsetree.pattern_desc -> unit
 end
 
 val debug : ('a, out_channel, unit) format -> 'a

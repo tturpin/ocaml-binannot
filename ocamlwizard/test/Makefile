@@ -1,6 +1,7 @@
 LD_PATH=../../otherlibs/str:../../otherlibs/unix
 
 OCAMLWIZARD=ocamlwizard
+OWZ=../owz.opt
 RES=match_cases_res.ml expansion_res.ml path_res.ml errors_res.ml
 
 all: $(RES)
@@ -42,7 +43,7 @@ match_cases_res.ml: $(M_TESTS)
 	head -c `grep -o -b \\\\$$ $< | cut -d : -f 1` $< | tail -n 1 >>$@ ; \
 	cat $(subst .ml,_mcomp.ml, $<) >>$@ ; echo EOF\\n >>$@
 
-%_mcomp.ml: %.ml %_no_dollar.ml
+%_mcomp.ml: %.ml %_no_dollar.ml $(OWZ)
 	$(OCAMLWIZARD) completion $(subst .ml,_no_dollar.ml, $<) \
 	-pos `grep -o -b \\\\$$ $< | cut -d : -f 1` -printer ocaml-pp >$@
 
@@ -66,7 +67,7 @@ expansion_res.ml: $(PE_TESTS)
 	cat $(subst .ml,_pecomp.ml, $<) >>$@ ; echo EOF\\n >>$@
 
 # We use tail to perform +1 and +2 :-(
-%_pecomp.ml: %.ml %_no_dollar.ml
+%_pecomp.ml: %.ml %_no_dollar.ml $(OWZ)
 	$(OCAMLWIZARD) completion $(subst .ml,_no_dollar.ml, $<) \
 	-pos `tail -c +3 $< | grep -o -b '\->' | tail -n 1 | cut -d : -f 1` \
 	-expand `grep -o -b \\\\$$ $< | cut -d : -f 1`-\
@@ -93,7 +94,7 @@ path_res.ml: $(PC_TESTS)
 	cat $(subst .ml,_pccomp.ml, $<) >>$@ ; echo EOF\\n >>$@
 
 # We use tail to perform +1 and +2 :-(
-%_pccomp.ml: %.ml %_no_dollar.ml
+%_pccomp.ml: %.ml %_no_dollar.ml $(OWZ)
 	$(OCAMLWIZARD) completion $(subst .ml,_no_dollar.ml, $<) \
 	-pos `grep -o -b \\\\$$ $< | cut -d : -f 1` -printer ocaml-pp >$@
 
@@ -107,7 +108,7 @@ errors_res.ml: errors.ml errors_comp.ml
 	cat $(subst .ml,_comp.ml, $<) >>$@ ; echo EOF\\n >>$@
 
 # We use tail to perform +1 and +2 :-(
-errors_comp.ml: errors.ml errors_no_dollar.ml
+errors_comp.ml: errors.ml errors_no_dollar.ml $(OWZ)
 	$(OCAMLWIZARD) completion $(subst .ml,_no_dollar.ml, $<) \
 	-pos `grep -o -b \\\\$$ $< | cut -d : -f 1` -printer ocaml-pp >$@
 

@@ -1,116 +1,116 @@
 let () = match () with $
 =>
 let () = match () with 
-  | ()EOF
+  | ()$EOF
 
 let () = match true with $
 =>
 let () = match true with 
   | false
-  | trueEOF
+  | true$EOF
 
 let () = match 1 with $ (* Saut de ligne simple ? *)
 =>
 let () = match 1 with 
-  | _EOF
+  | $_EOF
 
 let () = match 'a' with $
 =>
 let () = match 'a' with 
-  | _EOF
+  | $_EOF
 
 let () = match lazy () with $
 =>
 let () = match lazy () with 
-  | lazy _EOF
+  | lazy $_EOF
 
 let () = match ((), ()) with $
 =>
 let () = match ((), ()) with 
-  | (_, _)EOF
+  | ($_, _)EOF
 
 let () = match () with $ (* we should remove the space *)
 =>
 let () = match () with 
-  | ()EOF
+  | ()$EOF
 
 let () = match () with$ (* space not necessary *)
 =>
 let () = match () with
-  | ()EOF
+  | ()$EOF
 
 let () = match () $ (* we should add the with *)
 =>
 let () = match () 
-  | ()EOF
+  | ()$EOF
 
 let () = match ()$ (* space not necessary *)
 =>
 let () = match ()
-  | ()EOF
+  | ()$EOF
 
 let () = match true with true -> () $ (* Existing case *)
 =>
 let () = match true with true -> () 
-  | falseEOF
+  | false$EOF
 
 let () = match true with true -> ()$
 =>
 let () = match true with true -> ()
-  | falseEOF
+  | false$EOF
 
 let () = match [] with $
 =>
 let () = match [] with 
   | []
-  | _ :: _EOF
+  | $_ :: _EOF
 
 let () = match [] with [] -> () $
 =>
 let () = match [] with [] -> () 
-  | _ :: _EOF
+  | $_ :: _EOF
 
 let () = match [||] with $
 =>
 let () = match [||] with 
-  | [||]EOF
+  | [||]$EOF
 
 let () = match [||] with [||] -> () $ (* We still add another [||] *)
 =>
 let () = match [||] with [||] -> () 
-  | [||]EOF
+  | [||]$EOF
 
 let () = match A with $
 =>
 let () = match A with 
   | A
-  | BEOF
+  | B$EOF
 
 let () = match A with M.A -> () $
 =>
 let () = match A with M.A -> () 
-  | BEOF
+  | B$EOF
 
 let () = match A with A -> () $
 =>
 let () = match A with A -> () 
-  | BEOF
+  | B$EOF
 
 let () = match None with $
 =>
 let () = match None with 
   | None
-  | Some _EOF
+  | Some $_EOF
 
 let () = match None with Some () -> () $
 =>
 let () = match None with Some () -> () 
-  | NoneEOF
+  | None$EOF
 
 let () = match `a with $
 =>
 let () = match `a with 
-  | `aEOF
+  | `a$EOF
 
 let () = match `a with `b -> ()$
 =>
@@ -120,12 +120,12 @@ let () = match List.map2 with $
 =>
 let () = match List.map2 with 
   | []
-  | _ :: _EOF
+  | $_ :: _EOF
 
 let () = match {a = () ; b = ()} with $
 =>
 let () = match {a = () ; b = ()} with 
-  | { a = _; b = _ }EOF
+  | { a = $_; b = _ }EOF
 
 let (_ : unit -> 'a) = function $
 =>
@@ -138,12 +138,12 @@ let () = match true with true -> EOF
 let () = match [] with [_] -> () $
 =>
 let () = match [] with [_] -> () 
-  | []EOF
+  | []$EOF
 
 let () = match None with Some [] -> () $ (* We should add Some (_ :: _) *)
 =>
 let () = match None with Some [] -> () 
-  | NoneEOF
+  | None$EOF
 
 let () = match `a with `b -> ()$
 =>

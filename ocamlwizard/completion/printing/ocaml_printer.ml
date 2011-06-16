@@ -48,24 +48,30 @@ let opt_bar b_ref =
 
 let print_cases_completion ?(first_bar=true) fmt cases =
  let bol = ref (not first_bar) in
+ let tag_first_wildcard = ref true in
  L.iter 
     (fun cs ->
       if cs.ma_selected then
 	fprintf fmt "@\n %s%a" (*" -> assert false" *)
 	  (opt_bar bol)
-	  Util.Lpp.print_pattern cs.ma_pattern.ppat_desc
-    )cases
+	  (Util.Lpp.print_pattern ~tag_first_wildcard) cs.ma_pattern.ppat_desc
+    )cases;
+ if !tag_first_wildcard then
+   fprintf fmt "$"
     
 let print_dispatch_completion fmt cases =
   debugln "print_dispatch (%d cases)" (List.length cases);
   let bol = ref true in
+  let tag_first_wildcard = ref true in
   L.iter
     (fun cs ->
       if cs.ma_selected then
 	fprintf fmt "%s%a" 
 	  (opt_bar bol)
-	  Util.Lpp.print_pattern cs.ma_pattern.ppat_desc
-    ) cases
+	  (Util.Lpp.print_pattern ~tag_first_wildcard) cs.ma_pattern.ppat_desc
+    ) cases;
+ if !tag_first_wildcard then
+   fprintf fmt "$"
     
 let print_mod_completion fmt = L.iter (fun md ->fprintf fmt "@\n%s" md.m_name)
 

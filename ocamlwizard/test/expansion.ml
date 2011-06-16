@@ -21,4 +21,6 @@ let () = match lazy () with $_€ -> ()
 (* Does no work, but it is expected. *)
 let () = match () with $fo€o -> ()
 let () = match None with Some $_€ -> ()
+
+(* We could add this *)
 let $_€ = ()
