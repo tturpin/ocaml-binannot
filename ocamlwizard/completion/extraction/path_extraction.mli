@@ -23,7 +23,8 @@ val mk_modules : Types.signature -> Interface.module_info list
 (** Extracts and makes a list of modules which can complete the module 
     path *)  
   
-val mk_values : Types.signature -> Interface.syntax_env -> 
+val mk_values : Types.signature -> Interface.syntax_env ->
+  Env.t * Types.type_expr -> string ->
   Interface.value_info list
 (** Extracts and makes a list of modules which can complete 
     the value path *)  

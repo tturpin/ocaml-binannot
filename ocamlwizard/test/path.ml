@@ -45,3 +45,5 @@ let _ = {a = () $
 let _ = {a = () ; M$
 let () = comp$ (* compare ? *)
 let _ = {r $
+
+let () = so$ (* sort is missing *)

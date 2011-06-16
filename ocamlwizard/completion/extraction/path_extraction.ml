@@ -136,12 +136,49 @@ let mk_modules  ce =
     in List.sort (fun a b -> compare a.m_name b.m_name) mods_inf in 
   modules_info (module_tree ce)
 
+let remove ~prefix s =
+  let l = String.length prefix
+  and l' = String.length s in
+  if l' >= l && String.sub s 0 l = prefix then
+    String.sub s l (l' - l)
+  else
+    raise Not_found
+
+let value_type v = Printtyp.tree_of_typexp false v.Types.val_type
+
+(* Complete a lowercase ident *)
+let rec complete_ident x e = function
+  | Env.Env_empty -> []
+  | Env.Env_value (s, i, v) ->
+    let l = complete_ident x e s
+    and n = Ident.name i in
+    (try let miss = remove ~prefix:x n in
+	 { vl_name     = n;
+	   vl_miss     = miss;
+	   vl_level    = 1;
+	   vl_type     = value_type v;
+	   vl_affect   = Tnone;
+	   vl_fpat     = true;
+	   vl_ftype    = true;
+	   vl_kind     = V_all
+	 } :: l
+     with Not_found ->
+       l)
+  | Env.Env_type (s, _, _)
+  | Env.Env_exception (s, _, _)
+  | Env.Env_module (s, _, _)
+  | Env.Env_modtype (s, _, _)
+  | Env.Env_class (s, _, _)
+  | Env.Env_cltype (s, _, _) -> complete_ident x e s
+  | Env.Env_open (s, m) ->
+    let m = Env.find_module m e
+    and l = complete_ident x e s in
+    l
 
 (** This function extract values tree from the Ocamlwizard_Ghost_Module
     and build a list of values_info from it
 *)
-  
-let mk_values ce se = 
+let mk_values ce se (env, _) pat = 
   let vals_info_in_mod  acc md_ctt =
     List.fold_left
       (fun ac (nm,ty,lis) ->
@@ -167,6 +204,7 @@ let mk_values ce se =
       ) vals_inf
   in
   let values = values_info (values_tree ce) in
+  let values = complete_ident pat env (Env.summary env) @ values in
   debugln "Found %d values:" (List.length values);
   List.iter
     (function v ->
@@ -195,7 +233,7 @@ let mk_record_info lv acc (rc_name,lbls)=
   }::acc
 
 open Types
-    
+
 (* Return the path of a type, if any *)
 let rec type_path t =
   match t.Types.desc with

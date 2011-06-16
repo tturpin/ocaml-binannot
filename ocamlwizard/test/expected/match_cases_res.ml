@@ -136,11 +136,19 @@ let (_ : unit -> 'a) = function $
 =>
 let (_ : unit -> 'a) = function EOF
 
+let () = match () with | $
+=>
+let () = match () with | EOF
+
 let () = match true with true -> $
 =>
 let () = match true with true -> EOF
 
-let () = match [] with [_] -> () $
+let () = match true with true -> () | $
+=>
+let () = match true with true -> () | EOF
+
+let () = match [] with [_] -> () $ (* missing _ :: _ :: _ *)
 =>
 let () = match [] with [_] -> () 
   | []$EOF
@@ -150,15 +158,7 @@ let () = match None with Some [] -> () $ (* We should add Some (_ :: _) *)
 let () = match None with Some [] -> () 
   | None$EOF
 
-let () = match `a with `b -> ()$
+let () = match `a with `b -> ()$ (* because it doesn't type... *)
 =>
 let () = match `a with `b -> ()EOF
-
-let () = match () with | $
-=>
-let () = match () with | EOF
-
-let () = match true with true -> () | $
-=>
-let () = match true with true -> () | EOF
 

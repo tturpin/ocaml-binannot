@@ -46,3 +46,11 @@ let $_€ = ()
 =>
 let EOF
 
+let () = match List.hd [`a ; `b ; `c] with $_€ -> () (* why only `a ?*)
+=>
+let () = match List.hd [`a ; `b ; `c] with `a$EOF
+
+let () = match X ((), []) with X $_€ -> ()
+=>
+let () = match X ((), []) with X ()$EOF
+

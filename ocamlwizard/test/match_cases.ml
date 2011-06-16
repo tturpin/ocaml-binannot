@@ -22,7 +22,7 @@ let () = match true with true -> ()$
 let () = match true with true$ (* Does it work or not ? *)
 
 
-(* (Polymorphic) variants types *)
+(* (Polymorphic) variant types *)
 
 let () = match [] with $
 let () = match [] with [] -> () $
@@ -48,9 +48,10 @@ let () = match {a = () ; b = ()} with $
 
 (* Not working yet *)
 let (_ : unit -> 'a) = function $
-let () = match true with true -> $
-let () = match [] with [_] -> () $
-let () = match None with Some [] -> () $ (* We should add Some (_ :: _) *)
-let () = match `a with `b -> ()$
 let () = match () with | $
+let () = match true with true -> $
 let () = match true with true -> () | $
+let () = match [] with [_] -> () $ (* missing _ :: _ :: _ *)
+let () = match None with Some [] -> () $ (* We should add Some (_ :: _) *)
+let () = match `a with `b -> ()$ (* because it doesn't type... *)
+(* try... *)
