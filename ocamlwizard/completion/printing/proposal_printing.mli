@@ -18,6 +18,7 @@
 (** This module prints the completion result on the std_output*)
 
 val main :
+  miss:string ->
   Format.formatter ->
   Outcometree.out_type list ->
   Interface.completion_result -> Interface.tprinter -> unit

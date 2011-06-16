@@ -28,6 +28,7 @@ let parser_state = {
     closing      = [];
     c_sort       = Other;
     match_exp  = None;
+    miss = "";
     c_cut_pos    = -1;
     rec_inited   = false;
     eof_pos         = - 1;
@@ -145,19 +146,23 @@ let mod_and_ident () =
 (** *)
   
 (** *)
-let update_pattern is_match exp given p_end closing =
-  let pm_info = given  in
+let update_pattern ?(miss = "") is_match exp given p_end closing =
+  debugln "UPDATE PATTERN, miss=%s" miss;
+  let pm_info = given in
   let pm_comp = if is_match then Match pm_info else Try pm_info in
-  let cond =  update_comp_sort pm_comp p_end in
-  if cond then update_cut_pos p_end;
-    print closing;
-    cond
+  let cond = update_comp_sort pm_comp p_end in
+  if cond then (
+    update_cut_pos p_end;
+    parser_state.miss <- miss;
+  );
+  print closing;
+  cond
       
 (** *)
-let update_match exp given p_end closing =
+let update_match ?miss exp given p_end closing =
   debugln "UPDATE MATCH";
   parser_state.match_exp <- Some exp;
-  update_pattern true  exp given p_end closing
+  update_pattern ?miss true  exp given p_end closing
     
 (** *)
 let update_try exp given p_end closing  = 

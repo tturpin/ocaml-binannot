@@ -45,6 +45,13 @@
 (defun ocamlwizard-match-with-completion ()
   "complete an Ocaml match construct using Ocamlwizard"
   (interactive)
+;  (save-excursion
+    (setq end (point))
+    (re-search-backward "[^ \t\n]")
+    (forward-char 1)
+    (setq start (point))
+    (delete-char (- end start))
+;)
   (do-auto-save)
   (setq exit-status 
 	(call-process "ocamlwizard" nil (list t nil) nil "completion" "-printer" "ocaml-pp" "-pos"  

@@ -18,6 +18,6 @@
 open Interface
 
 
-let main fmt ty_lis c_res = function
+let main ~miss fmt ty_lis c_res = function
   | Default_printer -> Xml_printer.print fmt ty_lis c_res
-  | Ocaml_printer   -> Ocaml_printer.print fmt c_res
+  | Ocaml_printer   -> Ocaml_printer.print ~miss fmt c_res

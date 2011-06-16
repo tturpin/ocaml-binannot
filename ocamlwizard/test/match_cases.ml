@@ -11,14 +11,15 @@ let () = match lazy () with $
 let () = match ((), ()) with $
 
 
-(* types of matching *)
+(* Types of matching *)
 
-let () = match () with $ (* we should remove the space *)
+let () = match () with $
 let () = match () with$ (* space not necessary *)
-let () = match () $ (* we should add the with *)
+let () = match () $
 let () = match ()$ (* space not necessary *)
 let () = match true with true -> () $ (* Existing case *)
 let () = match true with true -> ()$
+let () = match true with true$ (* Does it work or not ? *)
 
 
 (* (Polymorphic) variants types *)
@@ -51,3 +52,5 @@ let () = match true with true -> $
 let () = match [] with [_] -> () $
 let () = match None with Some [] -> () $ (* We should add Some (_ :: _) *)
 let () = match `a with `b -> ()$
+let () = match () with | $
+let () = match true with true -> () | $

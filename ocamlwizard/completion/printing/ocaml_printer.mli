@@ -17,5 +17,5 @@
 
 (** Print the completion result in an ocaml format *)
 
-val print : Format.formatter -> Interface.completion_result -> unit
+val print : miss:string -> Format.formatter -> Interface.completion_result -> unit
   (** Print the completion result in an ocaml format *)

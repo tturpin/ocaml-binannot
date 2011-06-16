@@ -78,6 +78,7 @@ type parser_env = {
 					      to perform *)
   mutable match_exp : Parsetree.expression option; (* The matched
 						      expression *)
+  mutable miss : string; (* possible missing "with" *)
   mutable c_cut_pos    : int; (* *)
   mutable rec_inited   : bool;
   mutable closing      : string list;

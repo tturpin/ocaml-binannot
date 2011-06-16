@@ -46,9 +46,10 @@ let opt_bar b_ref =
       ""
     )else " | "
 
-let print_cases_completion ?(first_bar=true) fmt cases =
+let print_cases_completion ~miss ?(first_bar=true) fmt cases =
  let bol = ref (not first_bar) in
  let tag_first_wildcard = ref true in
+ fprintf fmt "%s" miss;
  L.iter 
     (fun cs ->
       if cs.ma_selected then
@@ -88,7 +89,7 @@ let print_taffect = function
 let print_value_completion fmt = 
   L.iter (fun v -> if(v.vl_fpat) then fprintf fmt "%s@." v.vl_miss)
 
-let print_expr fmt = function
+let print_expr ~miss fmt = function
   | C_match (p,pm_c) -> 
       let p = match p with 
 	| MF p -> p 
@@ -99,7 +100,7 @@ let print_expr fmt = function
 	    fprintf fmt "%a@?" (print_dispatch_completion) p
 	| MissCs _ 
 	| AllCs -> 
-	    fprintf fmt "%a@?" (print_cases_completion ~first_bar:true) p
+	    fprintf fmt "%a@?" (print_cases_completion ~miss ~first_bar:true) p
       )
 	
   | C_module (l,_) -> 
@@ -111,4 +112,4 @@ let print_expr fmt = function
   | C_error ex -> raise ex
   | C_other -> Debug.unreachable "ocaml-printer" 98
 
-let print fmt p = fprintf fmt "%a" print_expr p
+let print ~miss fmt p = fprintf fmt "%a" (print_expr ~miss) p

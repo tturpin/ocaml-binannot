@@ -29,7 +29,7 @@ let () = match ((), ()) with $
 let () = match ((), ()) with 
   | ($_, _)EOF
 
-let () = match () with $ (* we should remove the space *)
+let () = match () with $
 =>
 let () = match () with 
   | ()$EOF
@@ -39,14 +39,14 @@ let () = match () with$ (* space not necessary *)
 let () = match () with
   | ()$EOF
 
-let () = match () $ (* we should add the with *)
+let () = match () $
 =>
-let () = match () 
+let () = match ()  with
   | ()$EOF
 
 let () = match ()$ (* space not necessary *)
 =>
-let () = match ()
+let () = match () with
   | ()$EOF
 
 let () = match true with true -> () $ (* Existing case *)
@@ -57,6 +57,11 @@ let () = match true with true -> ()
 let () = match true with true -> ()$
 =>
 let () = match true with true -> ()
+  | false$EOF
+
+let () = match true with true$ (* Does it work or not ? *)
+=>
+let () = match true with true
   | false$EOF
 
 let () = match [] with $
@@ -148,4 +153,12 @@ let () = match None with Some [] -> ()
 let () = match `a with `b -> ()$
 =>
 let () = match `a with `b -> ()EOF
+
+let () = match () with | $
+=>
+let () = match () with | EOF
+
+let () = match true with true -> () | $
+=>
+let () = match true with true -> () | EOF
 
