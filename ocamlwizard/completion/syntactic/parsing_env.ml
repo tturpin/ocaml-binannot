@@ -25,7 +25,6 @@ let dummy_range = { b = -1 ; e = -1 }
 
 (** *)
 let parser_state = {
-    subs_code    = "";
     closing      = [];
     c_sort       = Other;
     match_exp  = None;
@@ -100,7 +99,6 @@ let update_comp_sort comp_s pos =
 (** *)
 let init_completion_env str =
   parser_state.mods_path   <- [];
-  parser_state.subs_code   <- "";
   parser_state.closing     <- [];
   parser_state.c_sort      <- Other;
   parser_state.c_cut_pos   <- - 1;
@@ -114,7 +112,7 @@ let init_completion_env str =
     
 (** *)
 let print s = 
-  parser_state.subs_code <- sprintf " %s %s @?" parser_state.subs_code s
+  ()
     
 (** *)
 let update_cut_pos pos = parser_state.c_cut_pos <- pos
@@ -133,8 +131,6 @@ let get_expr b_exp e_exp =
 let add_closing op cl p_st p_en =
   let exp = get_expr p_en parser_state.c_cut_pos in
   update_cut_pos p_st;
-  parser_state.subs_code <- 
-    sprintf " %s %s %s %s " op exp parser_state.subs_code cl;
   parser_state.closing <- cl :: parser_state.closing
     
 (** *)
@@ -147,10 +143,6 @@ let mod_and_ident () =
     | _ -> failwith "Completion_env-2 : Completion sorte is not a path"
 	    
 (** *)
-let set_subs_code str = parser_state.subs_code <-  str
-  
-(** *)
-let get_subs_code () = parser_state.subs_code 
   
 (** *)
 let update_pattern is_match exp given p_end closing =
@@ -181,7 +173,6 @@ let update_module md uid p_st p_end =
       begin
 	debugln "comp sort <- Path Module";
 	update_cut_pos p_st;
-	set_subs_code "Pervasives"
       end
 
 (** *)
@@ -190,8 +181,6 @@ let update_value exp md value p_st p_end kd =
     let cp_s = { p_kd = Value kd ; p_md = md ; p_id = value } in
     if update_comp_sort (Path cp_s) p_end then (
       parser_state.match_exp <- Some exp;
-      let subs =  sprintf "(let %s = assert false in %s)" ogv tagged_ogv in
-      set_subs_code subs;
       update_cut_pos p_st
     )
 
@@ -207,8 +196,6 @@ let update_expr_longid exp md id exp_st exp_end p_end =
     let cp_s = { p_kd = Record (Faccess exp); p_md = md; p_id = id } in
     if update_comp_sort (Path cp_s) p_end then 
 	let exp = get_expr exp_st exp_end in
-	let subs = sprintf "(let %s = %s in %s)" tagged_any exp tagged_asf in
-	set_subs_code subs;
 	update_cut_pos exp_st
 	  
 (** *)
@@ -216,8 +203,7 @@ let update_not_inited_redef md lbl given exp_st exp_en p_en =
   let cp_s = { p_kd = Record (Fdef given) ; p_md = md ; p_id = lbl } in
     if update_comp_sort (Path cp_s) p_en then
       let exp = get_expr exp_st exp_en in
-      let subs = sprintf "(let %s = %s in %s)" ogv exp tagged_ogv in
-      set_subs_code subs
+      ()
 	
 (** *)
 let update_value_kind new_kd = 
@@ -235,51 +221,35 @@ let update_value_kind new_kd =
 let update_value_in_redef exp_st exp_en p_end =
   if no_space () then
     let exp = get_expr exp_st exp_en in
-    let subs = parser_state.subs_code in
-    let new_rec = sprintf "(let %s = {%s%s} in %s)" any exp subs asf in
-    set_subs_code new_rec
+    ()
 
 (** *)
 let update_not_inited_def md lbl given exp_st exp_en p_en = 
   let cp_s = { p_kd = Record (Fdef given) ; p_md = md ; p_id = lbl } in
   if update_comp_sort (Path cp_s) p_en then
     let lbl_exp = get_expr exp_st exp_en in
-    let exp = sprintf "{ (assert false) with %s }" lbl_exp in
-    let subs = sprintf "(let %s = %s in %s)" ogv exp tagged_ogv in
-    set_subs_code subs
-      
+    ()
+
 (** *)
 let update_value_in_def exp_st exp_en p_en = 
   if no_space () then
       let lbl_exp = get_expr exp_st exp_en in
-      let subs1 =  parser_state.subs_code in
-      let exp = sprintf "{ (assert false) with %s%s }" lbl_exp subs1 in
-      let subs2 = sprintf "(let %s = %s in %s)" ogv exp tagged_ogv in
-      set_subs_code subs2
+      ()
 	
 (** *)
-let update_left_imbr () =
-    let subs1 = parser_state.subs_code in
-    let subs2 = sprintf "(let %s = %s in %s)" any subs1 asf in
-    set_subs_code subs2
+let update_left_imbr () = ()
       
 (** *)
 let update_pattern md lbl gv p_en =
   debugln "UPDATE PATTERN";
   let cp_s = { p_kd = Record (Fpat gv) ; p_md = md ; p_id = lbl } in
     if update_comp_sort (Path cp_s) p_en then (
-      debugln "comp_sort <- path";
-      let subs = sprintf "%s as %s2" tagged_ogv ogv in
-      set_subs_code subs
+      debugln "comp_sort <- path"
     )
 	
 (** *)
-let untagg_in () =
-  parser_state.subs_code <- untag_letin parser_state.subs_code
+let untagg_in () = ()
     
 (** *)
   let rewrite_function p_st =
-    let c_pos = parser_state.c_cut_pos in
-    let new_f = sprintf "%s %s"(get_expr p_st c_pos) parser_state.subs_code in
-    parser_state.subs_code <- sprintf "(let %s = %s in %s)" any new_f asf;
     update_cut_pos p_st

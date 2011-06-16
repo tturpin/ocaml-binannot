@@ -306,8 +306,9 @@ LIBS = str.cma unix.cma
 OLIBS = $(LIBS:.cma=.cmxa)
 
 
-all: $(BIN).$(OCAMLBEST) stdlib
+#all: $(BIN).$(OCAMLBEST) stdlib
 
+all: $(BIN).byte $(BIN).opt
 
 ABSOLUTE_INCS = \
 -I `pwd`/$(PATH_DRIVER) \

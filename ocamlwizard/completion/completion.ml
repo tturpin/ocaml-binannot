@@ -80,15 +80,6 @@ let compile_file ast c_env =
   str, sg, {c_env with fb_name = outputprefix}
 
 (** *)
-let mk_list_rg se = 
-  let lis = 
-    if se.asf_rg = Parsing_env.dummy_range then [] 
-    else [se.asf_rg] 
-  in 
-  if se.exp_rg = Parsing_env.dummy_range then lis 
-  else se.exp_rg::lis
-
-(** *)
 let step msg = 
   Util.debugln "\n <+> Step : %s \n-----------------" msg
 

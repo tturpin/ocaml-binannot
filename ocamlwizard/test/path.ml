@@ -33,7 +33,7 @@ let () = match {a = () ; b = ()} with {a = a ; M.b$
 
 let () = M.$
 let () = M.so$
-
+let () = so$
 
 (* Modules *)
 

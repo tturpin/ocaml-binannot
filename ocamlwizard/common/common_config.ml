@@ -164,7 +164,10 @@ let options =
      ": completion command, only parse and compile the file (for tests)");
     
     ("-dot-test",Set dot_test , 
-     ": completion command, for automated tests")
+     ": completion command, for automated tests");
+
+    ("-backtrace", Unit (function () -> Printexc.record_backtrace true),
+     ": print a backtrace in case of error")
   ]
 
 let usage =" usage : ocamlwizard [common options] [command] [command's options]"

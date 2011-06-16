@@ -1,7 +1,6 @@
 echo ocamlwizard $* >~/experiences/ocaml-binannot/ocamlwizard/test/error-output ; \
-OCAMLRUNPARAM=b OCAMLLIB=/usr/local/lib/ocaml \
-~/experiences/ocaml-binannot/boot/ocamlrun \
-~/experiences/ocaml-binannot/ocamlwizard/owz.byte -debug \
+OCAMLLIB=/usr/local/lib/ocaml \
+~/experiences/ocaml-binannot/ocamlwizard/owz.opt -debug -backtrace \
 -I ~/experiences/ocaml-binannot/utils \
 -I ~/experiences/ocaml-binannot/parsing \
 -I ~/experiences/ocaml-binannot/typing \

@@ -74,7 +74,6 @@ type completion_sort =
 	
 (* Parser state with respect to completion. *)
 type parser_env = {
-  mutable subs_code    : string;
   mutable c_sort       : completion_sort ; (* The kind of completion
 					      to perform *)
   mutable match_exp : Parsetree.expression option; (* The matched
@@ -107,7 +106,6 @@ type syntax_env = {
   comp        : completion_sort;
   closures    : string list;
   exp_rg      : range;
-  asf_rg      : range;
 }
 
 (*--------------------------------------------------------------------------*)

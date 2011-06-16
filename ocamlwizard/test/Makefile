@@ -5,7 +5,7 @@ RES=match_cases_res.ml expansion_res.ml path_res.ml errors_res.ml
 
 all: $(RES)
 	for i in $(RES); do \
-	  diff $$i expected/$$i; \
+	  diff expected/$$i $$i || exit 1; \
 	done
 
 #Generic rules and functions

@@ -1246,8 +1246,6 @@ class_sig_field:
 	 else 
 	   begin
 	     update_cut_pos (symbol_start());
-	     parser_state.subs_code <- Format.sprintf " match (*#*) %s (*#*) with %s -> %s "
-	       parser_state.subs_code  Tags.any Tags.asf;
 	   end;
 	 mkexp(Pexp_match($2, [(pat_any,exp_af)]))
        }

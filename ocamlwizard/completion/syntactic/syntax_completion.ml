@@ -39,44 +39,6 @@ let close_flux_to_str flux_in =
 (** *)
 let sub_code = String.sub 
   
-(** *)
-let completed_record ce se prg = function
-    Fdummy    -> failwith "Completefile-2 : This case should not happen : Fdummy record"  
-  | Faccess _ -> 
-      { se with exp_rg = locate_tag prg T_any; 
-	asf_rg = locate_tag prg T_asf;
-	cprog = prg},ce
-  | Fdef _ | Fpat _  -> 
-      { se with exp_rg = locate_tag prg T_ogv;cprog = prg },ce
-      
-
-(** *)
-let completed_path ce se prg pc = 
-  match pc.p_kd with
-    | Module | Value _ when pc.p_md = [] ->
-	(*scope analysis todo*)
-	failwith "Completefile-1 : This case is not supported yet ! pc.p_md = [] in completed path"
-    | Module     -> { se with cprog = prg ^ (mk_ghost_module pc.p_md)},ce
-    | Record rcd -> completed_record ce se prg rcd
-    | Value _    -> 
-	{se with exp_rg =locate_tag prg T_ogv; 
-	  cprog = (prg ^(mk_ghost_module pc.p_md))},ce
-	
-(** *)
-let completed_file ce se state prog  = 
-  let prg = (String.sub prog 0 state.c_cut_pos) ^ (state.subs_code) in
-  match state.c_sort, ce.c_kind with
-    | Match _,("match"|"") ->  
-	{se with cprog = prg;exp_rg = locate_tag prg T_any }, ce
-    | Path pc,("path"|"") -> completed_path ce se prg pc
-    | Try _,("try"|"")  -> se,ce
-    | Other,_   -> se,ce
-    | Error _,_ -> se,ce
-    | _ ->  
-	Format.eprintf "Completion non geree:\n%s"
-	  "type de completion specifie differe de celui calcule par le parser.";
-	exit 2
-
 (* We don't want to backtrack on the last chunk. *)
 let rec enforce_last_modification = function
   | [] | [Diff.Same _] as m -> m
@@ -110,21 +72,14 @@ let default_parser c_env s f =
       mpath    = [];
       comp     = Other;
       closures = [];
-      exp_rg   = dummy_range;
-      asf_rg   = dummy_range}
+      exp_rg   = dummy_range}
   in
   try  
 (*
     let caml_ast = Owz_parser.implementation Owz_lexer.token buf in 
 *)
    debug "Parsing...";
-   let caml_ast =
-     try IncParser.implementation f
-     with e ->
-       prerr_endline (Printexc.to_string e);
-       Printexc.print_backtrace stderr;
-       raise e
-   in
+   let caml_ast = IncParser.implementation f in
    debugln " OK";
    if !Common_config.debug then
      Printast.implementation Format.err_formatter caml_ast;
@@ -135,7 +90,7 @@ let default_parser c_env s f =
 	  closures = parser_state.closing ;
 	  comp     = parser_state.c_sort;
       }
-    in completed_file c_env s_env parser_state str
+    in s_env, c_env
   with e ->
     prerr_endline (Printexc.to_string e);
     Printexc.print_backtrace stderr;
