@@ -45,6 +45,7 @@
 (defun ocamlwizard-match-with-completion ()
   "complete an Ocaml match construct using Ocamlwizard"
   (interactive)
+  (do-auto-save)
   (setq exit-status 
 	(call-process "ocamlwizard" nil (list t nil) nil "completion" "-printer" "ocaml-pp" "-pos"  
 		      (int-to-string (- (point) 1)) (buffer-name)))
@@ -63,6 +64,7 @@
   (save-excursion
     (set-buffer buffer)
     (erase-buffer))
+  (do-auto-save)
   (setq exit-status 
 	(call-process "ocamlwizard" nil buffer nil "completion" "-printer" "ocaml-pp" "-pos"  
 		      (int-to-string (- (point) 1)) (buffer-name)))
@@ -128,6 +130,7 @@
     (compilation-minor-mode 1)
     (erase-buffer)
     (insert "\n\n"))
+  (do-auto-save)
   (goto-char start)
   (delete-char (- end start))
   (setq exit-status 

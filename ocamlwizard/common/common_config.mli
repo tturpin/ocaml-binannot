@@ -46,6 +46,7 @@ val search_dirs : unit -> string list
 val i_dirs : unit -> string list
 val command : command ref
 val compile_index : int ref
+val ignore_auto_save : bool ref
 val options : (string * Arg.spec * string) list
 val usage : string
 val anonymous : string -> unit

@@ -47,7 +47,7 @@ let qualid = ref (Longident.Lident "")
 let loc = ref (-1, -1)
 let expand_loc = ref (-1, -1)
 let root_dir = ref ""
-
+let ignore_auto_save = ref false
 
 let set_file f =
   if not (Sys.file_exists f) then raise (Arg.Bad (f ^ ": no such file"));
