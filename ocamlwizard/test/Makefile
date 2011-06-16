@@ -31,7 +31,7 @@ M_NUMBERS=$(call numbers,match_cases)
 M_CASES=$(foreach n, $(M_NUMBERS), match_cases_$(n).ml)
 M_TESTS=$(subst .ml,_mres.ml, $(M_CASES))
 
-$(M_CASES): match_cases.ml
+$(M_CASES): match_cases.ml prefix.ml
 	$(call split,match_cases,$(M_NUMBERS))
 
 match_cases_res.ml: $(M_TESTS)
@@ -54,7 +54,7 @@ PE_NUMBERS=$(call numbers,expansion)
 PE_CASES=$(foreach n, $(PE_NUMBERS), expansion_$(n).ml)
 PE_TESTS=$(subst .ml,_peres.ml, $(PE_CASES))
 
-$(PE_CASES): expansion.ml
+$(PE_CASES): expansion.ml prefix.ml
 	$(call split,expansion,$(PE_NUMBERS))
 
 expansion_res.ml: $(PE_TESTS)
@@ -81,7 +81,7 @@ PC_NUMBERS=$(call numbers,path)
 PC_CASES=$(foreach n, $(PC_NUMBERS), path_$(n).ml)
 PC_TESTS=$(subst .ml,_pcres.ml, $(PC_CASES))
 
-$(PC_CASES): path.ml
+$(PC_CASES): path.ml prefix.ml
 	$(call split,path,$(PC_NUMBERS))
 
 path_res.ml: $(PC_TESTS)

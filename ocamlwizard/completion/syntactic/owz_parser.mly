@@ -2653,6 +2653,14 @@ constr_ident:
 *====================*/
 val_longident:
   | val_ident                                   { mkexp(Pexp_ident (Lident $1)) }
+
+  | LIDENT EOF {
+	if rhs_end 1 >= parser_state.eof_pos then (
+	  update_value exp_af [] $1 (symbol_start()) (symbol_end()) V_all;
+	  exp_af
+	) else
+	  mkexp(Pexp_ident (Lident $1))
+  }
     
     /*     idents whith use "_"
   | UNDERSCORE EOF                              { mkexp(Pexp_ident (Lident "_")) }

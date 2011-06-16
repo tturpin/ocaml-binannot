@@ -8,3 +8,4 @@ end
 open M
 
 let r = {a = () ; b = ()}
+let some_value = 1

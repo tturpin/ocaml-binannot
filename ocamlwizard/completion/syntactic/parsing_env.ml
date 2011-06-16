@@ -177,6 +177,7 @@ let update_module md uid p_st p_end =
 
 (** *)
 let update_value exp md value p_st p_end kd =
+  debugln "UPDATE VALUE";
   if no_space () then
     let cp_s = { p_kd = Value kd ; p_md = md ; p_id = value } in
     if update_comp_sort (Path cp_s) p_end then (
