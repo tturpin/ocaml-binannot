@@ -146,90 +146,46 @@ let remove ~prefix s =
 
 let value_type v = Printtyp.tree_of_typexp false v.Types.val_type
 
-(* Complete a lowercase ident *)
-let rec complete_ident x e = function
-  | Env.Env_empty -> []
-  | Env.Env_value (s, i, v) ->
-    let l = complete_ident x e s
-    and n = Ident.name i in
-    (try let miss = remove ~prefix:x n in
-	 { vl_name     = n;
-	   vl_miss     = miss;
-	   vl_level    = 1;
-	   vl_type     = value_type v;
-	   vl_affect   = Tnone;
-	   vl_fpat     = true;
-	   vl_ftype    = true;
-	   vl_kind     = V_all
-	 } :: l
-     with Not_found ->
-       l)
-  | Env.Env_type (s, _, _)
-  | Env.Env_exception (s, _, _)
-  | Env.Env_module (s, _, _)
-  | Env.Env_modtype (s, _, _)
-  | Env.Env_class (s, _, _)
-  | Env.Env_cltype (s, _, _) -> complete_ident x e s
-  | Env.Env_open (s, m) ->
-    let m = Env.find_module m e
-    and l = complete_ident x e s in
-    l
-
-let complete_ident x e =
+let complete_ident m x e =
+  debugln "folding environment";
   Env.fold_values
     (fun n p v l ->
-    (try let miss = remove ~prefix:x n in
-	 { vl_name     = n;
-	   vl_miss     = miss;
-	   vl_level    = 1;
-	   vl_type     = value_type v;
-	   vl_affect   = Tnone;
-	   vl_fpat     = true;
-	   vl_ftype    = true;
-	   vl_kind     = V_all
-	 } :: l
-     with Not_found ->
-       l))
-    None
+      debug "  found %s" n;
+      (try let miss = remove ~prefix:x n in
+	   debugln " OK";
+	   { vl_name     = n;
+	     vl_miss     = miss;
+	     vl_level    = 1;
+	     vl_type     = value_type v;
+	     vl_affect   = Tnone;
+	     vl_fpat     = true;
+	     vl_ftype    = true;
+	     vl_kind     = V_all
+	   } :: l
+       with Not_found ->
+	 debugln " NOT OK";
+	 l))
+    m
     e
     []
 
-(** This function extract values tree from the Ocamlwizard_Ghost_Module
-    and build a list of values_info from it
-*)
-let mk_values ce se (env, _) pat = 
-  let vals_info_in_mod  acc md_ctt =
-    List.fold_left
-      (fun ac (nm,ty,lis) ->
-	let nm =if md_ctt.path ="" then nm else md_ctt.path ^ "." ^ nm in 
-	{ vl_name     = nm;
-	  vl_miss     = "";
-	  vl_level    = md_ctt.level;
-	  vl_type     = ty;
-	  vl_affect   = Tnone;
-	  vl_fpat     = true;
-	  vl_ftype    = true;
-	  vl_kind     = V_all
-	}::ac
-      ) acc md_ctt.content
-  in 
-  let values_info vals_tree = 
-    let vals_inf = List.fold_left vals_info_in_mod [] vals_tree in
-    List.sort (
-	fun a b -> 
-	  let c = compare a.vl_level b.vl_level in
-	  if c <> 0 then c
-	  else compare a.vl_name b.vl_name
-      ) vals_inf
+let mk_values ce se (env, _) m i =
+  let m =
+    match m with
+      | [] -> None
+      | t :: q ->
+	let lid =
+	  List.fold_left
+	    (fun i n -> Longident.Ldot (i, n))
+	    (Longident.Lident t)
+	    q
+	in
+	debugln "prefix = %s" (lid_to_str lid);
+	let mo = Env.lookup_module lid env in
+	debugln " OK";
+	Some lid
   in
-  let values = values_info (values_tree ce) in
-  let values = complete_ident pat env @ values in
-  debugln "Found %d values:" (List.length values);
-  List.iter
-    (function v ->
-      debugln "  - %s" v.vl_name)
-    values;
-  values
+  complete_ident m i env
 
 (** *)
 let mk_record_info lv acc (rc_name,lbls)=

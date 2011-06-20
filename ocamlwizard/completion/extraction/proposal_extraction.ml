@@ -35,7 +35,7 @@ let complete_path sg ce se pi ty_check =
     | Value vk    ->
       let pat = List.fold_right (fun m id -> m ^ "." ^ id) pi.p_md pi.p_id in
       C_value (
-	mk_values sg se ty_check pat,
+	mk_values sg se ty_check pi.p_md pi.p_id,
 	vk,
 	pat
       )

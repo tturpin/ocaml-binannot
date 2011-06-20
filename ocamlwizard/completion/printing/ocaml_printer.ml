@@ -86,8 +86,11 @@ let print_taffect = function
     "<value name=\"%s\" miss=\"%s\" affect=\"%s\" pattern_filter=\"%b\" 
     type_filter=\"%b\" is_record=\"%b\" level=\"%d\" type=\"%s\"></value>@\n"
 *)
-let print_value_completion fmt = 
-  L.iter (fun v -> if(v.vl_fpat) then fprintf fmt "%s@." v.vl_miss)
+let print_value_completion fmt l =
+  match l with
+    | [] -> () (* no completion *)
+    | [v] -> fprintf fmt "%s" v.vl_miss (* unique completion. *)
+    | _ -> L.iter (fun v -> if(v.vl_fpat) then fprintf fmt "%s@." v.vl_miss) l
 
 let print_expr ~miss fmt = function
   | C_match (p,pm_c) -> 
@@ -106,7 +109,7 @@ let print_expr ~miss fmt = function
   | C_module (l,_) -> 
       fprintf fmt "%a@." print_mod_completion l
   | C_value (l,_,_) -> 
-      fprintf fmt "%a@." print_value_completion l
+      fprintf fmt "%a" print_value_completion l
   | C_record (l,rk,pat) -> 
       fprintf fmt "%a@." print_rec_completion l
   | C_error ex -> raise ex

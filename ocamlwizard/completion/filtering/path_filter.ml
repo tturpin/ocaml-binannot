@@ -90,13 +90,13 @@ let filter_values ty_wanted pat vls_lst v_kd =
     let c = compare a.vl_level b.vl_level in
     if c <> 0 then c else compare a.vl_name b.vl_name in 
   let f_filter vl_inf =
-    let miss, s_pat            = filter_by_pattern vl_inf.vl_name pat in
     let s_type, t_affect, kind = filter_by_type ty_wanted vl_inf.vl_type in
+(*
     debugln "fpat = %B, miss = %s, ftype = %B" (*", affect = %B, kind = %B"*)
       s_pat miss s_type (*t_affect kind*);
+*)
     { vl_inf with
-      vl_miss     = miss ^ " ";
-      vl_fpat     = s_pat;       (* filtering by pattern   *)
+      vl_miss     = vl_inf.vl_miss ^ " ";
       vl_ftype    = s_type;      (* filtering by type      *)
       vl_affect   = t_affect;    (* filtering by meta type *)
       vl_kind     = kind         (* filtering by context   *)

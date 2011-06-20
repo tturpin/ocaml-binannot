@@ -95,22 +95,16 @@ EOF
 
 let () = M.$
 =>
-let () = M.sort 
-
-EOF
+let () = M.sort EOF
 
 let () = M.so$
 =>
-let () = M.sort 
-
-EOF
+let () = M.sort EOF
 
 let () = so$
 =>
 let () = some_value 
-me_value 
 rt 
-
 EOF
 
 let () = so $ (* this does not work, purposely *)
@@ -119,21 +113,17 @@ let () = so EOF
 
 let () = comp$
 =>
-let () = compare 
-
-EOF
+let () = compare EOF
 
 let _ = {r$
 =>
 let _ = {r 
- 
 aise 
 ead_float 
 ead_int 
 ead_line 
 eally_input 
 ef 
-
 EOF
 
 module N = Set.$

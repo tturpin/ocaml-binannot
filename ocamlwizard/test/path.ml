@@ -33,7 +33,6 @@ let () = match {a = () ; b = ()} with {a = a ; M.b$
 
 let () = M.$
 let () = M.so$
-(* some_value appears twice *)
 let () = so$
 let () = so $ (* this does not work, purposely *)
 let () = comp$
