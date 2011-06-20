@@ -1,0 +1,93 @@
+			OCamlwizard with Binannot
+
+This directory contains an fork of Ocamlwizard, originally written by
+David Baudet and Mohamed Iguernelala, which relies on OCaml-Binannot.
+
+
+- Using OCamlwizard-Binannot inside emacs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Configuration
+...............
+
+TODO : include-dir configuration...
+
+
+Error recovery:
+...............
+
+OCamlwizard is able to ocercome localized errors in the edited file if
+the relevant part is correct. This assumes the existence of a previous
+version of the file named <file>.ml.last_compiled, which is correct
+(the user should copy <file>.ml to <file>.ml.last_compiled after each
+successful compilation).
+
+
+Camlp4 -> Not supported
+......    .............
+
+
+Completion:
+...........
+
+Three completion actions are avaiable:
+
+- Path completion (F12): complete a long identifier (value, record
+  field, module name), interactively, given a (possibly empty) prefix.
+  Empty prefixes are allowed in record (re-)definitions and record
+  patterns, such as:
+    - let r = {f1 = <expr> ; .	    (at least one field must be given)
+    - let r = {<expr> with <maybe some fields> .
+    - in a pattern: {f1 = <patt> .
+
+
+- Pattern expansion (F11): expand a variable or wildcard inside a
+  pattern, according to the inferred sub-pattern's type. The variable
+  under the cursor is only expanded once, possibly introducing new
+  wildcards, and the cursor is positioned on the first created
+  wildcard, if any (allowing further expansion by typing F11 again).
+
+
+- Match cases completion (F3): create a pattern-matching template
+  after a match-with construct. This may be invoked just after:
+    - match <expr> .
+    - match <expr> with .
+    - match <expr> with <match cases> .
+  The result is very similar to pattern expansion, except that for a
+  constructor type (most frequent case), constructors are put on
+  successive lines.
+
+
+Remark: Completion still needs to be improvemed in many respects. See
+the test cases for a detailed overview of the current behavior.
+
+
+- Command line interface
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Needs to be redefined.
+
+
+- Internal working overview
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The OCamlwizard executable is called from an editor (for now, emacs)
+to process queries such as completion, etc. It parses an types the
+buffer up to the editing position, trivially cloing all the opened
+syntactical constructs at the cut point. The answer is computed using
+information from the resulting typedtree and the formatted result is
+passed to the editor which performs minimal further treatment.
+
+
+Details:
+........
+
+The decision of what to perform (kind of completion, for example) is
+partly made during the parsing (in a rather intricate way).
+
+
+- Source code organization
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+	-> mostly irrational
