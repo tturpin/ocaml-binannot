@@ -105,15 +105,36 @@ let () = M.sort
 
 EOF
 
-let () = so$ (* sort is missing *)
+let () = so$
 =>
 let () = some_value 
+me_value 
+rt 
 
 EOF
 
 let () = so $ (* this does not work, purposely *)
 =>
 let () = so EOF
+
+let () = comp$
+=>
+let () = compare 
+
+EOF
+
+let _ = {r$
+=>
+let _ = {r 
+ 
+aise 
+ead_float 
+ead_int 
+ead_line 
+eally_input 
+ef 
+
+EOF
 
 module N = Set.$
 =>
@@ -131,11 +152,6 @@ let _ = {a = () EOF
 let _ = {a = () ; M$
 =>
 let _ = {a = () ; MEOF
-
-let () = comp$ (* compare ? *)
-=>
-let () = comp
-EOF
 
 let _ = {r $
 =>

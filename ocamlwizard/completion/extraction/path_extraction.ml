@@ -175,6 +175,25 @@ let rec complete_ident x e = function
     and l = complete_ident x e s in
     l
 
+let complete_ident x e =
+  Env.fold_values
+    (fun n p v l ->
+    (try let miss = remove ~prefix:x n in
+	 { vl_name     = n;
+	   vl_miss     = miss;
+	   vl_level    = 1;
+	   vl_type     = value_type v;
+	   vl_affect   = Tnone;
+	   vl_fpat     = true;
+	   vl_ftype    = true;
+	   vl_kind     = V_all
+	 } :: l
+     with Not_found ->
+       l))
+    None
+    e
+    []
+
 (** This function extract values tree from the Ocamlwizard_Ghost_Module
     and build a list of values_info from it
 *)
@@ -204,7 +223,7 @@ let mk_values ce se (env, _) pat =
       ) vals_inf
   in
   let values = values_info (values_tree ce) in
-  let values = complete_ident pat env (Env.summary env) @ values in
+  let values = complete_ident pat env @ values in
   debugln "Found %d values:" (List.length values);
   List.iter
     (function v ->

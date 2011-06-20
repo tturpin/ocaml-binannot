@@ -33,8 +33,11 @@ let () = match {a = () ; b = ()} with {a = a ; M.b$
 
 let () = M.$
 let () = M.so$
-let () = so$ (* sort is missing *)
+(* some_value appears twice *)
+let () = so$
 let () = so $ (* this does not work, purposely *)
+let () = comp$
+let _ = {r$
 
 (* Modules *)
 
@@ -43,7 +46,4 @@ module N = Set.$
 (* does not work: *)
 let _ = {a = () $
 let _ = {a = () ; M$
-let () = comp$ (* compare ? *)
 let _ = {r $
-
-let () = so$ (* sort is missing *)
