@@ -24,4 +24,13 @@ val type_of_exp : Typedtree.structure -> Location.t -> Typedtree.expression
 (*
 val type_of_pat : Typedtree.structure -> Location.t -> Typedtree.pattern
 *)
-val type_of_pat : Typedtree.structure -> int * int -> Typedtree.pattern
+
+type expansion_place =
+  | Pat of Typedtree.pattern
+  (* expand this wildcard or variable *)
+  | Args of Typedtree.pattern * Path.t * Types.constructor_description
+  (* expand the arguments of this constructor pattern *)
+
+val type_of_pat : Typedtree.structure -> int * int -> expansion_place
+
+val expansion_type : expansion_place -> Env.t * Types.type_desc

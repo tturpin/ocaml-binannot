@@ -17,6 +17,11 @@ let () = match {a = () ; b = ()} with $_€ -> ()
 let () = match ((), ()) with $_€ -> ()
 let () = match lazy () with $_€ -> ()
 
+(* Constructors *)
+let () = match Some () with Some $_€ -> ()
+let () = match X ((), []) with X $_€ -> ()
+let () = match X ((), []) with X ($_€, _) -> ()
+let () = match X ((), []) with X ((), $_€) -> ()
 (* Does no work, but it is expected. *)
 let () = match () with $fo€o -> ()
 let () = match None with Some $_€ -> ()
@@ -26,6 +31,3 @@ let $_€ = ()
 
 (* Or patterns *)
 let () = match List.hd [`a ; `b ; `c] with $_€ -> () (* why only `a ?*)
-
-(* Bug ! *)
-let () = match X ((), []) with X $_€ -> ()

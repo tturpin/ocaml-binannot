@@ -37,3 +37,4 @@ val mk_records :
   Interface.record_info list
   (** Extracts and makes a list of the record fields *)  
   
+val type_path : Types.type_expr -> Path.t

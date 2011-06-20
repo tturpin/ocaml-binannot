@@ -132,14 +132,19 @@ let main ce =
 	in
 	match_exp.Typedtree.exp_env, match_exp.Typedtree.exp_type
       | Match (BranchCs (p, l)) ->
-	let match_pat =
+	let place =
 	  Expression_typing.type_of_pat structure
 	    ! Common_config.expand_loc
 (*
  p.Parsetree.ppat_loc
 *)
 	in
-	match_pat.Typedtree.pat_env, match_pat.Typedtree.pat_type
+	let env, desc =
+	  Expression_typing.expansion_type place in
+	env,
+	{Types.desc = desc;
+	 level = 0; (* Meaningless ! *)
+	 id = 0}
       | Try _ -> assert false
       | Path {p_kd = Record (Faccess e)} ->
 	let match_exp =
@@ -161,7 +166,9 @@ let main ce =
       | Error _ -> assert false
   in
 
-  let ty_lis = [Printtyp.tree_of_typexp false pattern_type] in
+  Format.eprintf "pattern_type = %a\n%!" Printtyp.type_expr pattern_type;
+  let ty = Printtyp.tree_of_typexp false pattern_type in
+  let ty_lis = [ty] in
   
   let ty_check = pattern_env, pattern_type in
   

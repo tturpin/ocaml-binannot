@@ -34,6 +34,22 @@ let () = match lazy () with $_€ -> ()
 =>
 let () = match lazy () with lazy $_EOF
 
+let () = match Some () with Some $_€ -> ()
+=>
+let () = match Some () with Some ()$EOF
+
+let () = match X ((), []) with X $_€ -> ()
+=>
+let () = match X ((), []) with X ($_, _)EOF
+
+let () = match X ((), []) with X ($_€, _) -> ()
+=>
+let () = match X ((), []) with X (()$EOF
+
+let () = match X ((), []) with X ((), $_€) -> ()
+=>
+let () = match X ((), []) with X ((), [] | $_ :: _EOF
+
 let () = match () with $fo€o -> ()
 =>
 let () = match () with EOF
@@ -49,8 +65,4 @@ let EOF
 let () = match List.hd [`a ; `b ; `c] with $_€ -> () (* why only `a ?*)
 =>
 let () = match List.hd [`a ; `b ; `c] with `a$EOF
-
-let () = match X ((), []) with X $_€ -> ()
-=>
-let () = match X ((), []) with X ()$EOF
 
