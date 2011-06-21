@@ -42,7 +42,7 @@ val qualid : Longident.t ref
 val loc : (int * int) ref
 val expand_loc : (int * int) ref
 val root_dir : string ref
-val search_dirs : unit -> string list
+val search_dirs : string -> string list
 val i_dirs : unit -> string list
 val command : command ref
 val compile_index : int ref

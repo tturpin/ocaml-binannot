@@ -59,7 +59,7 @@ let mk_info rg =
   {
     fb_name   = check_auto_save !fic_source;
     f_path    = Filename.dirname (!fic_source);
-    includ    = search_dirs ();
+    includ    = search_dirs !fic_source;
     c_rg      = rg;
     c_kind    = !kind;
     c_parser  = !_parser;
@@ -76,7 +76,6 @@ let main () =
 	List.iter (fun s -> 
 	  Clflags.include_dirs := s :: !Clflags.include_dirs)
 	  (List.rev (i_dirs ()));
-	
 	let rg = {b=(-1);e=check_validity ()} in
 	let ci = mk_info rg in
 	let c_info = Completion.main ci in

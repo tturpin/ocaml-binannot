@@ -58,10 +58,6 @@ let () = match None with Some $_€ -> ()
 =>
 let () = match None with Some EOF
 
-let $_€ = ()
-=>
-let EOF
-
 let () = match List.hd [`a ; `b ; `c] with $_€ -> () (* why only `a ?*)
 =>
 let () = match List.hd [`a ; `b ; `c] with `a$EOF

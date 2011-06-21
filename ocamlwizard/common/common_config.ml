@@ -48,6 +48,7 @@ let loc = ref (-1, -1)
 let expand_loc = ref (-1, -1)
 let root_dir = ref ""
 let ignore_auto_save = ref false
+let find_project_dir = ref false
 
 let set_file f =
   if not (Sys.file_exists f) then raise (Arg.Bad (f ^ ": no such file"));
@@ -79,37 +80,93 @@ let set_match_depth depth =
 	  
 let set_qualid flat_id = qualid := Longident.parse flat_id
 
+let rec parse_lines f =
+  try
+    let i = input_line f in
+      i :: parse_lines f
+  with
+      End_of_file -> []
+
+(* Get the lines of a text file (without end of lines). *)
+let lines_of f =
+  let c = open_in f in
+  let d = parse_lines c in
+    close_in c;
+    d
+
+let project_file_name = ".ocamlwizard"
+
+(* Try to locate a project file in the directory containing d. *)
+let rec find_project_file d =
+  let pf = Filename.concat d project_file_name in
+  if Sys.file_exists pf then
+    d, pf
+  else if d = "/" then
+    raise Not_found
+  else
+    find_project_file (Filename.dirname d)
+
+(* Reads a project file, which is a list of directories (one by line),
+   possibly relative to the directory containing the file. *)
+let project_directories d pf =
+  List.map
+    (function l ->
+      if Filename.is_relative l then
+	Filename.concat d l
+      else
+	l)
+    (lines_of pf)
 
 let add_include_dirs arg = 
   include_dirs := (!include_dirs)@[arg]
 
-let search_dirs () = "./" :: (!include_dirs @ [Config.standard_library])
-  
+let directory_of source =
+  if Filename.is_relative source then
+    Sys.getcwd ()
+  else
+    Filename.dirname source
+
+let search_dirs source =
+  let dirs = (!include_dirs @ [Config.standard_library]) in
+  let dir = directory_of source in
+  let dirs =
+    try
+      let d, pf = find_project_file dir in
+      if !find_project_dir then (
+	print_endline d ; exit 0
+      );
+      project_directories d pf @ dirs
+    with
+	Not_found -> dir :: dirs
+  in
+  List.iter prerr_endline dirs;
+  dirs
+	
 let i_dirs () = 
   add_include_dirs Config.standard_library;
   !include_dirs
-  
+    
 let set_printer = function
   | "ocaml-pp" -> printer := Ocaml_printer
   | _  -> raise (Arg.Bad ("-printer : invalid argument"))
-	
+    
 
 let set_parser = function
   |  "default-parser"         -> _parser := Default_parser
   | _  -> raise (Arg.Bad ("-parser : invalid argument"))
-	
+    
 
 type refactor_option = 
-    | Rename 
-    | Depend
-    | Qualif
+  | Rename 
+  | Depend
+  | Qualif
 
 type command = 
-    | Nothing 
-    | Completion 
-    | Compile 
-    | Locate 
-    | Refactor of refactor_option
+  | Nothing 
+  | Completion 
+  | Compile 
+  | Locate 
+  | Refactor of refactor_option
 
 
 let get_refactor_option = function
@@ -144,7 +201,7 @@ let options =
     
     ("-printer",String set_printer,
      ": choose the output format. ");
-   
+    
     ("-parser",String set_parser,
      ": choose the used parser for error recovery");
 
@@ -167,7 +224,10 @@ let options =
      ": completion command, for automated tests");
 
     ("-backtrace", Unit (function () -> Printexc.record_backtrace true),
-     ": print a backtrace in case of error")
+     ": print a backtrace in case of error");
+
+    ("-find-project-dir", Set find_project_dir,
+     ": print the location of the project directory that would be used")
   ]
 
 let usage =" usage : ocamlwizard [common options] [command] [command's options]"
@@ -178,51 +238,51 @@ exception Exit_typing
 
 let anonymous = function
   | "compile" -> 
-      compile_index := !Arg.current;
-      command := Compile;
-      Arg.current := Array.length Sys.argv
+    compile_index := !Arg.current;
+    command := Compile;
+    Arg.current := Array.length Sys.argv
 
   | "refactor" -> failwith "not yet"
-(*
-      let i = !Arg.current in 
-      if i > Array.length Sys.argv - 6 then 
-	raise (Arg.Bad "refactor: too few arguments");
+  (*
+    let i = !Arg.current in 
+    if i > Array.length Sys.argv - 6 then 
+    raise (Arg.Bad "refactor: too few arguments");
 
-      command := get_refactor_option  Sys.argv.(i + 1) ;
-      Refactor_env.set_loc_id (get_loc Sys.argv.(i + 2) "refactor") ;
-      begin
-	match !command with  
- 
-	  | Refactor Rename ->
-	      if i > Array.length Sys.argv - 7 then 
-		raise (Arg.Bad "refactor: too few arguments");
-	      Refactor_env.set_old_id  (Sys.argv.(i + 3));
-	      Refactor_env.set_new_id  (Sys.argv.(i + 4));
-	      Refactor_env.set_file  (Sys.argv.(i + 5));
-	      compile_index := i + 5;
-	      Arg.current := Array.length Sys.argv;
-	      
-	  | Refactor Depend ->
-	      Refactor_env.set_old_id  (Sys.argv.(i + 3));
-	      Refactor_env.set_file  (Sys.argv.(i + 4));
-	      compile_index := i + 4;
-	      Arg.current := Array.length Sys.argv
- 		
-	  | Refactor Qualif ->  
-	      command := Refactor Rename;
-	      Refactor_env.set_old_id  (Sys.argv.(i + 3));
-	      Refactor_env.set_new_id  (Sys.argv.(i + 3));
-	      Refactor_env.set_file  (Sys.argv.(i + 4));
-	      compile_index := i + 4;
-	      Arg.current := Array.length Sys.argv
- 		
-	  | Locate | Compile | Completion | Nothing  -> 
-	      Debug.unreachable "Common_config" 10
-	    
+    command := get_refactor_option  Sys.argv.(i + 1) ;
+    Refactor_env.set_loc_id (get_loc Sys.argv.(i + 2) "refactor") ;
+    begin
+    match !command with  
+    
+    | Refactor Rename ->
+    if i > Array.length Sys.argv - 7 then 
+    raise (Arg.Bad "refactor: too few arguments");
+    Refactor_env.set_old_id  (Sys.argv.(i + 3));
+    Refactor_env.set_new_id  (Sys.argv.(i + 4));
+    Refactor_env.set_file  (Sys.argv.(i + 5));
+    compile_index := i + 5;
+    Arg.current := Array.length Sys.argv;
+    
+    | Refactor Depend ->
+    Refactor_env.set_old_id  (Sys.argv.(i + 3));
+    Refactor_env.set_file  (Sys.argv.(i + 4));
+    compile_index := i + 4;
+    Arg.current := Array.length Sys.argv
+    
+    | Refactor Qualif ->  
+    command := Refactor Rename;
+    Refactor_env.set_old_id  (Sys.argv.(i + 3));
+    Refactor_env.set_new_id  (Sys.argv.(i + 3));
+    Refactor_env.set_file  (Sys.argv.(i + 4));
+    compile_index := i + 4;
+    Arg.current := Array.length Sys.argv
+    
+    | Locate | Compile | Completion | Nothing  -> 
+    Debug.unreachable "Common_config" 10
+    
 
-      end;
-*)
-	
+    end;
+  *)
+
   | "locate" -> 
       let i = !Arg.current in 
       if i > Array.length Sys.argv - 4 then 
@@ -232,10 +292,9 @@ let anonymous = function
       set_file Sys.argv.(i + 3);
       Arg.current := i + 3;
       command := Locate;
-     	
+
   | "completion" ->
       command := Completion
-
   | f when Sys.file_exists f -> fic_source := f
   | s -> raise (Arg.Bad ("don't know what to do with " ^ s))
 

@@ -74,7 +74,6 @@ expansion_res.ml: $(PE_TESTS)
 	`tail -c +2 $< | grep -o -b € | cut -d : -f 1` \
 	-printer ocaml-pp >$@
 
-
 # Path completion
 #################
 

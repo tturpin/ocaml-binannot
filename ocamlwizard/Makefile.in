@@ -24,6 +24,11 @@ LIBDIR       = @libdir@/ocamlwizard
 # where to install the man page
 MANDIR       = @mandir@
 
+# where to install the emacs mode
+SITE_LISP=/usr/local/share/emacs/site-lisp
+SITE_START_DIR=/etc/emacs/site-start.d
+
+
 # other variables set by ./configure
 # OCAMLC       = @OCAMLC@
 # OCAMLOPT     = @OCAMLOPT@
@@ -511,9 +516,14 @@ doc/version.tex: Makefile
 ##############
 
 install: $(BIN).$(OCAMLBEST) 
-	cp -f $(BIN).$(OCAMLBEST) $(BINDIR)/ocamlwizard
-	mkdir -p $(LIBDIR)
-	cp -f standard_library/*.owz $(LIBDIR)
+	install $< $(BINDIR)
+	install owz.sh $(BINDIR)
+	cd $(BINDIR) ; ln -s -f owz.sh ocamlwizard
+	install emacs/ocamlwizard.el $(SITE_LISP)
+	install emacs/52ocamlwizard.el $(SITE_START_DIR)
+
+#	mkdir -p $(LIBDIR)
+#	cp -f standard_library/*.owz $(LIBDIR)
 
 # 	-mkdir ~/.ocamlwizard
 # 	-mkdir ~/.ocamlwizard/standard_library

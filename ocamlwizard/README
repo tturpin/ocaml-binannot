@@ -4,14 +4,54 @@ This directory contains an fork of Ocamlwizard, originally written by
 David Baudet and Mohamed Iguernelala, which relies on OCaml-Binannot.
 
 
+
+
+- OCamlwizard setup
+~~~~~~~~~~~~~~~~~~~
+
+
+The following assumes that you have root privileges. If not, you will
+have to:
+- change the install dir with by giving the configure script a
+  --prefix option
+- manually copy the file emacs/ocamlwizard.el into your ~/.emacs.d/
+- append the contents of emacs/52ocamlwizard.el to your ~/.emacs
+
+
+Compilation and installation
+............................
+
+
+- Compile and install OCaml-Binannot
+
+- In directory ocamlwizard (this directory):
+
+  - ./configure
+  - make
+  - sudo make install
+
+- Optionnally, in directiory ocamlwizard/test:
+
+  - make
+
+
+Project configuration
+.....................
+
+OCamlwizard uses a very simple configuration file to know about a
+projects directories and libraries. When it is invoked on a source
+file <file.ml>, it looks for file .ocamlwizard in the directory
+containing <file.ml>, or its parent directories, back to the root.
+This file must contain exactly one directory name per line, and
+compiled interface will be searched in this directories. Relative
+directory names are interpreted with respect to the directory
+containing the project file .ocamlwizard.
+
+
+
+
 - Using OCamlwizard-Binannot inside emacs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-Configuration
-...............
-
-TODO : include-dir configuration...
 
 
 Error recovery:
@@ -63,6 +103,8 @@ Remark: Completion still needs to be improvemed in many respects. See
 the test cases for a detailed overview of the current behavior.
 
 
+
+
 - Command line interface
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -83,8 +125,15 @@ passed to the editor which performs minimal further treatment.
 Details:
 ........
 
-The decision of what to perform (kind of completion, for example) is
-partly made during the parsing (in a rather intricate way).
+- The decision of what to perform (kind of completion, for example) is
+  partly made during the parsing (in a rather intricate way).
+
+- Communication with emacs: before calling OCamlwizard, the emacs code
+  calls the do-auto-save function to write #file.ml# if needed.
+  OCamlwizard checks if an auto-save exists. For positioning the
+  cursor at the right place (first wildcard for example), OCamlwizard
+  inserts a $ character before it, which is searched backward by
+  emacs, then deleted.
 
 
 - Source code organization

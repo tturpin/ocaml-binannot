@@ -40,7 +40,6 @@
   (next-error)
 )
 
-(global-set-key [f1] 'ocamlwizard-locate)
 
 (defun ocamlwizard-match-with-completion ()
   "complete an Ocaml match construct using Ocamlwizard"
@@ -62,7 +61,6 @@
   (delete-char 1)
 )
 
-(global-set-key [f3] 'ocamlwizard-match-with-completion)
 
 (defun ocamlwizard-path-completion ()
   "complete an Ocaml identifier using Ocamlwizard"
@@ -90,7 +88,6 @@
   (insert choice)
 )
 
-(global-set-key [f12] 'ocamlwizard-path-completion)
 
 (defun ocamlwizard-expand-patvar ()
   "expands a pattern-matching variable using Ocamlwizard"
@@ -117,6 +114,7 @@
    "-expand" (concat (int-to-string (- start 1)) "-" (int-to-string (- end 1)))
    file)
 )
+
 
 (defun ocamlwizard-expand-patvar ()
   "expands a pattern-matching variable using Ocamlwizard"
@@ -152,4 +150,11 @@
   (delete-char 1)
 )
 
-(global-set-key [f11] 'ocamlwizard-expand-patvar)
+  
+(defun ocamlwizard ()
+  (interactive)
+  (define-key (current-local-map) [f1] 'ocamlwizard-locate)
+  (define-key (current-local-map) [f3] 'ocamlwizard-match-with-completion)
+  (define-key (current-local-map) [f12] 'ocamlwizard-path-completion)
+  (define-key (current-local-map) [f11] 'ocamlwizard-expand-patvar)
+  )
