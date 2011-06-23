@@ -127,13 +127,13 @@ let main ce =
 	let match_exp =
 	  match Parsing_env.parser_state.match_exp with
 	    | Some e ->
-	      Expression_typing.type_of_exp structure e.Parsetree.pexp_loc
+	      Expression_typing.locate_expression structure e.Parsetree.pexp_loc
 	    | None -> assert false
 	in
 	match_exp.Typedtree.exp_env, match_exp.Typedtree.exp_type
       | Match (BranchCs (p, l)) ->
 	let place =
-	  Expression_typing.type_of_pat structure
+	  Expression_typing.locate_expansion_place structure
 	    ! Common_config.expand_loc
 (*
  p.Parsetree.ppat_loc
@@ -148,7 +148,7 @@ let main ce =
       | Try _ -> assert false
       | Path {p_kd = Record (Faccess e)} ->
 	let match_exp =
-	  Expression_typing.type_of_exp structure e.Parsetree.pexp_loc
+	  Expression_typing.locate_expression structure e.Parsetree.pexp_loc
 	in
 	match_exp.Typedtree.exp_env, match_exp.Typedtree.exp_type
       | Path {p_kd = Module _} ->
@@ -158,7 +158,7 @@ let main ce =
 	let match_exp =
 	  match Parsing_env.parser_state.match_exp with
 	    | Some e ->
-	      Expression_typing.type_of_exp structure e.Parsetree.pexp_loc
+	      Expression_typing.locate_expression structure e.Parsetree.pexp_loc
 	    | None -> assert false
 	in
 	match_exp.Typedtree.exp_env, match_exp.Typedtree.exp_type

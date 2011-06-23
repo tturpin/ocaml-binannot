@@ -20,7 +20,7 @@
     a given range *)
 
 (** Get the type of the expression with given location in an typedtree. *)
-val type_of_exp : Typedtree.structure -> Location.t -> Typedtree.expression
+val locate_expression : Typedtree.structure -> Location.t -> Typedtree.expression
 (*
 val type_of_pat : Typedtree.structure -> Location.t -> Typedtree.pattern
 *)
@@ -31,6 +31,6 @@ type expansion_place =
   | Args of Typedtree.pattern * Path.t * Types.constructor_description
   (* expand the arguments of this constructor pattern *)
 
-val type_of_pat : Typedtree.structure -> int * int -> expansion_place
+val locate_expansion_place : Typedtree.structure -> int * int -> expansion_place
 
 val expansion_type : expansion_place -> Env.t * Types.type_desc

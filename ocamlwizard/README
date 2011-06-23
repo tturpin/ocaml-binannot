@@ -26,6 +26,7 @@ Compilation and installation
 
 - In directory ocamlwizard (this directory):
 
+  - autoconf
   - ./configure
   - make
   - sudo make install

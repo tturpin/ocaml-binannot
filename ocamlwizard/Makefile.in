@@ -56,7 +56,7 @@ PATH_OWZ        = ./
 #path in ocamlwizard
 PATH_COMMON     = $(PATH_OWZ)common/
 PATH_COMPLETION = $(PATH_OWZ)completion/
-PATH_REFACTOR   = $(PATH_OWZ)refactoring/
+PATH_REFACTOR   = $(PATH_OWZ)refactor/
 PATH_MAIN       = $(PATH_OWZ)main/
 
 #path in common
@@ -144,6 +144,7 @@ CMO_SYNTACTIC = \
 	$(PATH_COMMON)diff.cmo       	\
 	$(PATH_COMMON)incLexer.cmo       	\
 	$(PATH_COMMON)incParser.cmo       	\
+	$(PATH_COMMON)typedtreeOps.cmo       	\
 	$(PATH_SYNTACTIC)syntax_completion.cmo
 
 
@@ -193,7 +194,7 @@ CMX_PRINT = $(CMO_PRINT:.cmo=.cmx)
 #CMO REFACTORING
 ################################################
 CMO_REFACTOR = \
-	$(PATH_REFACTOR)refactor_env.cmo 
+	$(PATH_REFACTOR)rename.cmo 
 
 
 CMX_REFACTOR = $(CMO_REFACTOR:.cmo=.cmx)
@@ -301,8 +302,8 @@ CMX_OCAML = $(CMO_OCAML:.cmo=.cmx)
 ################################################
 CMO_ALL = $(CMO_COMMON) \
 	$(CMO_SYNTACTIC) $(CMO_EXTRACT) $(CMO_FILTER) $(CMO_C_TYPING) $(CMO_PRINT)	\
-	$(CMO_COMPLETION) $(CMO)
-# $(CMO_REFACTOR)
+	$(CMO_COMPLETION) $(CMO_REFACTOR) $(CMO)
+
 
 CMX_ALL = $(CMO_ALL:.cmo=.cmx)
 
@@ -616,13 +617,13 @@ clean_all:clean
 	$(PATH_PRINT)*.mli \
 	$(PATH_COMPLETION)*.ml \
 	$(PATH_COMPLETION)*.mli \
+	$(PATH_REFACTOR)*.ml \
+	$(PATH_REFACTOR)*.mli \
 	$(PATH_MAIN)*.ml \
 	$(PATH_MAIN)*.mli \
 	>.depend
 
 
-#	$(PATH_REFACTOR)*.ml \
-#	$(PATH_REFACTOR)*.mli \
 
 FLAG_PRINT      = -I $(PATH_PRINT)
 FLAG_REFACTOR   = -I $(PATH_REFACTOR)

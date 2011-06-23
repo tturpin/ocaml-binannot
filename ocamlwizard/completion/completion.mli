@@ -25,3 +25,9 @@
 
 val main : Interface.completion_infos -> unit
   (** The main entry of the completion command *)
+
+val compile_file : Parsetree.structure ->
+  Interface.completion_infos ->
+  Typedtree.structure * Types.signature * Interface.completion_infos
+
+val initial_env : unit -> Env.t
