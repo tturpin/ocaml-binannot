@@ -400,6 +400,29 @@ The precedences must be listed from low to high.
 %start use_file                         /* for the #use directive */
 %type <Parsetree.toplevel_phrase list> use_file
 
+/* Additional entry points for renaming */
+
+%start val_longident
+%start constr_longident
+%start label_longident
+%start type_longident
+%start mod_longident
+%start mod_ext_longident
+%start mty_longident
+%start clty_longident
+%start class_longident
+
+%type <Longident.t>
+    val_longident
+    constr_longident
+    label_longident
+    type_longident
+    mod_longident
+    mod_ext_longident
+    mty_longident
+    clty_longident
+    class_longident
+
 %%
 
 /* Entry points */
