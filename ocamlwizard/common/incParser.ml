@@ -160,26 +160,6 @@ let try_parse parse lexer file rev_diff =
 	_ -> raise Not_found
 *)
 
-(* Given a list l, best_lexicographic [] l returns cond (rev l') for
-   the best sub-list l' of l such that cond (rev l') does not raise Not_found *)
-let rec best_lexicographic acc cond = function
-  | i :: d ->
-      (try
-	 best_lexicographic (i :: acc ) cond d
-       with
-	   Not_found ->
-	     best_lexicographic acc cond d)
-  | [] -> cond acc
-
-let parse_with_errors parse lexer old_file new_file =
-  let diff_file = Filename.temp_file
-    (Filename.basename new_file ^ "-" ^ Filename.basename old_file) ".diff" in
-    (match Sys.command ("diff -f " ^ old_file ^ " " ^ new_file ^ " >" ^ diff_file) with
-       | 0 -> ()
-       | _ -> failwith "error when invoking diff");
-    let old = lines_of old_file
-    and diff = parse_diff_file diff_file in
-      best_lexicographic [] (try_parse parse lexer old) diff
 *)
 (*
 let initial_env () =

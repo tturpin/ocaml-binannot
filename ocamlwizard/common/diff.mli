@@ -31,9 +31,22 @@ type chunk =
     default. *)
 val read_modified_file : ?empty_absent:bool -> string -> string -> chunk list
 
-(* Cut a modified file, only keeping the count first characters of the
-   new version. *)
+(** Cut a modified file, only keeping the count first characters of
+    the new version. *)
 val cut_new : int -> chunk list -> chunk list
 
-(* Print a modified file in a somewhat readable form. *)
+(** Print a modified file in a somewhat readable form. *)
 val print_modified : out_channel -> chunk list -> unit
+
+(** parse_with_errors parse file diff return the result of the best
+    merge of diff for which parse succeeds. The string argument given
+    to the parse function is the temporary filename in which
+    candidates are written. The resturned function may be used to
+    translate positions seen by the parser to positions in the new
+    version of the file (only pos_cnum, and this may yield duplicate
+    positions). *)
+(*
+val parse_with_errors :
+  (string -> 'a) -> string -> chunk list ->
+  'a * (Lexing.position -> Lexing.position)
+*)
