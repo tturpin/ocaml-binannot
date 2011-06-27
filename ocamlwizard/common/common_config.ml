@@ -157,7 +157,7 @@ let set_parser = function
     
 
 type refactor_option = 
-  | Rename 
+  | Rename of (int * int) * string * string * string
   | Depend
   | Qualif
 
@@ -169,12 +169,19 @@ type command =
   | Refactor of refactor_option
 
 
+(*
 let get_refactor_option = function
   | "-rename" -> Refactor Rename
   | "-depend" -> Refactor Depend
   | "-qualif" -> Refactor Qualif
   | _         -> raise (Arg.Bad " refactor : wrong option")
+*)
 
+let parse_refactor_command = function
+  | [| "-rename" ; loc ; name ; name' ; file |] ->
+    Rename (get_loc loc "rename", name, name', file)
+  | [||] -> failwith "refactor : no command given"
+  | c -> failwith ("invalid refactor command " ^ c.(0))
 
 let command = ref Completion
 
@@ -242,26 +249,34 @@ let anonymous = function
     command := Compile;
     Arg.current := Array.length Sys.argv
 
-  | "refactor" -> failwith "not yet"
-  (*
-    let i = !Arg.current in 
+  | "refactor" ->
+    let i = !Arg.current + 1 and len = Array.length Sys.argv in
+    let a = Array.sub Sys.argv i (len - i) in
+    command := Refactor (parse_refactor_command a);
+    Arg.current := len
+(*
     if i > Array.length Sys.argv - 6 then 
     raise (Arg.Bad "refactor: too few arguments");
 
     command := get_refactor_option  Sys.argv.(i + 1) ;
-    Refactor_env.set_loc_id (get_loc Sys.argv.(i + 2) "refactor") ;
+    let loc = get_loc Sys.argv.(i + 2) "refactor" in
     begin
     match !command with  
     
     | Refactor Rename ->
-    if i > Array.length Sys.argv - 7 then 
-    raise (Arg.Bad "refactor: too few arguments");
-    Refactor_env.set_old_id  (Sys.argv.(i + 3));
-    Refactor_env.set_new_id  (Sys.argv.(i + 4));
-    Refactor_env.set_file  (Sys.argv.(i + 5));
-    compile_index := i + 5;
+      if Array.length Sys.argv -i <> 7 then 
+	raise (Arg.Bad "refactor: too few arguments");
+      let old_id = Sys.argv.(i + 3)
+      and new_id = Sys.argv.(i + 4)
+      and file = Sys.argv.(i + 5) in
+      compile_index := i + 5;
+      Rename.rename loc old_id new_id file
+(*
     Arg.current := Array.length Sys.argv;
-    
+*)
+
+    | _ -> failwith "not yet"    
+  (*
     | Refactor Depend ->
     Refactor_env.set_old_id  (Sys.argv.(i + 3));
     Refactor_env.set_file  (Sys.argv.(i + 4));
@@ -278,10 +293,11 @@ let anonymous = function
     
     | Locate | Compile | Completion | Nothing  -> 
     Debug.unreachable "Common_config" 10
+  *)
     
 
     end;
-  *)
+*)
 
   | "locate" -> 
       let i = !Arg.current in 

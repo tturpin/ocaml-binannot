@@ -17,7 +17,9 @@
 
 exception Exit_typing
 
-type refactor_option = Rename | Depend | Qualif
+type refactor_option =
+  | Rename of (int * int) * string * string * string
+  | Depend | Qualif
 type command =
     Nothing
   | Completion
