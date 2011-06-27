@@ -154,12 +154,190 @@ let read_modified_file ?(empty_absent = true) old_file new_file =
 	| _ -> failwith "error when invoking diff");
       let old = lines_of old_file
       and diff = parse_diff_file diff_file in
-      modified_file old diff
+	Sys.remove diff_file;
+	modified_file old diff
     | _ when not empty_absent -> invalid_arg "read_modified_file"
     | false, true -> [Changed ("", List.fold_left ( ^ ) "" (lines_of new_file))]
     | true, false -> [Changed (List.fold_left ( ^ ) "" (lines_of old_file), "")]
     | false, false -> [Same ""]
 
+(* Given a list l, best_lexicographic [] l returns cond l' for
+   the best sub-list l' of l such that cond l' does not raise Not_found *)
+let rec best_lexicographic acc cond = function
+  | Same s :: d ->
+      best_lexicographic (`same s :: acc) cond d
+  | Changed (s, s') :: d ->
+      (try
+	 best_lexicographic (`last (s, s') :: acc) cond d
+       with
+	   Not_found ->
+	     best_lexicographic (`old (s, s') :: acc) cond d)
+  | [] -> cond (List.rev acc)
+
+let rec translate pos = function
+  | [] -> if pos = 0 then 0 else invalid_arg "translate"
+  | (`same s | `last (_, s)) :: q ->
+      let len = String.length s in
+      if pos < len
+      then
+	pos
+      else
+	len + translate (pos - len) q
+  | `old (old, last) :: q ->
+      let len = String.length old in
+      if pos < len
+      then
+	pos
+      else
+	(String.length last) + translate (pos - len) q
+
+let translate_pos candidate pos =
+  {pos with Lexing.pos_cnum = translate pos.Lexing.pos_cnum candidate}
+
+let try_parse parse file candidate =
+  let c = open_out file in
+    List.iter
+      (function
+	 | `same s | `last (_, s) | `old (s, _) -> Printf.fprintf c "%s" s)
+      candidate;
+    close_out c;
+    (try parse file with _ -> raise Not_found),
+    translate_pos candidate
+
+let try_parse parse file outfile candidate =
+    prerr_endline "0";
+  let open Unix in
+    Sys.remove file;
+  prerr_endline "0.5";
+    mkfifo file 0o600;
+  prerr_endline "0.6";
+    let p = create_process parse [|parse ; file ; "-o" ; outfile |] stdin stdout stderr in
+    let c = openfile file [O_WRONLY] 0o600 in
+    let c = out_channel_of_descr c in
+      prerr_endline "1";
+      prerr_endline "2";
+    List.iter
+      (function
+	 | `same s | `last (_, s) | `old (s, _) -> Printf.fprintf c "%s" s)
+      candidate;
+    close_out c;
+      prerr_endline "3";
+    let _, st = waitpid [] p in
+      prerr_endline "4";
+      match st with
+	| WEXITED n ->
+	    Printf.eprintf "camlp4 exited with code %d\n%!" n;
+	    if n = 0 then
+	      outfile, translate_pos candidate
+	    else
+	      raise Not_found
+	| _ -> raise Not_found
+
+(* Warning : specific to .ml files *)
+let parse_with_errors parse file outfile diff =
+  let file = Filename.temp_file
+    (Filename.basename file ^ "-corrected") ".ml" in
+    try
+      let res = best_lexicographic [] (try_parse parse file outfile) diff in
+	Sys.remove file;
+	res
+    with e ->
+      Sys.remove file;
+      raise e
+
+let implementation0 file =
+  let c = open_in file in
+  let lexbuf = Lexing.from_channel c in
+  let res = Owz_parser.implementation Owz_lexer.token lexbuf in
+    close_in c;
+    res
+
+module Pparse = struct
+  open Format
+
+exception Outdated_version
+
+let file ppf inputfile parse_fun ast_magic =
+  let ic = open_in_bin inputfile in
+  let is_ast_file =
+    try
+      let buffer = String.create (String.length ast_magic) in
+      really_input ic buffer 0 (String.length ast_magic);
+      if buffer = ast_magic then true
+      else if String.sub buffer 0 9 = String.sub ast_magic 0 9 then
+        raise Outdated_version
+      else false
+    with
+      Outdated_version ->
+        Misc.fatal_error "Ocaml and preprocessor have incompatible versions"
+    | _ -> false
+  in
+  let ast =
+    try
+      if is_ast_file then begin
+        if !Clflags.fast then
+          fprintf ppf "@[Warning: %s@]@."
+            "option -unsafe used with a preprocessor returning a syntax tree";
+        Location.input_name := input_value ic;
+        input_value ic
+      end else begin
+        seek_in ic 0;
+        Location.input_name := inputfile;
+        let lexbuf = Lexing.from_channel ic in
+        Location.init lexbuf inputfile;
+        parse_fun lexbuf
+      end
+    with x -> close_in ic; raise x
+  in
+  close_in ic;
+  ast
+
+end
+
+let implementation file =
+  match Sys.command ("camlp4o.opt " ^ file ^ ">/tmp/errors-ast") with
+    | 0 ->
+	prerr_endline "OK1";
+	(try
+	   let res =
+	     Pparse.file Format.err_formatter "/tmp/errors-ast"
+	       (function _ -> assert false) Config.ast_impl_magic_number
+	   in
+(*
+	  let c = open_in "/tmp/errors-ast" in
+	  let res = input_value c in
+	    close_in c;
+*)
+	    prerr_endline "OK2";
+	    res
+	 with e -> prerr_endline (Printexc.to_string e); raise e)
+    | n ->
+	Printf.eprintf "camlp4o exited with %d\n%!" n;
+	raise Not_found
+
+let implementation_with_errors file =
+  let outfile = file ^ ".ast" in
+  parse_with_errors "camlp4o" file outfile
+
+(*
+let implementation_with_errors = parse_with_errors implementation
+*)
+(*
+let d = read_modified_file "test/errors.ml.last_compiled" "test/errors.ml"
+let _ = print_modified stderr d ; flush stderr
+let ast_file, translate = implementation_with_errors "test/errors.ml" d
+let ast =
+  Pparse.file Format.err_formatter "test/errors.ml.ast"
+    (function _ -> assert false) Config.ast_impl_magic_number
+let () = Printast.implementation Format.err_formatter ast
+let _ =
+  List.iter
+    (fun p ->
+       let pos = {Lexing.dummy_pos with Lexing.pos_cnum = p} in
+       Printf.eprintf "%d -> %d\n" p (translate pos).Lexing.pos_cnum)
+    [0 ; 34 ; 35]
+let _ = exit 0
+*)
 (*
   let o = lines_of "../test/test.ml"
   let d = parse_diff_file "../test/diff.f"
