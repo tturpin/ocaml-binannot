@@ -36,6 +36,12 @@ module ConstraintSet =
     let compare = compare
   end)
 
+module IncludeSet =
+  Set.Make (struct
+    type t = Types.signature * Ident.t list
+    let compare = compare
+  end)
+
 let rec constraint_modtype incs env t t' =
   (* We rely on the fact that
       "module type X
@@ -74,7 +80,8 @@ and constraint_signature incs env sg sg' =
 
 (* Collect the set of signature inclusion constraints implied by a structure. *)
 let collect_signature_inclusions s =
-  let incs = ref ConstraintSet.empty in
+  let incs = ref ConstraintSet.empty
+  and includes = ref IncludeSet.empty in
   let module Rename =
 	MakeIterator
 	  (struct
@@ -109,15 +116,8 @@ let collect_signature_inclusions s =
                        struct include X end *)
 
 		(try
-		   ()
-(*
 		   let sign = modtype_signature m.mod_env m.mod_type in
-		   List.iter
-		     (fun id ->
-		       let item = lookup_in_signature (Ident.name id) in
-		       identify id item)
-		     ids
-*)
+		     includes := IncludeSet.add (sign, ids) !includes
 		 with Abstract_modtype -> ())
 
 	      | Tstr_eval _
@@ -136,7 +136,7 @@ let collect_signature_inclusions s =
 	   end)
   in
   Rename.iter_structure s;
-  !incs
+  !incs, !includes
 
 (* An equivalence relation is represented by a mapping from elements
    to their (non-trivial) equivalence class. *)
@@ -166,23 +166,36 @@ let add_rel eq x y =
 (* Return the set of ids that would need to be renamed simultaneously
    with id, and the list of "implicit" references which cause this
    need (so that we can check them for masking). *)
-let propagate_renamings kind id incs =
+let propagate_renamings kind id incs includes =
   let name = Ident.name id in
   let eq = Hashtbl.create 10 in
   Hashtbl.add eq id (ref [id]);
-  let occs = ref [] in
+  let occs = ref []
+  and ambiguous = ref [] in
+  let copy sg id' =
+    try 
+      let item = lookup_in_signature kind name sg in
+      let id = sig_item_id item in
+	occs := (sg, id') :: !occs;
+	add_rel eq id id'
+    with Not_found -> assert false
+  in
+  IncludeSet.iter
+    (function sg, ids ->
+       match List.filter (function id -> Ident.name id = name) ids with
+	 | [] -> ()
+	 | [id] -> copy sg id
+	 | ids -> (* correct choice would require access to the resulting
+		     environment to check ids w.r.t. kind. *)
+	     List.iter (copy sg) ids; (* not sure if this is useful *)
+	     ambiguous := (lookup_in_signature kind name sg) :: !ambiguous)
+    includes;
   ConstraintSet.iter
     (function sg, sg' ->
       try
 	let item' = lookup_in_signature kind name sg' in
-	let item =
-	  try lookup_in_signature kind name sg
-	  with Not_found -> assert false
-	in
-	let id' = sig_item_id item'
-	and id = sig_item_id item in
-	occs := (sg, id') :: !occs;
-	add_rel eq id id'
+	let id' = sig_item_id item' in
+	  copy sg id'
       with
 	  Not_found -> ())
     incs;
@@ -192,5 +205,10 @@ let propagate_renamings kind id incs =
       (function _, id -> is_one_of id ids)
       !occs
   in
+  List.iter
+    (function item ->
+       let id = sig_item_id item in
+	 if is_one_of id ids then
+	   failwith "Cannot perform renaming because of an ambiguous include")
+    !ambiguous;
   ids, occs
-

@@ -73,7 +73,7 @@ val resolves_to : specifics -> Env.t -> Longident.t -> Ident.t list -> bool
 
 (** Retrieve an element in a signature from its name *)
 val lookup_in_signature :
-  specifics -> string -> Types.signature_item list -> Types.signature_item
+  specifics -> string -> Types.signature -> Types.signature_item
 
 (** Raised by check to signal an impossible renaming due to a masking
     of the new name by another element *)

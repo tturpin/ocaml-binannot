@@ -282,8 +282,8 @@ let rename loc name name' file =
       | Tpat_var id -> id
       | _ -> invalid_arg "rename"
   in
-  let incs = collect_signature_inclusions s in
-  let ids, occs = propagate_renamings value_ops id incs in
+  let incs, includes = collect_signature_inclusions s in
+  let ids, occs = propagate_renamings value_ops id incs includes in
   check_signature_inclusions value_ops ids name' occs;
   List.iter
     (function id ->
