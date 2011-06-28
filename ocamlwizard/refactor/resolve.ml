@@ -49,6 +49,13 @@ let module_ops = {
   summary_item = function Env_module (_, i, _) -> Some i | _ -> None
 }
 
+let modtype_ops = {
+  sort = `Modtype;
+  lookup = keep_first Env.lookup_modtype;
+  sig_item = (function Sig_modtype (i, _) -> Some i | _ -> None);
+  summary_item = function Env_modtype (_, i, _) -> Some i | _ -> None
+}
+
 let sig_item_ops = function
   | Sig_value _ -> value_ops
   | Sig_module _ -> module_ops
@@ -59,10 +66,12 @@ let sig_item_ops = function
   | Sig_class_type _ ->
     assert false
 
+exception Abstract_modtype
+
 (* Return the signature of a given (extended) module type path *)
 let rec resolve_modtype env path =
   match Env.find_modtype path env with
-  | Modtype_abstract -> invalid_arg "resolve_mod_type"
+  | Modtype_abstract -> raise Abstract_modtype
   | Modtype_manifest mt -> modtype env mt
 
 and modtype env = function
@@ -90,12 +99,15 @@ let is_one_of id = List.exists (Ident.same id)
 (* True if p.name means id *)
 let field_resolves_to kind env path name ids =
   name = Ident.name (List.hd ids) && (* only an optimisation *)
-  List.exists
-    (function s ->
-      match kind.sig_item s with
-	| Some id -> Ident.name id = name && is_one_of id ids
-	| None -> false)
-    (resolve_module env path)
+  try
+    List.exists
+      (function s ->
+	match kind.sig_item s with
+	  | Some id -> Ident.name id = name && is_one_of id ids
+	  | None -> false)
+      (resolve_module env path)
+  with
+      Abstract_modtype -> assert false
 
 (* Test whether a p reffers to id in environment env. This indicates
    that the rightmost name in lid needs renaming. *)

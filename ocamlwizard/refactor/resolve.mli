@@ -29,19 +29,14 @@ type specifics = {
 
 val value_ops : specifics
 val module_ops : specifics
+val modtype_ops : specifics
 
 (** Return the specific operations associated with a signature item. *)
 val sig_item_ops : Types.signature_item -> specifics
 
-(** See modtype. *)
-val resolve_modtype :
-  Env.t ->
-  Path.t ->
-  [> `func of Ident.t * Types.module_type * Types.module_type
-   | `sign of Types.signature ]
-
-(** See modtype. *)
-val resolve_module : Env.t -> Path.t -> Types.signature
+(** Raised by modtype, modtype_signature, and modtype_functor when
+    looking for the signature of an abstract module type. *)
+exception Abstract_modtype
 
 (** Get the signature (or functor signature) corresponding to a module type *)
 val modtype :
@@ -56,6 +51,19 @@ val modtype_signature : Env.t -> Types.module_type -> Types.signature
 val modtype_functor :
   Env.t -> Types.module_type ->
   Ident.t * Types.module_type * Types.module_type
+
+(* Unused outside of this module
+(** See modtype_signature. *)
+val resolve_module : Env.t -> Path.t -> Types.signature
+
+(** See modtype. *)
+val resolve_modtype :
+  Env.t ->
+  Path.t ->
+  [ `func of Ident.t * Types.module_type * Types.module_type
+  | `sign of Types.signature ]
+
+*)
 
 (** [resolves_to kind env lid ids] tests whether a lid reffers to one
     of ids in environment env, i.e., if the object directly denoted by
