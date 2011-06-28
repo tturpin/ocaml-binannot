@@ -194,7 +194,9 @@ CMX_PRINT = $(CMO_PRINT:.cmo=.cmx)
 #CMO REFACTORING
 ################################################
 CMO_REFACTOR = \
-	$(PATH_REFACTOR)rename.cmo 
+	$(PATH_REFACTOR)resolve.cmo \
+	$(PATH_REFACTOR)renameLid.cmo \
+	$(PATH_REFACTOR)rename.cmo
 
 
 CMX_REFACTOR = $(CMO_REFACTOR:.cmo=.cmx)

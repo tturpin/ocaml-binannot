@@ -6,7 +6,9 @@ open Types
 open Typedtree
 open TypedtreeOps
 open Env
-
+open Resolve
+open RenameLid
+open Util
 
 
 (*
@@ -25,10 +27,12 @@ type toplevel_item =
 type absolute_id = toplevel_item * Ident.t (* non-persistent Id *)
 type absolute_path = toplevel_item * Path.t (* maybe persistent root Id *)
 
+(*
 let rec path2lident = function
   | Pident i -> Lident (Ident.name i)
   | Pdot (p, n, _) -> Ldot (path2lident p, n)
   | Papply (p, p') -> Lapply (path2lident p, path2lident p')
+*)
 
 (*
 type exp_exp =
@@ -136,240 +140,6 @@ let resolve item = function
     | Papply (p, p') -> assert false
 *)
 
-type sort = [
-  | `Module
-  | `Modtype
-  | `Value
-]
-
-type specifics = {
-  sort : sort;
-  lookup : Longident.t -> Env.t -> Path.t;
-  sig_item : Types.signature_item -> Ident.t option;
-  summary_item : Env.summary -> Ident.t option
-}
-
-let keep_first f lid env = fst (f lid env)
-
-let value_ops = {
-  sort = `Value;
-  lookup = keep_first Env.lookup_value;
-  sig_item = (function Sig_value (i, _) -> Some i | _ -> None);
-  summary_item = function Env_value (_, i, _) -> Some i | _ -> None
-}
-
-let module_ops = {
-  sort = `Module;
-  lookup = keep_first Env.lookup_module;
-  sig_item = (function Sig_module (i, _, _) -> Some i | _ -> None);
-  summary_item = function Env_module (_, i, _) -> Some i | _ -> None
-}
-
-let sig_item_ops = function
-  | Sig_value _ -> value_ops
-  | Sig_module _ -> module_ops
-  | Sig_type _
-  | Sig_exception _
-  | Sig_modtype _
-  | Sig_class _
-  | Sig_class_type _ ->
-    assert false
-
-(* Return the signature of a given (extended) module type path *)
-let rec resolve_modtype env path =
-  match Env.find_modtype path env with
-  | Modtype_abstract -> invalid_arg "resolve_mod_type"
-  | Modtype_manifest mt -> modtype env mt
-
-and modtype env = function
-  | Mty_ident p -> resolve_modtype env p
-  | Mty_signature s -> `sign s
-  | Mty_functor (id, t, t') -> `func (id, t, t')
-
-
-let modtype_signature env m =
-  match modtype env m with
-  | `sign s -> s
-  | `func _ -> invalid_arg "modtype_signature"
-
-let modtype_functor env m =
-  match modtype env m with
-  | `func f -> f
-  | `sign _ -> invalid_arg "modtype_signature"
-
-(* Return the signature of a given (extended) module path *)
-let resolve_module env path =
-  modtype_signature env (Env.find_module path env)
-
-let is_one_of id = List.exists (Ident.same id)
-
-(* True if p.name means id *)
-let field_resolves_to kind env path name ids =
-  name = Ident.name (List.hd ids) && (* only an optimisation *)
-  List.exists
-    (function s ->
-      match kind.sig_item s with
-	| Some id -> Ident.name id = name && is_one_of id ids
-	| None -> false)
-    (resolve_module env path)
-
-(* Test whether a p reffers to id in environment env. This indicates
-   that the rightmost name in lid needs renaming. *)
-let resolves_to kind env lid ids =
-  match kind.lookup lid env with
-    | Pident id' -> is_one_of id' ids
-    | Pdot (p, n, _) -> field_resolves_to kind env p n ids
-    | Papply _ -> invalid_arg "resolves_to"
-
-exception Not_masked
-exception Masked_by of Ident.t
-
-(* Check that the renaming of one of ids in name is not masked in the env. *)
-let check_in_sig kind ids name env =
-  List.iter
-    (function item ->
-      (match kind.sig_item item with
-	| Some id' ->
-	  if is_one_of id' ids then
-	    raise Not_masked
-	  else if Ident.name id' = name then
-	    raise (Masked_by id')
-	| None -> ()))
-
-(* Check that the renaming of one of ids in name is not masked in the env. *)
-let rec check kind ids name env = function
-  | Env_empty -> raise Not_found
-  | Env_open (s, p) ->
-    let sign = resolve_module env p in
-    check_in_sig kind ids name env sign;
-    check kind ids name env s
-  | summary ->
-    (match kind.summary_item summary with
-      | Some id' ->
-	if is_one_of id' ids then
-	  raise Not_masked
-	else if Ident.name id' = name then
-	  raise (Masked_by id')
-      | None -> ());
-    match summary with
-      | Env_value (s, _, _)
-      | Env_type (s, _, _)
-      | Env_exception (s, _, _)
-      | Env_module (s, _, _)
-      | Env_modtype (s, _, _)
-      | Env_class (s, _, _)
-      | Env_cltype (s, _, _)
-	-> check kind ids name env s
-      | Env_open _ | Env_empty _ -> assert false
-
-let check kind id name env summary =
-  try
-    ignore (check kind id name env summary);
-    assert false
-  with
-      Not_masked -> ()
-
-(* The following it an attempt to solve the renaming in two steps,
-   (for module paths, then for arbitrary paths) but it does not seem
-   to simplify the second step, so we do all cases at the same time. *)
-(*
-(* Rename a module name in an extended module path. *)
-let rec rename_in_ext_mod_path
-    (env : Env.t)
-    (id : Ident.t)
-    (name' : string)
-    (lid : Longident.t) =
-  let rename = rename_in_ext_mod_path env id name' in
-  match lid with
-    | Lident i ->
-      if resolves_to module_ops env lid id then (
-	check module_ops id name' env (Env.summary env);
-	Some (Lident name')
-      ) else
-	None
-    | Ldot (lid', n) ->
-      let n' =
-	if resolves_to module_ops env lid id then
-	  Some name'
-	else
-	  None
-      and lid' = rename lid' in
-      (match lid', n' with
-	| None, None -> None
-	| None, Some n -> Some (Ldot(lid, n))
-	| Some lid, None -> Some (Ldot(lid, n))
-	| Some lid, Some n -> Some (Ldot(lid, n)))
-    | Lapply (lid, lid') ->
-      (match rename lid, rename lid' with
-	| None, None -> None
-	| Some lid, None -> Some (Lapply (lid, lid'))
-	| None, Some lid' -> Some (Lapply (lid, lid'))
-	| Some lid, Some lid' -> Some (Lapply (lid, lid')))
-*)
-(*
-let rec rename_in_lid
-    renamed_kind
-    (env : Env.t)
-    (id : Ident.t)
-    (name' : string)
-    kind
-    (lid : Longident.t) =
-  match renamed_kind.sort with
-    | `Module -> rename_in_ext_mod_path env id name'
-    | _ ->
-      match lid with
-	| Lident i ->
-      let p, _ = renamed_kind.lookup lid env in
-      if kind.sort = renamed_kind.sort &&
-	resolves_to renamed_kind env id p then (
-	  check_value id name' env (Env.summary env);
-	  Some (Lident name')
-	) else
-  	  None
-    | _, Ldot (lid, n) ->
-      let p, _ = renamed_kind.lookup lid env in
-      if kind.sort = renamed_kind.sort && field_resolves_to kind env p n id then
-	Some (Ldot(lid, name'))
-      else
-	None
-    | _, Lapply _ -> invalid_arg "rename_in_lid"
-*)
-
-(* Rename the ident id of type renamed_kind in the longident lid of kind sort *)
-let rec rename_in_lid
-    renamed_kind
-    (env : Env.t)
-    (ids : Ident.t list)
-    (name' : string)
-    kind
-    (lid : Longident.t) =
-  let rename = rename_in_lid renamed_kind env ids name' module_ops in
-  match renamed_kind.sort, lid with
-    | _, Lident i ->
-      if kind.sort = renamed_kind.sort && resolves_to kind env lid ids then (
-	check kind ids name' env (Env.summary env);
-	Some (Lident name')
-      ) else
-	None
-    | _, Ldot (pref, n) ->
-      let n' =
-	if kind.sort = renamed_kind.sort && resolves_to kind env lid ids then
-	  Some name'
-	else
-	  None
-      and pref' = rename pref in
-      (match pref', n' with
-	| None, None -> None
-	| None, Some n -> Some (Ldot(pref, n))
-	| Some pref, None -> Some (Ldot(pref, n))
-	| Some pref, Some n -> Some (Ldot(pref, n)))
-    | `Module, Lapply (lid, lid') ->
-      (match rename lid, rename lid' with
-	| None, None -> None
-	| Some lid, None -> Some (Lapply (lid, lid'))
-	| None, Some lid' -> Some (Lapply (lid, lid'))
-	| Some lid, Some lid' -> Some (Lapply (lid, lid')))
-    | _, Lapply _ -> None
 
 (* To handle include, we need the correspondency between renamed
    idents which is currently lost. *)
@@ -421,36 +191,36 @@ let add_rel eq x y =
 	  x := y :: !x;
 	  add eq y x
 
-(* Return the set of ids that would need to be renamed simultaneously with id. *)
-let propagate_renamings renamed_kind id s =
-  let name = Ident.name id in
-  let eq = Hashtbl.create 10 in
-  Hashtbl.add eq id (ref [id]);
+module ConstraintSet =
+  Set.Make (struct
+    type t = Types.signature * Types.signature
+    let compare = compare
+  end)
+
+(* Collect the set of signature inclusion constraints implied by a structure. *)
+let collect_signature_inclusions s =
+  let incs = ref ConstraintSet.empty in
   let module Rename =
 	MakeIterator
 	  (struct
 	    include DefaultIteratorArgument
 
 	    let rec constraint_signature env sg sg' =
+	      incs := ConstraintSet.add (sg, sg') !incs;
 	      List.iter
-		(function item ->
-		  let kind = sig_item_ops item
-		  and id = sig_item_id item in
-		  (if kind.sort = renamed_kind.sort && Ident.name id = name then
-		      let item' = lookup_in_signature kind name sg in
-		      add_rel eq id (sig_item_id item'));
-		  match item with
-		    | Sig_module (id, t, _) ->
-		      (match
-			  lookup_in_signature module_ops (Ident.name id) sg
-		       with
-			 | Sig_module (_, t', _) ->
-			   let sg = modtype_signature env t
-			   and sg' = modtype_signature env t' in
-			   constraint_signature env sg sg')
-		    | Sig_modtype (id, d) ->
-		      ()
-		    | _ -> ())
+		(function
+		  | Sig_module (id, t, _) ->
+		    (match
+			lookup_in_signature module_ops (Ident.name id) sg
+		     with
+		       | Sig_module (_, t', _) ->
+			 let sg = modtype_signature env t
+			 and sg' = modtype_signature env t' in
+			 constraint_signature env sg sg'
+		       | _ -> assert false)
+		  | Sig_modtype (id, d) ->
+		    ()
+		  | _ -> ())
 		sg'
 
 	    let enter_module_expr m =
@@ -507,7 +277,48 @@ let propagate_renamings renamed_kind id s =
 	   end)
   in
   Rename.iter_structure s;
-  !(Hashtbl.find eq id)
+  !incs
+
+(* Return the set of ids that would need to be renamed simultaneously
+   with id, and the list of "implicit" references which cause this
+   need (so that we can check them for masking). *)
+let propagate_renamings kind id incs =
+  let name = Ident.name id in
+  let eq = Hashtbl.create 10 in
+  Hashtbl.add eq id (ref [id]);
+  let occs = ref [] in
+  ConstraintSet.iter
+    (function sg, sg' ->
+      debugln "constraint";
+      try
+	let item' = lookup_in_signature kind name sg' in
+	let item =
+	  try lookup_in_signature kind name sg
+	  with Not_found -> assert false
+	in
+	let id' = sig_item_id item'
+	and id = sig_item_id item in
+	occs := (sg, id') :: !occs;
+	add_rel eq id id'
+      with
+	  Not_found -> ())
+    incs;
+  let ids = !(Hashtbl.find eq id) in
+  let occs =
+    List.filter
+      (function _, id -> is_one_of id ids)
+      !occs
+  in
+  ids, occs
+
+
+(* Check that the implicit ident references which are concerned by
+   renaming will not be masked (i.e., that the bound signature items
+   remain the same). *)
+let check_signature_inclusions renamed_kind ids name' occs =
+  List.iter
+    (function sg, _ -> check_in_sig renamed_kind ids name' sg)
+    occs
 
 
 let get_occurrences s =
@@ -586,7 +397,7 @@ let get_lids file ast =
 let rename_lids id name' lids =
   List.fold_left
     (fun l (lid, e) ->
-      match rename_in_lid value_ops e.exp_env id name' value_ops lid with
+      match rename_in_lid value_ops id name' e.exp_env value_ops lid with
 	| Some lid ->
 	  (e.Typedtree.exp_loc, lid) :: l
 	| None -> l)
@@ -619,7 +430,9 @@ let rename loc name name' file =
       | Tpat_var id -> id
       | _ -> invalid_arg "rename"
   in
-  let ids = propagate_renamings value_ops id s in
+  let incs = collect_signature_inclusions s in
+  let ids, occs = propagate_renamings value_ops id incs in
+  check_signature_inclusions value_ops ids name' occs;
   List.iter
     (function id ->
       Printf.eprintf "rename %s\n%!" (Ident.unique_name id))
