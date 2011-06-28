@@ -1,3 +1,20 @@
+(**************************************************************************)
+(*                                                                        *)
+(*  Ocamlwizard-Binannot                                                  *)
+(*  Tiphaine Turpin                                                       *)
+(*  Copyright 2011 INRIA Saclay - Ile-de-France                           *)
+(*                                                                        *)
+(*  This software is free software; you can redistribute it and/or        *)
+(*  modify it under the terms of the GNU Library General Public           *)
+(*  License version 2.1, with the special exception on linking            *)
+(*  described in file LICENSE.                                            *)
+(*                                                                        *)
+(*  This software is distributed in the hope that it will be useful,      *)
+(*  but WITHOUT ANY WARRANTY; without even the implied warranty of        *)
+(*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.                  *)
+(*                                                                        *)
+(**************************************************************************)
+
 (** Different sort of names, and their bindings. *)
 
 type sort = [ `Modtype | `Module | `Value ]
@@ -46,21 +63,36 @@ val modtype_functor :
     name in lid needs renaming (assuming we are renaming ids). *)
 val resolves_to : specifics -> Env.t -> Longident.t -> Ident.t list -> bool
 
+(** Retrieve an element in a signature from its name *)
+val lookup_in_signature :
+  specifics -> string -> Types.signature_item list -> Types.signature_item
+
 (** Raised by check to signal an impossible renaming due to a masking
     of the new name by another element *)
 exception Masked_by of Ident.t
 
 (** Check that the renaming of a list of idents (with the same name)
-    into a new name would not change the meaning of this name in a
-    given environment, i.e., if the old name referred to one of the
-    ids, then this the new one must reffer to the same ident. *)
-val check :
-  specifics -> Ident.t list -> string -> Env.t -> Env.summary -> unit
+    into a new name would not change the meaning of a reference in a
+    given environment, i.e., this reference being either one of the
+    ids, or a different existing id already named with the new name,
+    as denoted by the boolean renamed.
 
-(** Similar to check, but check that the renaming would not change the
-    meaning of names in a signature. *)
+    In other words, if renamed is true, this function ensures that the
+    new name will indeed reffer to one of the ids, and otherwise, that
+    the existing instance of the new name will not.
+
+    Raise Not_found if none of the given idents or name is in the
+    environment.
+
+    Raise (Masked_by id) if masking would occur. *)
+val check :
+  specifics -> Ident.t list -> string -> Env.t -> Env.summary ->
+  renamed:bool -> unit
+
+(** Similar to check, but for a signature. *)
 val check_in_sig :
-  specifics -> Ident.t list -> string -> Types.signature -> unit
+  specifics -> Ident.t list -> string -> Types.signature ->
+  renamed:bool -> unit
 
 (** Test if an id belongs to a list of ids *)
 val is_one_of : Ident.t -> Ident.t list -> bool

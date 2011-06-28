@@ -1,3 +1,20 @@
+(**************************************************************************)
+(*                                                                        *)
+(*  Ocamlwizard-Binannot                                                  *)
+(*  Tiphaine Turpin                                                       *)
+(*  Copyright 2011 INRIA Saclay - Ile-de-France                           *)
+(*                                                                        *)
+(*  This software is free software; you can redistribute it and/or        *)
+(*  modify it under the terms of the GNU Library General Public           *)
+(*  License version 2.1, with the special exception on linking            *)
+(*  described in file LICENSE.                                            *)
+(*                                                                        *)
+(*  This software is distributed in the hope that it will be useful,      *)
+(*  but WITHOUT ANY WARRANTY; without even the implied warranty of        *)
+(*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.                  *)
+(*                                                                        *)
+(**************************************************************************)
+
 open Lexing
 open Location
 open Longident
@@ -154,43 +171,6 @@ let sig_item_id = function
   | Sig_class_type (i, _, _)
     -> i
 
-(*
-let lookup_in_signature id =
-  List.find
-      | _ -> false)
-*)
-
-let lookup_in_signature kind name =
-  List.find
-    (function item -> match kind.sig_item item with
-      | Some id -> Ident.name id = name
-      | None -> false)
-
-(* An equivalence relation is represented by a mapping from elements
-   to their (non-trivial) equivalence class. *)
-type 'a equivalence = ('a, 'a list ref) Hashtbl.t
-
-let add_rel eq x y =
-  let open Hashtbl in
-      match x, y, mem eq x, mem eq y with
-	| _, _, false, false ->
-	  let l = ref [x ; y] in
-	  add eq x l;
-	  add eq y l
-	| _, _, true, true ->
-	  let lx = find eq x and ly = find eq y in
-	  if lx !=  ly then (
-	    lx := List.rev_append !ly !lx;
-	    List.iter
-	      (fun y -> replace eq y lx)
-	      !ly
-	  )
-	| x, y, true, false
-	| y, x, false, true ->
-	  let x = find eq x in
-	  x := y :: !x;
-	  add eq y x
-
 module ConstraintSet =
   Set.Make (struct
     type t = Types.signature * Types.signature
@@ -279,6 +259,31 @@ let collect_signature_inclusions s =
   Rename.iter_structure s;
   !incs
 
+(* An equivalence relation is represented by a mapping from elements
+   to their (non-trivial) equivalence class. *)
+type 'a equivalence = ('a, 'a list ref) Hashtbl.t
+
+let add_rel eq x y =
+  let open Hashtbl in
+      match x, y, mem eq x, mem eq y with
+	| _, _, false, false ->
+	  let l = ref [x ; y] in
+	  add eq x l;
+	  add eq y l
+	| _, _, true, true ->
+	  let lx = find eq x and ly = find eq y in
+	  if lx !=  ly then (
+	    lx := List.rev_append !ly !lx;
+	    List.iter
+	      (fun y -> replace eq y lx)
+	      !ly
+	  )
+	| x, y, true, false
+	| y, x, false, true ->
+	  let x = find eq x in
+	  x := y :: !x;
+	  add eq y x
+
 (* Return the set of ids that would need to be renamed simultaneously
    with id, and the list of "implicit" references which cause this
    need (so that we can check them for masking). *)
@@ -317,7 +322,7 @@ let propagate_renamings kind id incs =
    remain the same). *)
 let check_signature_inclusions renamed_kind ids name' occs =
   List.iter
-    (function sg, _ -> check_in_sig renamed_kind ids name' sg)
+    (function sg, _ -> check_in_sig renamed_kind ids name' sg ~renamed:true)
     occs
 
 
@@ -394,6 +399,12 @@ let get_asts parser file locs =
 let get_lids file ast =
   get_asts Parser.val_longident file (get_occurrences ast)
 
+let check_lids id name' lids =
+  List.iter
+    (function lid, e ->
+      check_lid value_ops id name' e.exp_env value_ops lid)
+    lids
+
 let rename_lids id name' lids =
   List.fold_left
     (fun l (lid, e) ->
@@ -437,7 +448,9 @@ let rename loc name name' file =
     (function id ->
       Printf.eprintf "rename %s\n%!" (Ident.unique_name id))
     ids;
-  let r = rename_lids ids name' (get_lids file s) in
+  let lids = get_lids file s in
+  check_lids ids name' lids;
+  let r = rename_lids ids name' lids in
   List.iter
     (function loc, s ->
       Printf.eprintf "replace %d--%d by %s\n%!"

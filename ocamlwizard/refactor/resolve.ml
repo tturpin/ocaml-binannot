@@ -1,3 +1,20 @@
+(**************************************************************************)
+(*                                                                        *)
+(*  Ocamlwizard-Binannot                                                  *)
+(*  Tiphaine Turpin                                                       *)
+(*  Copyright 2011 INRIA Saclay - Ile-de-France                           *)
+(*                                                                        *)
+(*  This software is free software; you can redistribute it and/or        *)
+(*  modify it under the terms of the GNU Library General Public           *)
+(*  License version 2.1, with the special exception on linking            *)
+(*  described in file LICENSE.                                            *)
+(*                                                                        *)
+(*  This software is distributed in the hope that it will be useful,      *)
+(*  but WITHOUT ANY WARRANTY; without even the implied warranty of        *)
+(*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.                  *)
+(*                                                                        *)
+(**************************************************************************)
+
 open Path
 open Types
 open Env
@@ -88,38 +105,45 @@ let resolves_to kind env lid ids =
     | Pdot (p, n, _) -> field_resolves_to kind env p n ids
     | Papply _ -> invalid_arg "resolves_to"
 
-exception Not_masked
-exception Masked_by of Ident.t
+let lookup_in_signature kind name =
+  List.find
+    (function item -> match kind.sig_item item with
+      | Some id -> Ident.name id = name
+      | None -> false)
 
-(* Check that the renaming of one of ids in name is not masked in the env. *)
-let check_in_sig kind ids name sg =
+exception Name of Ident.t
+exception Ident of Ident.t
+
+let first_of_in_sig kind ids name sg =
   List.iter
     (function item ->
       (match kind.sig_item item with
-	| Some id' ->
-	  debugln "found %s" (Ident.name id');
-	  if is_one_of id' ids then
-	    raise Not_masked
-	  else if Ident.name id' = name then
-	    raise (Masked_by id')
+	| Some id ->
+	  debugln "found %s" (Ident.name id);
+	  if is_one_of id ids then
+	    raise (Ident id)
+	  else if Ident.name id = name then
+	    raise (Name id)
 	| None -> ()))
     (List.rev sg);
   invalid_arg "ckeck_in_sig"
 
-(* Check that the renaming of one of ids in name is not masked in the env. *)
-let rec check kind ids name env = function
+let rec first_of kind ids name env = function
   | Env_empty -> raise Not_found
   | Env_open (s, p) ->
     let sign = resolve_module env p in
-    check_in_sig kind ids name sign;
-    check kind ids name env s
+    (try
+       first_of_in_sig kind ids name sign
+     with
+	 Not_found ->
+	   first_of kind ids name env s)
   | summary ->
     (match kind.summary_item summary with
-      | Some id' ->
-	if is_one_of id' ids then
-	  raise Not_masked
-	else if Ident.name id' = name then
-	  raise (Masked_by id')
+      | Some id ->
+	if is_one_of id ids then
+	  raise (Ident id)
+	else if Ident.name id = name then
+	  raise (Name id)
       | None -> ());
     match summary with
       | Env_value (s, _, _)
@@ -129,20 +153,60 @@ let rec check kind ids name env = function
       | Env_modtype (s, _, _)
       | Env_class (s, _, _)
       | Env_cltype (s, _, _)
-	-> check kind ids name env s
+	-> first_of kind ids name env s
       | Env_open _ | Env_empty _ -> assert false
 
+exception Masked_by of Ident.t
+
+(* Check that the renaming of one of ids in name is not masked in the env. *)
+
+let check ~renamed first_of arg =
+  try
+    ignore (first_of arg);
+    assert false
+  with
+      (Ident _ | Name _) as e ->
+	match renamed, e with
+	  | (true, Ident _ | false, Name _) -> ()
+	  | (true, Name id | false, Ident id) -> raise (Masked_by id)
+	  | _ -> assert false
+
+let check kind id name env summary =
+  check (first_of kind id name env) summary
+
+and check_in_sig kind id name sg =
+  check (first_of_in_sig kind id name) sg
+
+(*
 let check kind id name env summary =
   try
-    ignore (check kind id name env summary);
+    ignore (first_of kind id name env summary);
     assert false
   with
-      Not_masked -> ()
+    | Ident _ -> ()
+    | Name id -> raise (Masked_by id)
 
 let check_in_sig kind id name sg =
-  debugln "check_in_sig %s %s" (Ident.name (List.hd id)) name;
   try
-    ignore (check_in_sig kind id name sg);
+    ignore (first_of_in_sig kind id name sg);
     assert false
   with
-      Not_masked -> ()
+    | Ident _ -> ()
+    | Name id -> raise (Masked_by id)
+
+let check_other kind id name env summary =
+  try
+    ignore (first_of kind id name env summary);
+    assert false
+  with
+    | Name _ -> ()
+    | Ident id -> raise (Masked_by id)
+
+let check_other_in_sig kind id name sg =
+  try
+    ignore (first_of_in_sig kind id name sg);
+    assert false
+  with
+    | Name _ -> ()
+    | Ident id -> raise (Masked_by id)
+*)
