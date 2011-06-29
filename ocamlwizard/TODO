@@ -1,7 +1,8 @@
-- Rename: rename everything an not just values
+- Rename: actually modify the files
 - Rename: replace in multiple files
 - Rename: check that we always lookup in the right environment
 
+- Rename: rename everything an not just values
 - Rename: collect all occurrences in a or-pattern
 - Rename: retrieve a definition from an occurrence
 - Rename: report masking and capture errors accurately

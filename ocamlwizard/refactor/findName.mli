@@ -17,11 +17,18 @@
 
 (** Finding names (definitions and references) in a typedtree. *)
 
-val get_occurrences :
-  Typedtree.structure -> (Location.t * (Env.t * Resolve.specifics)) list
+open Typedtree
 
-val locate_name :
+(*
+val get_occurrences :
+  structure -> (Location.t * (Env.t * [ `exp_ident | `mod_ident ])) list
+*)
+
+val get_lids :
+  string -> Typedtree.structure ->
+  (Location.t * Longident.t * (Env.t * Resolve.specifics)) list
+
+val locate_renamed_id :
   [ `signature of Typedtree.signature | `structure of Typedtree.structure ] ->
   int * int ->
-  [ `pattern of Typedtree.pattern
-  | `structure_item of Typedtree.structure_item ]
+  Resolve.specifics * Ident.t

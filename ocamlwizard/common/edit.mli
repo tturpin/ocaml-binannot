@@ -15,28 +15,9 @@
 (*                                                                        *)
 (**************************************************************************)
 
-(** Identifying idents which cannot be renamed independently of each
-    other (due to signature matching in particular). *)
+(** Modifying text files. *)
 
-(* should not be here *)
-val sig_item_id : Types.signature_item -> Ident.t
+val cp : string -> string -> unit
 
-module ConstraintSet : Set.S
-  with type elt = Types.signature * Types.signature
-
-module IncludeSet : Set.S
-  with type elt = Types.signature * Ident.t list
-
-(** Collect the set of signature inclusion constraints and include
-    statements for a structure. *)
-val collect_signature_inclusions :
-  Typedtree.structure -> ConstraintSet.t * IncludeSet.t
-
-(** Return the minimal set of idents which may be renamed and contains
-    a given id, as well as the "implicit" bindings of signature
-    elements to those idents. *)
-val propagate_renamings :
-  Resolve.specifics -> Ident.t -> ConstraintSet.t -> IncludeSet.t ->
-  Ident.t list
-  * ([ `certain | `maybe ] * Types.signature * Ident.t) list
-    (* means id is bound to sg.(name id), unless we were wrong about the sort. *)
+(** The list must be sorted ! *)
+val edit : (int * int * string) list -> string -> unit

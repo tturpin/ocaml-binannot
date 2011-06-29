@@ -141,7 +141,7 @@ CMO_SYNTACTIC = \
 	$(PATH_SYNTACTIC)parsing_env.cmo	\
 	$(PATH_SYNTACTIC)owz_parser.cmo       	\
 	$(PATH_SYNTACTIC)owz_lexer.cmo       	\
-	$(PATH_COMMON)diff.cmo       	\
+	$(PATH_COMMON)diff.cmo       		\
 	$(PATH_COMMON)incLexer.cmo       	\
 	$(PATH_COMMON)incParser.cmo       	\
 	$(PATH_COMMON)typedtreeOps.cmo       	\
@@ -171,6 +171,7 @@ CMO_COMMON =                           	\
 	$(PATH_COMMON)debug.cmo         \
 	$(PATH_COMMON)common_config.cmo \
 	$(PATH_COMMON)util.cmo          \
+	$(PATH_COMMON)edit.cmo          \
 	$(PATH_COMMON)owz_ref_printer.cmo	\
 	$(PATH_COMMON)stdr_types.cmo       	\
 

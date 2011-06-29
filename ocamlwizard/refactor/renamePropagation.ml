@@ -166,49 +166,78 @@ let add_rel eq x y =
 (* Return the set of ids that would need to be renamed simultaneously
    with id, and the list of "implicit" references which cause this
    need (so that we can check them for masking). *)
-let propagate_renamings kind id incs includes =
+let propagate_renamings kind id name' incs includes =
   let name = Ident.name id in
   let eq = Hashtbl.create 10 in
   Hashtbl.add eq id (ref [id]);
-  let occs = ref []
+  let implicit_refs = ref []
   and ambiguous = ref [] in
-  let copy sg id' =
+  let copy flag sg id' =
     try 
       let item = lookup_in_signature kind name sg in
       let id = sig_item_id item in
-	occs := (sg, id') :: !occs;
-	add_rel eq id id'
+      implicit_refs := (flag, sg, id') :: !implicit_refs;
+      add_rel eq id id'
     with Not_found -> assert false
   in
   IncludeSet.iter
     (function sg, ids ->
-       match List.filter (function id -> Ident.name id = name) ids with
-	 | [] -> ()
-	 | [id] -> copy sg id
-	 | ids -> (* correct choice would require access to the resulting
-		     environment to check ids w.r.t. kind. *)
-	     List.iter (copy sg) ids; (* not sure if this is useful *)
-	     ambiguous := (lookup_in_signature kind name sg) :: !ambiguous)
+      (match List.filter (function id -> Ident.name id = name) ids with
+	| [] -> ()
+	| [id] -> copy `certain sg id
+	| ids -> (* correct choice would require access to the resulting
+		    environment to check ids w.r.t. kind. *)
+	  List.iter (copy `maybe sg) ids;
+	  (* because we still need to check them for capture *)
+	  ambiguous := (lookup_in_signature kind name sg) :: !ambiguous);
+     (* We also keep those which are already named with name' *) 
+      (match List.filter (function id -> Ident.name id = name') ids with
+	| [] -> ()
+	| [id] -> implicit_refs := (`certain, sg, id) :: !implicit_refs
+	| ids ->
+	  List.iter
+	    (function id -> implicit_refs := (`maybe, sg, id) :: !implicit_refs)
+	    ids))
     includes;
   ConstraintSet.iter
     (function sg, sg' ->
-      try
-	let item' = lookup_in_signature kind name sg' in
-	let id' = sig_item_id item' in
-	  copy sg id'
-      with
-	  Not_found -> ())
+      (try
+	 let item' = lookup_in_signature kind name sg' in
+	 let id' = sig_item_id item' in
+	 copy `certain sg id'
+       with
+	   Not_found -> ());
+      (try
+	 let item' = lookup_in_signature kind name' sg' in
+	 let id' = sig_item_id item' in
+	 implicit_refs := (`certain, sg, id') :: !implicit_refs
+       with
+	   Not_found -> ()))
     incs;
   let ids = !(Hashtbl.find eq id) in
-  let occs =
-    List.filter
-      (function _, id -> is_one_of id ids)
-      !occs
-  in
   List.iter
     (function item ->
-       let id = sig_item_id item in
-	 if is_one_of id ids then
-	   failwith "Cannot perform renaming because of an ambiguous include")
+      let id = sig_item_id item in
+      if is_one_of id ids then
+	failwith "Cannot perform renaming because of an ambiguous include")
     !ambiguous;
-  ids, occs
+  ids, !implicit_refs
+
+(*
+(* Check that the implicit ident references which are concerned by
+   renaming will not be masked (i.e., that the bound signature items
+   remain the same). *)
+let check_signature_inclusions renamed_kind ids name'  =
+  List.iter
+    (function flag, sg, id ->
+      debugln "check";
+      try
+	if is_one_of id ids then
+	  check_in_sig renamed_kind ids name' sg ~renamed:true
+	else if Ident.name id = name' then
+	  check_in_sig renamed_kind ids name' sg ~renamed:false
+      with Not_found ->
+	assert (flag = `maybe))
+    implicit_refs
+
+*)

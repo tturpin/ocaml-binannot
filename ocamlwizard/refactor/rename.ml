@@ -162,38 +162,18 @@ let resolve item = function
 (* Check that the implicit ident references which are concerned by
    renaming will not be masked (i.e., that the bound signature items
    remain the same). *)
-let check_signature_inclusions renamed_kind ids name' occs =
+let check_signature_inclusions renamed_kind ids name' implicit_refs =
   List.iter
-    (function sg, _ -> check_in_sig renamed_kind ids name' sg ~renamed:true)
-    occs
-
-(* Traverse a source file to get a list of locations *)
-let source_locations f file locs acc =
-  let c = open_in file in
-  let acc =
-    List.fold_left
-      (fun acc (loc, x) ->
-	let len = loc.loc_end.pos_cnum - loc.loc_start.pos_cnum in
-	let s = String.create len in
-	seek_in c loc.loc_start.pos_cnum;
-	really_input c s 0 len;
-	f loc x s acc)
-      acc
-      locs
-  in
-  close_in c;
-  acc
-
-let get_asts parser file locs =
-  let f loc x s asts =
-    let lexbuf = Lexing.from_string s in
-    let ast = parser Lexer.token lexbuf in
-    (loc, ast, x) :: asts
-  in
-  source_locations f file locs []
-
-let get_lids file ast =
-  get_asts Parser.val_longident file (get_occurrences ast)
+    (function flag, sg, id ->
+      debugln "check";
+      try
+	if is_one_of id ids then
+	  check_in_sig renamed_kind ids name' sg ~renamed:true
+	else if Ident.name id = name' then
+	  check_in_sig renamed_kind ids name' sg ~renamed:false
+      with Not_found ->
+	assert (flag = `maybe))
+    implicit_refs
 
 let check_lids renamed_kind id name' lids =
   List.iter
@@ -206,10 +186,11 @@ let rename_lids renamed_kind id name' lids =
     (fun l (loc, lid, (env, kind)) ->
       match rename_in_lid renamed_kind id name' env kind lid with
 	| Some lid ->
-	  (loc, lid) :: l
+	  (loc.loc_start.pos_cnum, loc.loc_end.pos_cnum, Util.lid_to_str lid)
+	  :: l
 	| None -> l)
     []
-    lids
+    (List.rev lids)
 
 let read_cmt file =
   if Filename.check_suffix file ".cmt" then
@@ -220,18 +201,16 @@ let read_cmt file =
   else
     invalid_arg "read_cmt"
 
+(* TODO *)
+let valid_ident kind name = true
+
 (* Temporary : we rename only in one file *)
 let rename loc name name' file =
   let s = read_cmt (Filename.chop_suffix file ".ml" ^ ".cmt") in
-  let renamed_kind, id =
-    match locate_name (`structure s) loc with
-      | `pattern {pat_desc = Tpat_var id} -> value_ops, id
-      | `structure_item {str_desc = Tstr_module (id, _)} -> module_ops, id
-      | _ -> invalid_arg "rename"
-  in
+  let renamed_kind, id = locate_renamed_id (`structure s) loc in
   let incs, includes = collect_signature_inclusions s in
-  let ids, occs = propagate_renamings renamed_kind id incs includes in
-  check_signature_inclusions renamed_kind ids name' occs;
+  let ids, implicit_refs = propagate_renamings renamed_kind id incs includes in
+  check_signature_inclusions renamed_kind ids name' implicit_refs;
   List.iter
     (function id ->
       Printf.eprintf "rename %s\n%!" (Ident.unique_name id))
@@ -240,43 +219,8 @@ let rename loc name name' file =
   check_lids renamed_kind ids name' lids;
   let r = rename_lids renamed_kind ids name' lids in
   List.iter
-    (function loc, s ->
-      Printf.eprintf "replace %d--%d by %s\n%!"
-	loc.loc_start.pos_cnum loc.loc_end.pos_cnum (Util.lid_to_str s))
+    (function b, e, s ->
+      Printf.eprintf "replace %d--%d by %s\n%!" b e s)
     r;
+  Edit.edit r file;
   exit 0
-
-(*
-let pos fname cnum = {
-  pos_fname = fname;
-  pos_lnum = - 1;
-  pos_bol = -1;
-  pos_cnum = cnum
-}
-
-let _ =
-  let f = Sys.argv.(1)
-  and b = int_of_string Sys.argv.(2)
-  and e = int_of_string Sys.argv.(3)
-  and name' = Sys.argv.(4) in
-  let c = open_in f in
-  let lexbuf = Lexing.from_channel c in
-  let ast = Parse.implementation lexbuf in
-(*
-  let env = Completion.initial_env () in
-*)
-  let env = Env.initial in
-  let str, sg, _ = Typemod.type_structure env ast Location.none in
-  let loc = {
-    loc_start = pos f b; 
-    loc_end = pos f e;
-    loc_ghost = false
-  } in
-  let r = rename f str loc name' in
-  List.iter
-    (function loc, s ->
-      Printf.eprintf "replace %d--%d by %s\n%!"
-	loc.loc_start.pos_cnum loc.loc_end.pos_cnum (Util.lid_to_str s))
-    r;
-  exit 0
-*)

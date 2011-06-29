@@ -58,6 +58,13 @@ let locate_expression s loc =
   in
   find_expression expression (`structure s)
 
+(* Maybe risky, because different sorts of nodes sometimes have the
+   same location. *)
+let locate_expression s loc =
+  match TypedtreeOps.locate_innermost (`structure s) (Util.get_c_num loc) with
+    | `expression e -> e
+    | _ -> raise Not_found
+
 let locate_expansion_place s loc =
   let pattern p =
     debugln "looking for pattern at loc:";
@@ -70,7 +77,7 @@ let locate_expansion_place s loc =
       (* The pattern Cons _ is parsed as Cons (_, _) with
 	 identical locations, so we need a special case. *)
       | Typedtree.Tpat_construct
-	  (c, d, ({pat_loc = l ; pat_desc = Tpat_any} as p' :: ps)) ->
+	  (c, d, ({pat_loc = l ; pat_desc = Tpat_any} :: ps)) ->
 	if (l.loc_start.pos_cnum, l.loc_end.pos_cnum) = loc &&
 	  ps <> [] &&
 	  List.for_all (function p'' -> p''.pat_loc = l) ps then

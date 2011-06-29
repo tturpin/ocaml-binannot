@@ -22,58 +22,71 @@ open Typedtree
 open TypedtreeOps
 open Resolve
 
-(* This is extremely incomplete ! We cannot have safe renaming for
-   modules until we are complete w.r.t. paths of all sorts. *)
+type occurrence_kind = [
+  `exp_ident
+| `mod_ident
+| `exp_open
+| `str_open
+| `sig_open
+| `mty_with
+]
+
+(* This should only be complete w.r.t. values and module paths ! But
+   we cannot have safe renaming for modules until we are complete
+   w.r.t. paths of all sorts. *)
 module Occurrence =
   Find
     (struct
-      type t = Location.t * (Env.t * specifics)
+      type t = Location.t * (Env.t * occurrence_kind)
       module IteratorArgument(Action : sig val found : t -> unit end) = struct
 	include DefaultIteratorArgument
-	open Action
+
+	let found loc env occ = Action.found (loc, (env, occ))
 
 	let enter_expression e =
 	  match e.exp_desc with
-	    | Texp_ident _ ->
-		  (* If the renamed ident is not a module or modtype,
-		     then we could filter according to the right_most
-		     ident. Otherwise, there is no way to know if we
-		     need renaming until we get the longident. *)
-	      found (e.exp_loc, (e.exp_env, value_ops))
+	    | Texp_ident _ -> found e.exp_loc e.exp_env `exp_ident
+	    (* If the renamed ident is not a module or modtype,
+	       then we could filter according to the right_most
+	       ident. Otherwise, there is no way to know if we
+	       need renaming until we get the longident. *)
 
-	    | Texp_open _ -> (* We don't have the location. *)
-	      ()
+	    | Texp_open _ -> found e.exp_loc e.exp_env `exp_open
+
+	    (* No instance variables for now *)
+	    | Texp_instvar (_self, var)
+	    | Texp_setinstvar (_self, var, _) -> ()
+	    | Texp_override (_self, modifs) -> ()
 
 	    | _ -> ()
 
 	let enter_module_expr m =
 	  match m.mod_desc with
-	    | Tmod_ident _ -> 
-(* We can't parse them yet
-	      found (m.mod_loc, (m.mod_env, module_ops))
-*)
-	      ()
+	    | Tmod_ident _ -> found m.mod_loc m.mod_env `mod_ident
 
 	    | _ -> ()
 
 	let enter_structure_item i =
 	  match i.str_desc with
-	    | Tstr_open _ -> (* We don't have the location. *)
-	      ()
+	    | Tstr_open _ -> found i.str_loc (assert false) `str_open
 
 	    | _ -> ()
 
+(*
 	let enter_module_type t =
 	  match t.mty_desc with
-	    | Tmty_with _ -> (* We don't have the location. *)
-	      ()
+	    | Tmty_with _ ->
+*)
+	let enter_with_constraint = function
+	  | Twith_module _
+	  | Twith_modsubst _ ->
+	    found (assert false) (assert false) (assert false)
 
-	    | _ -> ()
+	  | _ -> ()
 
 	let enter_signature_item i =
 	  match i.sig_desc with
-	    | Tsig_open _ -> (* We don't have the location. *)
-	      ()
+	    | Tsig_open _ -> found i.sig_loc (assert false) `sig_open
 
 	    | _ -> ()
 
@@ -81,7 +94,28 @@ module Occurrence =
 
      end)
 
-let get_occurrences s = Occurrence.find_all (`structure s)
+let get_occurrences s =
+  List.sort
+    (fun (loc, _) (loc', _) ->
+      let open Lexing in
+      compare loc.loc_start.pos_cnum loc.loc_end.pos_cnum)
+    (Occurrence.find_all (`structure s))
+
+let get_longident (loc, s, (env, occ)) =
+  let lexbuf = Lexing.from_string s in
+  let parser, kind = match occ with
+    | `exp_ident -> Parser.val_longident, value_ops
+    | `mod_ident -> Parser.mod_longident, module_ops
+    | _ -> failwith "not implemented"
+  in
+  let ast = parser Lexer.token lexbuf in
+  (loc, ast, (env, kind))
+
+let get_lids file ast =
+  List.map
+    get_longident
+    (source_locations file (get_occurrences ast))
+
 
 (*
 let get_occurrences s =
@@ -107,26 +141,12 @@ let get_occurrences s =
   !l
 *)
 
-let contains loc (b', e') =
-  let b, e = Util.get_c_num loc in
-  b <= b' && e' <= e
-
-let locate_name s loc =
-  let module M = Find (struct
-    type t = [`pattern of pattern | `structure_item of structure_item]
-    module IteratorArgument(Action : sig val found : t -> unit end) = struct
-      include DefaultIteratorArgument
-      open Action
-
-      let leave_pattern p =
-	if Util.get_c_num p.pat_loc = loc then
-	  found (`pattern p)
-
-      let leave_structure_item i =
-	if contains i.str_loc loc then
-	  found (`structure_item i)
-
-    end
-  end) in
-  M.find s
+(* Should be almost complete for expressions, but this is not a safety
+   requirement anyway. *)
+let locate_renamed_id s loc =
+  match locate_innermost s loc with
+    | `pattern {pat_desc = Tpat_var id} -> value_ops, id
+    | `expression {exp_desc = Texp_for (id, _, _, _, _)} -> value_ops, id
+    | `structure_item {str_desc = Tstr_module (id, _)} -> module_ops, id
+    | _ -> invalid_arg "rename"
 

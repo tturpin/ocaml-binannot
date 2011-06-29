@@ -44,3 +44,7 @@ end
 
 val debug : ('a, out_channel, unit) format -> 'a
 val debugln : ('a, out_channel, unit) format -> 'a
+
+(** Traverse a source file to get a list of locations. *)
+val source_locations :
+  string -> (Location.t * 'a) list -> (Location.t * string * 'a) list

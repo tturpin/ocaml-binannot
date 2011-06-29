@@ -15,28 +15,52 @@
 (*                                                                        *)
 (**************************************************************************)
 
-(** Identifying idents which cannot be renamed independently of each
-    other (due to signature matching in particular). *)
+(*
+let rec backup_name file n =
+  let file' = file ^ "." ^  if Sys.file_exists
+*)
 
-(* should not be here *)
-val sig_item_id : Types.signature_item -> Ident.t
+let buf_len = 1024
+let buf = String.create buf_len
 
-module ConstraintSet : Set.S
-  with type elt = Types.signature * Types.signature
+let rec copy_until_end ic oc =
+  let n = input ic buf 0 buf_len in
+  output oc buf 0 n;
+  if n > 0 then
+    copy_until_end ic oc
 
-module IncludeSet : Set.S
-  with type elt = Types.signature * Ident.t list
+let rec copy len ic oc =
+  if len > 0 then
+    let n = input ic buf 0 (min len buf_len) in
+    output oc buf 0 n;
+    if n = 0 then
+      invalid_arg "Edit.copy: end of file reached"
+    else
+      copy (len - n) ic oc
 
-(** Collect the set of signature inclusion constraints and include
-    statements for a structure. *)
-val collect_signature_inclusions :
-  Typedtree.structure -> ConstraintSet.t * IncludeSet.t
+let rec replace ic oc = function
+  | [] -> copy_until_end ic oc
+  | (b, e, s) :: l ->
+    copy (b - pos_in ic) ic oc;
+    output_string oc s;
+    seek_in ic e;
+    replace ic oc l
 
-(** Return the minimal set of idents which may be renamed and contains
-    a given id, as well as the "implicit" bindings of signature
-    elements to those idents. *)
-val propagate_renamings :
-  Resolve.specifics -> Ident.t -> ConstraintSet.t -> IncludeSet.t ->
-  Ident.t list
-  * ([ `certain | `maybe ] * Types.signature * Ident.t) list
-    (* means id is bound to sg.(name id), unless we were wrong about the sort. *)
+let cp file new_file =
+  if Sys.file_exists new_file then
+    invalid_arg "Edit.cp : target file exists"
+  else
+    let ic = open_in file in
+    let oc = open_out new_file in
+    copy_until_end ic oc;
+    close_out oc;
+    close_in ic
+
+let edit eds file =
+  let ic = open_in file in
+  let new_file, oc = Filename.open_temp_file file ".edited" in
+  replace ic oc eds;
+  close_out oc;
+  close_in ic;
+  Sys.remove file;
+  Sys.rename new_file file

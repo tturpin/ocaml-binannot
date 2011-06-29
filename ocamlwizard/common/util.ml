@@ -265,3 +265,25 @@ module Lpp = struct
     | Ppat_type lid                    ->fprintf fmt "%a" print_lid lid
     | Ppat_lazy p -> fprintf fmt "lazy %a" print_pattern p.ppat_desc
 end
+
+let source_locations file locs =
+  let open Location in
+  let open Lexing in
+  match locs with
+    | [] -> []
+    | _ ->
+      let c = open_in file in
+      let acc =
+	List.fold_left
+	  (fun acc (loc, x) ->
+	    let len = loc.loc_end.pos_cnum - loc.loc_start.pos_cnum in
+	    let s = String.create len in
+	    seek_in c loc.loc_start.pos_cnum;
+	    really_input c s 0 len;
+	    (loc, s, x) :: acc)
+	  []
+	  locs
+      in
+      close_in c;
+      List.rev acc
+

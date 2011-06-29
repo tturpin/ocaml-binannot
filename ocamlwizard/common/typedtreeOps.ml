@@ -266,3 +266,36 @@ let find_expression (type a) cond =
   M.find
 
 *)
+
+let contains loc (b', e') =
+  let b, e = Util.get_c_num loc in
+  b <= b' && e' <= e
+
+(* This implementation is notably inefficient. *)
+let locate_innermost s loc =
+  let module M = Find (struct
+    type t = [
+      `pattern of pattern
+    | `expression of expression
+    | `structure_item of structure_item
+    ]
+    module IteratorArgument(Action : sig val found : t -> unit end) = struct
+      include DefaultIteratorArgument
+      open Action
+
+      let leave_pattern p =
+	if Util.get_c_num p.pat_loc = loc then
+	  found (`pattern p)
+
+      let leave_expression e =
+	if contains e.exp_loc loc then
+	  found (`expression e)
+
+      let leave_structure_item i =
+	if contains i.str_loc loc then
+	  found (`structure_item i)
+
+    end
+  end) in
+  M.find s
+

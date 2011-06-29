@@ -72,3 +72,13 @@ module Find :
 
 val find_pattern : (Typedtree.pattern -> 'a option) -> 'a sfun
 val find_expression : (Typedtree.expression -> 'a option) -> 'a sfun
+
+(** Return the innermost subtree whose locations contains a given
+    character number interval [a, b[. *)
+val locate_innermost :
+  [ `signature of signature | `structure of structure ] ->
+  int * int -> [
+    `pattern of pattern
+  | `expression of expression
+  | `structure_item of structure_item
+  ]
