@@ -40,3 +40,11 @@ val propagate_renamings :
   Ident.t list
   * ([ `certain | `maybe ] * Types.signature * Ident.t) list
     (* means id is bound to sg.(name id), unless we were wrong about the sort. *)
+
+val check_renamed_implicit_references :
+  Resolve.specifics -> Ident.t list -> string ->
+  ([ `certain | `maybe ] * Types.signature * Ident.t) list -> unit
+
+val check_other_implicit_references :
+  Resolve.specifics -> Ident.t list -> string ->
+  ConstraintSet.t -> IncludeSet.t -> unit

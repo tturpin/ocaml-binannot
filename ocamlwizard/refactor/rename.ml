@@ -159,22 +159,6 @@ let resolve item = function
 *)
 
 
-(* Check that the implicit ident references which are concerned by
-   renaming will not be masked (i.e., that the bound signature items
-   remain the same). *)
-let check_signature_inclusions renamed_kind ids name' implicit_refs =
-  List.iter
-    (function flag, sg, id ->
-      debugln "check";
-      try
-	if is_one_of id ids then
-	  check_in_sig renamed_kind ids name' sg ~renamed:true
-	else if Ident.name id = name' then
-	  check_in_sig renamed_kind ids name' sg ~renamed:false
-      with Not_found ->
-	assert (flag = `maybe))
-    implicit_refs
-
 let check_lids renamed_kind id name' lids =
   List.iter
     (function _, lid, (env, kind) ->
@@ -182,7 +166,7 @@ let check_lids renamed_kind id name' lids =
     lids
 
 let rename_lids renamed_kind id name' lids =
-  List.fold_left
+  List.fold_left (* this is a filter_map *)
     (fun l (loc, lid, (env, kind)) ->
       match rename_in_lid renamed_kind id name' env kind lid with
 	| Some lid ->
@@ -207,20 +191,39 @@ let valid_ident kind name = true
 (* Temporary : we rename only in one file *)
 let rename loc name name' file =
   let s = read_cmt (Filename.chop_suffix file ".ml" ^ ".cmt") in
+
+  (* Get the "initial" id to rename and its sort *)
   let renamed_kind, id = locate_renamed_id (`structure s) loc in
+
+  (* Collect constraints requiring simultaneous renaming *)
   let incs, includes = collect_signature_inclusions s in
+
+  (* Deduce the minimal set of ids to rename *)
   let ids, implicit_refs = propagate_renamings renamed_kind id incs includes in
-  check_signature_inclusions renamed_kind ids name' implicit_refs;
+
   List.iter
-    (function id ->
-      Printf.eprintf "rename %s\n%!" (Ident.unique_name id))
+    (function id -> debugln "rename %s\n%!" (Ident.unique_name id))
     ids;
+
+  (* Check that our new name will not capture useful signature members *)
+  check_other_implicit_references renamed_kind ids name' incs includes;
+
+  (* Check that useful renamed signature members are not masked. *)
+  check_renamed_implicit_references renamed_kind ids name' implicit_refs;
+
+  (* Collect all lids *)
   let lids = get_lids file s in
+
+  (* Check that our new name will not capture other occurrences *)
   check_lids renamed_kind ids name' lids;
+
+  (* Compute renamed lids, checking that they are not captured *)
   let r = rename_lids renamed_kind ids name' lids in
+
   List.iter
-    (function b, e, s ->
-      Printf.eprintf "replace %d--%d by %s\n%!" b e s)
+    (function b, e, s -> debugln "replace %d--%d by %s\n%!" b e s)
     r;
+
+  (* Replace lids in the source file *)
   Edit.edit r file;
   exit 0

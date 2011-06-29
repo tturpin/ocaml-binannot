@@ -1,3 +1,4 @@
+- Add .ocamlwizard to git
 - Rename: actually modify the files
 - Rename: replace in multiple files
 - Rename: check that we always lookup in the right environment
