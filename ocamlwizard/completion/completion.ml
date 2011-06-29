@@ -40,12 +40,6 @@ let initial_env () =
     Misc.fatal_error "cannot open pervasives.cmi"
 
 let compile_file ast c_env =
-  let prefix = Filename.chop_extension c_env.fb_name in
-  (* Maybe we should avoid using ".". *)
-  let outputprefix = prefix ^ ".ocamlwizard" in
-  (* We change the module name accordingly because it is checked against
-     the file name when reading .cmi files. *)
-  let modulename = String.capitalize (Filename.basename outputprefix) in
   Clflags.include_dirs := (*! Clflags.include_dirs @*) c_env.includ;
   let exp_dirs =
     List.map (Misc.expand_directory Config.standard_library) !Clflags.include_dirs in
@@ -74,10 +68,10 @@ let compile_file ast c_env =
 	| Typemod.Error(loc, err) -> debugln "7";
 	  Location.print_error ppf loc; Typemod.report_error ppf err
 	| _ -> debugln "8"; raise e);
-      Format.pp_print_flush err_formatter;
+      Format.pp_print_flush err_formatter ();
       failwith "Error while typing"
   in
-  str, sg, {c_env with fb_name = outputprefix}
+  str, sg, c_env
 
 (** *)
 let step msg = 

@@ -56,7 +56,7 @@ let locate_expression s loc =
     else
       None
   in
-  (find_expression expression).structure s
+  find_expression expression (`structure s)
 
 let locate_expansion_place s loc =
   let pattern p =
@@ -88,5 +88,5 @@ let locate_expansion_place s loc =
 	else
 	  None
   in
-  (find_pattern pattern).structure s
+  find_pattern pattern (`structure s)
 

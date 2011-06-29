@@ -25,6 +25,7 @@ open Typedtree
 open TypedtreeOps
 open Env
 open Resolve
+open FindName
 open RenameLid
 open RenamePropagation
 
@@ -166,52 +167,6 @@ let check_signature_inclusions renamed_kind ids name' occs =
     (function sg, _ -> check_in_sig renamed_kind ids name' sg ~renamed:true)
     occs
 
-
-let get_occurrences s =
-  let l = ref [] in
-  let module Rename =
-	MakeIterator
-	  (struct
-	    include DefaultIteratorArgument
-
-	    let enter_expression e =
-	      match e.exp_desc with
-		| Texp_ident _ ->
-		  (* If the renamed ident is not a module or modtype,
-		     then we could filter according to the right_most
-		     ident. Otherwise, there is no way to know if we
-		     need renaming until we get the longident. *)
-		  l := (e.exp_loc, e) :: !l
-		| _ -> ()
-	 end)
-  in
-  Rename.iter_structure s;
-  !l
-
-(*
-let get_occurrences s =
-  let l = ref [] in
-  let module Rename =
-	MakeIterator
-	  (struct
-	    include DefaultIteratorArgument
-
-	    let leave_pattern p =
-	    let enter_expression e =
-	      match e.exp_desc with
-		| Texp_ident _ ->
-		  (* If the renamed ident is not a module or modtype,
-		     then we could filter according to the right_most
-		     ident. Otherwise, there is no way to know if we
-		     need renaming until we get the longident. *)
-		  l := (e.exp_loc, e) :: !l
-		| _ -> ()
-	   end)
-  in
-  Rename.iter_structure s;
-  !l
-*)
-
 (* Traverse a source file to get a list of locations *)
 let source_locations f file locs acc =
   let c = open_in file in
@@ -233,37 +188,28 @@ let get_asts parser file locs =
   let f loc x s asts =
     let lexbuf = Lexing.from_string s in
     let ast = parser Lexer.token lexbuf in
-    (ast, x) :: asts
+    (loc, ast, x) :: asts
   in
   source_locations f file locs []
 
 let get_lids file ast =
   get_asts Parser.val_longident file (get_occurrences ast)
 
-let check_lids id name' lids =
+let check_lids renamed_kind id name' lids =
   List.iter
-    (function lid, e ->
-      check_lid value_ops id name' e.exp_env value_ops lid)
+    (function _, lid, (env, kind) ->
+      check_lid renamed_kind id name' env kind lid)
     lids
 
-let rename_lids id name' lids =
+let rename_lids renamed_kind id name' lids =
   List.fold_left
-    (fun l (lid, e) ->
-      match rename_in_lid value_ops id name' e.exp_env value_ops lid with
+    (fun l (loc, lid, (env, kind)) ->
+      match rename_in_lid renamed_kind id name' env kind lid with
 	| Some lid ->
-	  (e.Typedtree.exp_loc, lid) :: l
+	  (loc, lid) :: l
 	| None -> l)
     []
     lids
-
-let locate_pattern s loc =
-  let pattern p =
-    if Util.get_c_num p.pat_loc = loc then
-      Some p
-    else
-      None
-  in
-  (find_pattern pattern).structure s
 
 let read_cmt file =
   if Filename.check_suffix file ".cmt" then
@@ -277,21 +223,22 @@ let read_cmt file =
 (* Temporary : we rename only in one file *)
 let rename loc name name' file =
   let s = read_cmt (Filename.chop_suffix file ".ml" ^ ".cmt") in
-  let id =
-    match (locate_pattern s loc).pat_desc with
-      | Tpat_var id -> id
+  let renamed_kind, id =
+    match locate_name (`structure s) loc with
+      | `pattern {pat_desc = Tpat_var id} -> value_ops, id
+      | `structure_item {str_desc = Tstr_module (id, _)} -> module_ops, id
       | _ -> invalid_arg "rename"
   in
   let incs, includes = collect_signature_inclusions s in
-  let ids, occs = propagate_renamings value_ops id incs includes in
-  check_signature_inclusions value_ops ids name' occs;
+  let ids, occs = propagate_renamings renamed_kind id incs includes in
+  check_signature_inclusions renamed_kind ids name' occs;
   List.iter
     (function id ->
       Printf.eprintf "rename %s\n%!" (Ident.unique_name id))
     ids;
   let lids = get_lids file s in
-  check_lids ids name' lids;
-  let r = rename_lids ids name' lids in
+  check_lids renamed_kind ids name' lids;
+  let r = rename_lids renamed_kind ids name' lids in
   List.iter
     (function loc, s ->
       Printf.eprintf "replace %d--%d by %s\n%!"

@@ -70,8 +70,10 @@ let mk_info rg =
 let main () = 
   Arg.parse options anonymous usage;
   match !command with 
+
     | Nothing ->
 	()
+
     | Completion ->
 	List.iter (fun s -> 
 	  Clflags.include_dirs := s :: !Clflags.include_dirs)
@@ -80,15 +82,15 @@ let main () =
 	let ci = mk_info rg in
 	let c_info = Completion.main ci in
 	c_info
-(*
-    | Compile ->
-	begin
-	  let i = !compile_index in 
-	  let ocaml_argv = Array.sub Sys.argv i (Array.length Sys.argv - i) in
-	  try  Main.main ocaml_argv
-	  with Exit_typing -> exit 0
-	end
 
+    | Refactor r ->
+      (match r with
+	| Rename (loc, name, name', file) -> Rename.rename loc name name' file
+	| Depend | Qualif -> failwith "not yet")
+
+    | Locate -> failwith "not yet"
+
+(*
     | Locate -> 
 	begin
 	  List.iter (fun s -> 
@@ -99,14 +101,5 @@ let main () =
 	end
 
 *)	  
-    | Refactor r ->
-      match r with
-	| Rename (loc, name, name', file) -> Rename.rename loc name name' file
-	| Depend | Qualif -> failwith "not yet"
-(*
-	let i = !compile_index in 
-	let ocaml_argv = Array.sub Sys.argv i (Array.length Sys.argv - i) in
-	Refactor.main Main.main ocaml_argv
-*)
 
 let _ = main ();  Format.eprintf "@.";

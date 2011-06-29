@@ -23,7 +23,6 @@ type refactor_option =
 type command =
     Nothing
   | Completion
-  | Compile
   | Locate
   | Refactor of refactor_option
 

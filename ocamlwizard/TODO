@@ -1,0 +1,21 @@
+- Rename: rename everything an not just values
+- Rename: replace in multiple files
+- Rename: check that we always lookup in the right environment
+
+- Rename: collect all occurrences in a or-pattern
+- Rename: retrieve a definition from an occurrence
+- Rename: report masking and capture errors accurately
+- Rename: warn about potential future captures
+- Rename: do a backup before replacing
+- Rename: check that .cmt files are up to date
+- Rename: tell emacs to revert all relevant buffers
+- Use a best qualification for labels
+- Errors: do not output anything, and stop everything in the emacs mode
+- Match_cases completion: indent the cases correctly
+- Match_cases completion: allow an optional |
+- Incremental parsing: recover from errors in the unmodified part
+- Interactive completion: smarter interface (complete longest possible prefix)
+- Match_cases completion: buffer still marked modified if we undo the completion
+- Expansion: allow expansion even if the match_case is unfinished
+- Expansion: add parentheses as needed for or-patterns
+- Emacs mode: use a mode for .ml files

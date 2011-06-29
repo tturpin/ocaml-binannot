@@ -164,7 +164,6 @@ type refactor_option =
 type command = 
   | Nothing 
   | Completion 
-  | Compile 
   | Locate 
   | Refactor of refactor_option
 
@@ -244,11 +243,6 @@ let usage = usage ^ "\n"
 exception Exit_typing
 
 let anonymous = function
-  | "compile" -> 
-    compile_index := !Arg.current;
-    command := Compile;
-    Arg.current := Array.length Sys.argv
-
   | "refactor" ->
     let i = !Arg.current + 1 and len = Array.length Sys.argv in
     let a = Array.sub Sys.argv i (len - i) in
@@ -291,7 +285,7 @@ let anonymous = function
     compile_index := i + 4;
     Arg.current := Array.length Sys.argv
     
-    | Locate | Compile | Completion | Nothing  -> 
+    | Locate | Completion | Nothing  -> 
     Debug.unreachable "Common_config" 10
   *)
     

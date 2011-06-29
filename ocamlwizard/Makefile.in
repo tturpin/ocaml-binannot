@@ -195,6 +195,7 @@ CMX_PRINT = $(CMO_PRINT:.cmo=.cmx)
 ################################################
 CMO_REFACTOR = \
 	$(PATH_REFACTOR)resolve.cmo \
+	$(PATH_REFACTOR)findName.cmo \
 	$(PATH_REFACTOR)renamePropagation.cmo \
 	$(PATH_REFACTOR)renameLid.cmo \
 	$(PATH_REFACTOR)rename.cmo
