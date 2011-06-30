@@ -185,6 +185,10 @@ let read_cmt file =
   else
     invalid_arg "read_cmt"
 
+let sort_replaces =
+  List.sort
+    (fun (x, _, _) (y, _, _) -> compare  x y)
+
 (* TODO *)
 let valid_ident kind name = true
 
@@ -205,6 +209,9 @@ let rename loc name name' file =
     (function id -> debugln "rename %s\n%!" (Ident.unique_name id))
     ids;
 
+  (* Compute the replacements for the *definitions* of the rename ids *)
+  let def_replaces = [fst loc, snd loc, name'] in (* obviously incomplete ! *)
+
   (* Check that our new name will not capture useful signature members *)
   check_other_implicit_references renamed_kind ids name' incs includes;
 
@@ -218,12 +225,16 @@ let rename loc name name' file =
   check_lids renamed_kind ids name' lids;
 
   (* Compute renamed lids, checking that they are not captured *)
-  let r = rename_lids renamed_kind ids name' lids in
+  let occ_replaces = rename_lids renamed_kind ids name' lids in
+
+  (* We will need to sort them again ! *)
+  let replaces = sort_replaces (def_replaces @ occ_replaces) in
 
   List.iter
     (function b, e, s -> debugln "replace %d--%d by %s\n%!" b e s)
-    r;
+    replaces;
 
   (* Replace lids in the source file *)
-  Edit.edit r file;
+  Edit.edit replaces file;
+
   exit 0

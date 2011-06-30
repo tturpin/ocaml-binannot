@@ -178,6 +178,7 @@ let get_refactor_option = function
 
 let parse_refactor_command = function
   | [| "-rename" ; loc ; name ; name' ; file |] ->
+    ignore (search_dirs file); (* for -print-project-dir *)
     Rename (get_loc loc "rename", name, name', file)
   | [||] -> failwith "refactor : no command given"
   | c -> failwith ("invalid refactor command " ^ c.(0))

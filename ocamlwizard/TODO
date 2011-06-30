@@ -1,5 +1,4 @@
-- Add .ocamlwizard to git
-- Rename: actually modify the files
+- Rename: replace all the id definitions ; not just the initial one
 - Rename: replace in multiple files
 - Rename: check that we always lookup in the right environment
 

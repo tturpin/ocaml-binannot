@@ -24,6 +24,9 @@ split =	for i in $(2); do \
 %_no_dollar.ml: %.ml
 	sed -e 's/\$$//g' $< | sed -e 's/€//g' >$@
 
+%.cmt: %.ml
+	../../ocamlc.opt -c -annot $<
+
 
 # Pattern matching completion
 #############################
@@ -112,6 +115,26 @@ errors_comp.ml: errors.ml errors_no_dollar.ml $(OWZ)
 	-pos `grep -o -b \\\\$$ $< | cut -d : -f 1` -printer ocaml-pp >$@
 
 
+# Renaming
+##########
+
+R_CASES=renameSimple.ml renameSigNewCaptured.ml renameSigOldCaptured.ml \
+	renameIncludeNewCaptured.ml renameIncludeOldCaptured.ml \
+	renameOpenNewCaptured.ml renameOpenOldCaptured.ml
+R_TESTS=$(subst .ml,_rres.ml, $(R_CASES))
+
+%_rres.ml: %.ml %_no_dollar.ml %_no_dollar.cmt $(OWZ)
+	mv $(subst .ml,_no_dollar.ml, $<) $@
+	mv $(subst .ml,_no_dollar.cmt, $<) $(subst .ml,.cmt, $@)
+	$(OCAMLWIZARD) refactor -rename \
+	`grep -o -b \\\\$$ $< | cut -d : -f 1`-\
+	`tail -c +2 $< | grep -o -b € | cut -d : -f 1` \
+	x y $@
+	cat ../../.ocamlwizard-stderr >> $@
+
+renaming: $(R_TESTS)
+
+
 # Old
 
 #test:
@@ -127,4 +150,5 @@ errors_comp.ml: errors.ml errors_no_dollar.ml $(OWZ)
 #	for
 
 clean:
-	rm -f *~ *.cm* *.annot match_cases_* expansion_* path_* errors_*
+	rm -f *~ *.cm* *.annot match_cases_* expansion_* path_* errors_* \
+	*_rres.* *_no_dollar.*
