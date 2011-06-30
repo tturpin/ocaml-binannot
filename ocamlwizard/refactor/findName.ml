@@ -141,12 +141,27 @@ let get_occurrences s =
   !l
 *)
 
+let ident_of_subtree = function
+  | `pattern {pat_desc = Tpat_var id ; pat_loc = loc}
+  | `expression {exp_desc = Texp_for (id, _, _, _, _) ; exp_loc = loc}
+  | `signature_item {sig_desc = Tsig_value (id, _) ; sig_loc = loc}
+    -> value_ops, id, loc
+  | `structure_item {str_desc = Tstr_module (id, _) ; str_loc = loc}
+    -> module_ops, id, loc
+  | _ -> raise Not_found
+
 (* Should be almost complete for expressions, but this is not a safety
    requirement anyway. *)
 let locate_renamed_id s loc =
-  match locate_innermost s loc with
-    | `pattern {pat_desc = Tpat_var id} -> value_ops, id
-    | `expression {exp_desc = Texp_for (id, _, _, _, _)} -> value_ops, id
-    | `structure_item {str_desc = Tstr_module (id, _)} -> module_ops, id
-    | _ -> invalid_arg "rename"
+  try
+    let kind, id, _ = ident_of_subtree (locate_innermost s loc) in kind, id
+  with Not_found ->
+    invalid_arg "rename"
 
+let find_id_def s id =
+  find_map_innermost s
+    (function t ->
+      try
+	let _, id', loc = ident_of_subtree t in
+	if id' = id then Some loc else None
+      with Not_found -> None)

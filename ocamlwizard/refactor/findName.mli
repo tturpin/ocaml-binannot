@@ -32,3 +32,7 @@ val locate_renamed_id :
   [ `signature of Typedtree.signature | `structure of Typedtree.structure ] ->
   int * int ->
   Resolve.specifics * Ident.t
+
+val find_id_def :
+  [ `signature of Typedtree.signature | `structure of Typedtree.structure ] ->
+  Ident.t -> Location.t

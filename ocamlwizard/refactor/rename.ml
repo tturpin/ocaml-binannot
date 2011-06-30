@@ -189,6 +189,20 @@ let sort_replaces =
   List.sort
     (fun (x, _, _) (y, _, _) -> compare  x y)
 
+let find_id_defs ids s =
+  List.fold_right
+    (fun id acc ->
+      try
+	let loc = find_id_def s id in
+	(loc.loc_start.pos_cnum, loc.loc_end.pos_cnum, Ident.name id) :: acc
+      with
+	  Not_found -> acc)
+    ids
+    []
+(*
+ [fst loc, snd loc, name']
+*)
+
 (* TODO *)
 let valid_ident kind name = true
 
@@ -210,7 +224,7 @@ let rename loc name name' file =
     ids;
 
   (* Compute the replacements for the *definitions* of the rename ids *)
-  let def_replaces = [fst loc, snd loc, name'] in (* obviously incomplete ! *)
+  let def_replaces = find_id_defs ids (`structure s) in (* obviously incomplete ! *)
 
   (* Check that our new name will not capture useful signature members *)
   check_other_implicit_references renamed_kind ids name' incs includes;

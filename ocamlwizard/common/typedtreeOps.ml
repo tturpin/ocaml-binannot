@@ -16,6 +16,7 @@
 (**************************************************************************)
 
 open Typedtree
+open Util
 
 type 'a sfun =
   [ `structure of Typedtree.structure | `signature of Typedtree.signature]
@@ -272,30 +273,37 @@ let contains loc (b', e') =
   b <= b' && e' <= e
 
 (* This implementation is notably inefficient. *)
-let locate_innermost s loc =
+let find_map_innermost (type a) s cond =
   let module M = Find (struct
-    type t = [
-      `pattern of pattern
-    | `expression of expression
-    | `structure_item of structure_item
-    ]
+    type t = a
     module IteratorArgument(Action : sig val found : t -> unit end) = struct
       include DefaultIteratorArgument
-      open Action
+      let found x =
+	match cond x with
+	  | Some x -> Action.found x
+	  | None -> ()
 
-      let leave_pattern p =
-	if Util.get_c_num p.pat_loc = loc then
-	  found (`pattern p)
-
-      let leave_expression e =
-	if contains e.exp_loc loc then
-	  found (`expression e)
-
-      let leave_structure_item i =
-	if contains i.str_loc loc then
-	  found (`structure_item i)
+      let leave_pattern p = found (`pattern p)
+      let leave_expression e = found (`expression e)
+      let leave_structure_item i = found (`structure_item i)
+      let leave_signature_item i = found (`signature_item i)
 
     end
   end) in
   M.find s
 
+let locate_innermost s loc =
+  find_map_innermost s
+    (function t ->
+      if
+	contains
+	  (match t with
+	    | `pattern p -> p.pat_loc
+	    | `expression e -> e.exp_loc
+	    | `structure_item i -> i.str_loc
+	    | `signature_item i -> i.sig_loc)
+	  loc
+      then
+	Some t
+      else
+	None)
