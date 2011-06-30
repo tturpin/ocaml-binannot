@@ -119,14 +119,14 @@ let type_option ty =
   newty (Tconstr(Predef.path_option,[ty], ref Mnil))
 
 let option_none ty loc =
-  let lid = Longident.Lident "None" in
-  let (path, cnone) = Env.lookup_constructor lid Env.initial in
+  let lid = Longident.lident Location.none "None" in
+  let (path, cnone) = Env.lookup_constructor0 lid Env.initial in
   { exp_desc = Texp_construct(path, cnone, []);
     exp_type = ty; exp_loc = loc; exp_env = Env.initial }
 
 let option_some texp =
-  let lid = Longident.Lident "Some" in
-  let (path, csome) = Env.lookup_constructor lid Env.initial in
+  let lid = Longident.lident Location.none "Some" in
+  let (path, csome) = Env.lookup_constructor0 lid Env.initial in
   { exp_desc = Texp_construct(path, csome, [texp]); exp_loc = texp.exp_loc;
     exp_type = type_option texp.exp_type; exp_env = texp.exp_env }
 
@@ -369,7 +369,7 @@ let build_or_pat env loc lid =
 
 let rec find_record_qual = function
   | [] -> None
-  | (Longident.Ldot (modname, _), _) :: _ -> Some modname
+  | ({Longident.lid = Longident.Ldot (modname, _)}, _) :: _ -> Some modname
   | _ :: rest -> find_record_qual rest
 
 let type_label_a_list type_lid_a lid_a_list =
@@ -377,10 +377,12 @@ let type_label_a_list type_lid_a lid_a_list =
   | None -> List.map type_lid_a lid_a_list
   | Some modname ->
       List.map
-        (function
-         | (Longident.Lident id), sarg ->
-              type_lid_a (Longident.Ldot (modname, id), sarg)
-         | lid_a -> type_lid_a lid_a)
+        (function lid, sarg as lid_a ->
+	  match lid.Longident.lid with
+            | Longident.Lident id ->
+              type_lid_a
+		({lid with Longident.lid = Longident.Ldot (modname, id)}, sarg)
+            | _ -> type_lid_a lid_a)
         lid_a_list
 
 (* Checks over the labels mentioned in a record pattern:
@@ -395,7 +397,7 @@ let check_recordpat_labels loc lbl_pat_list closed =
       let check_defined (_, label, _) =
         if defined.(label.lbl_pos)
         then raise(Error(loc, Label_multiply_defined
-                                       (Longident.Lident label.lbl_name)))
+          (Longident.lident Location.none label.lbl_name)))
         else defined.(label.lbl_pos) <- true in
       List.iter check_defined lbl_pat_list;
       if closed = Closed
@@ -958,7 +960,7 @@ let rec approx_type env sty =
       newty (Ttuple (List.map (approx_type env) args))
   | Ptyp_constr (lid, ctl) ->
       begin try
-        let (path, decl) = Env.lookup_type lid env in
+        let (path, decl) = Env.lookup_type0 lid env in
         if List.length ctl <> decl.type_arity then raise Not_found;
         let tyl = List.map (approx_type env) ctl in
         newconstr path tyl
@@ -1072,7 +1074,7 @@ let wrap_unpacks sexp unpacks =
       {pexp_loc = sexp.pexp_loc; pexp_desc = Pexp_letmodule (
        name,
        {pmod_loc = loc; pmod_desc = Pmod_unpack
-          {pexp_desc=Pexp_ident(Longident.Lident name); pexp_loc=loc}},
+          {pexp_desc=Pexp_ident(Longident.lident loc name); pexp_loc=loc}},
        sexp)})
     sexp unpacks
 
@@ -2127,14 +2129,15 @@ function ~l:*opt* ->
          {ppat_loc = default_loc;
           ppat_desc =
             Ppat_construct
-              (Longident.(Ldot (Lident "*predef*", "Some")),
+              (Longident.longident default_loc (Longident.Ldot (Longident.Lident "*predef*", "Some")),
                Some {ppat_loc = default_loc; ppat_desc = Ppat_var "*sth*"},
                false)},
          {pexp_loc = default_loc;
-          pexp_desc = Pexp_ident(Longident.Lident "*sth*")};
+          pexp_desc = Pexp_ident(Longident.lident default_loc "*sth*")};
          {ppat_loc = default_loc;
           ppat_desc = Ppat_construct
-            (Longident.(Ldot (Lident "*predef*", "None")), None, false)},
+            (Longident.longident default_loc (Longident.Ldot (Longident.Lident "*predef*", "None")),
+	     None, false)},
          default;
       ] in
       let smatch = {
@@ -2142,7 +2145,7 @@ function ~l:*opt* ->
         pexp_desc =
           Pexp_match ({
             pexp_loc = loc;
-            pexp_desc = Pexp_ident(Longident.Lident "*opt*")
+            pexp_desc = Pexp_ident(Longident.lident loc "*opt*")
             },
             scases
           )

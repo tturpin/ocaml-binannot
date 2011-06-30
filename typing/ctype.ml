@@ -2771,8 +2771,11 @@ let rec lid_of_path ?(sharp="") = function
   | Path.Papply (p1, p2) ->
       Longident.Lapply (lid_of_path ~sharp p1, lid_of_path p2)
 
+let lid_of_path ?sharp path =
+  {Longident.loc = Location.none ; lid = lid_of_path ?sharp path}
+
 let find_cltype_for_path env p =
-  let path, cl_abbr = Env.lookup_type (lid_of_path ~sharp:"#" p) env in
+  let path, cl_abbr = Env.lookup_type0 (lid_of_path ~sharp:"#" p) env in
   match cl_abbr.type_manifest with
     Some ty ->
       begin match (repr ty).desc with

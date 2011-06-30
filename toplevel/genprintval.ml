@@ -346,11 +346,11 @@ module Make(O : OBJ)(EVP : EVALPATH with type value = O.t) = struct
 
     and tree_of_exception depth bucket =
       let name = (O.obj(O.field(O.field bucket 0) 0) : string) in
-      let lid = Longident.parse name in
+      let lid = Longident.parse Location.none name in
       try
         (* Attempt to recover the constructor description for the exn
            from its name *)
-        let (_path, cstr) = Env.lookup_constructor lid env in
+        let (_path, cstr) = Env.lookup_constructor0 lid env in
         let path =
           match cstr.cstr_tag with
             Cstr_exception p -> p | _ -> raise Not_found in

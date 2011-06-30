@@ -31,6 +31,8 @@ let rec longident ppf = function
   | Ldot(p, s) -> fprintf ppf "%a.%s" longident p s
   | Lapply(p1, p2) -> fprintf ppf "%a(%a)" longident p1 longident p2
 
+let longident ppf lid = longident ppf lid.lid
+
 (* Print an identifier *)
 
 let unique_names = ref Ident.empty

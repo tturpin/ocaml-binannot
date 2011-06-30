@@ -62,10 +62,12 @@ let rec instrument_result env name ppf clos_typ =
   match (Ctype.repr(Ctype.expand_head env clos_typ)).desc with
   | Tarrow(l, t1, t2, _) ->
       let starred_name =
-        match name with
-        | Lident s -> Lident(s ^ "*")
-        | Ldot(lid, s) -> Ldot(lid, s ^ "*")
-        | Lapply(l1, l2) -> fatal_error "Trace.instrument_result" in
+	{name with lid =
+            match name.lid with
+              | Lident s -> Lident(s ^ "*")
+              | Ldot(lid, s) -> Ldot(lid, s ^ "*")
+              | Lapply(l1, l2) -> fatal_error "Trace.instrument_result"
+	} in
       let trace_res = instrument_result env starred_name ppf t2 in
       (fun clos_val ->
         Obj.repr (fun arg ->

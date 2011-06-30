@@ -102,7 +102,7 @@ let fixity_of_string s =
       || (is_in_list (String.get s 0) infix_symbols)) then Infix else Prefix
 
 let fixity_of_longident li =
-  match li with
+  match li.Longident.lid with
   | Longident.Lident name ->
       fixity_of_string name
   | Longident.Ldot (_, name)
@@ -140,7 +140,7 @@ let rec fmt_longident_aux f x =
       fprintf f "%a(%a)" fmt_longident_aux y fmt_longident_aux z;
 ;;
 
-let fmt_longident ppf x = fprintf ppf "%a" fmt_longident_aux x;;
+let fmt_longident ppf x = fprintf ppf "%a" fmt_longident_aux x.Longident.lid;;
 
 let fmt_char f c =
   let i = int_of_char c in
@@ -287,9 +287,9 @@ let option_quiet f ppf x =
 
 let rec expression_is_terminal_list exp =
   match exp with
-  | {pexp_desc = Pexp_construct (Longident.Lident("[]"), None, _)}
+  | {pexp_desc = Pexp_construct ({Longident.lid = Longident.Lident("[]")}, None, _)}
      -> true ;
-  | {pexp_desc = Pexp_construct (Longident.Lident("::"),
+  | {pexp_desc = Pexp_construct ({Longident.lid = Longident.Lident("::")},
                    Some({pexp_desc = Pexp_tuple([exp1 ; exp2])}), _)}
      -> (expression_is_terminal_list exp2)
   | {pexp_desc = _}
@@ -307,7 +307,7 @@ let rec core_type ppf x =
         | "" -> core_type ppf ct1;
         | s when (String.get s 0 = '?')  ->
             (match ct1.ptyp_desc with
-              | Ptyp_constr (Longident.Lident ("option"), l) ->
+              | Ptyp_constr ({Longident.lid = Longident.Lident ("option")}, l) ->
                   fprintf ppf "%s :@ " s ;
                   type_constr_list ppf l ;
               | _ -> core_type ppf ct1; (* todo: what do we do here? *)
@@ -446,7 +446,7 @@ and pattern ppf x =
   match x.ppat_desc with
     | Ppat_construct (li, po, b) ->
       pp_open_hovbox ppf indent ;
-      (match li,po with
+      (match li.Longident.lid,po with
         | Longident.Lident("::"),
           Some ({ppat_desc = Ppat_tuple([pat1; pat2])}) ->
             fprintf ppf "(" ;
@@ -664,9 +664,10 @@ and expression ppf x =
       let fixity = (is_infix (fixity_of_exp e)) in
       let sd =
         (match e.pexp_desc with
-          | Pexp_ident (Longident.Ldot (Longident.Lident(modname), valname))
+          | Pexp_ident
+	      {Longident.lid = Longident.Ldot (Longident.Lident(modname), valname)}
             -> (modname, valname)
-          | Pexp_ident (Longident.Lident(valname))
+          | Pexp_ident {Longident.lid = Longident.Lident(valname)}
             -> ("",valname)
           | _ -> ("",""))
       in
@@ -763,7 +764,7 @@ and expression ppf x =
       pp_close_box ppf ();
       fprintf ppf ")";
   | Pexp_construct (li, eo, b) ->
-      (match li with
+      (match li.Longident.lid with
         | Longident.Lident ("::") ->
             (match eo with
                 Some ({pexp_desc = Pexp_tuple ([exp1 ; exp2])}) ->
@@ -1803,7 +1804,7 @@ and pattern_x_expression_def ppf (p, e) =
 
 and pattern_list_helper ppf p =
   match p with
-  | {ppat_desc = Ppat_construct (Longident.Lident("::"),
+  | {ppat_desc = Ppat_construct ({Longident.lid = Longident.Lident("::")},
         Some ({ppat_desc = Ppat_tuple([pat1; pat2])}),
         _)}
     -> pattern ppf pat1 ;
@@ -1838,13 +1839,14 @@ and label_x_expression_param ppf (l,e) =
 and expression_in_parens ppf e =
   let already_has_parens =
     (match e.pexp_desc with
-        Pexp_apply ({pexp_desc=Pexp_ident (Longident.Ldot (
-                Longident.Lident(modname), funname))},_)
+        Pexp_apply ({pexp_desc=Pexp_ident {Longident.lid = Longident.Ldot (
+                Longident.Lident(modname), funname)}},_)
         -> (match modname,funname with
             | "Array","get" -> false;
             | "Array","set" -> false;
             | _,_ -> true) ;
-      | Pexp_apply ({pexp_desc=Pexp_ident (Longident.Lident(funname))},_)
+      | Pexp_apply
+	  ({pexp_desc=Pexp_ident {Longident.lid = Longident.Lident(funname)}},_)
         -> (match funname with
             | "!" -> false;
             | _ -> true);
@@ -1988,9 +1990,10 @@ and expression_sequence ppf ?(skip=1) ?(indent=indent) ?(first=true) expr =
 
 and expression_list_helper ppf exp =
   match exp with
-  | {pexp_desc = Pexp_construct (Longident.Lident("[]"), None, _)}
+  | {pexp_desc = Pexp_construct ({Longident.lid = Longident.Lident("[]")},
+                   None, _)}
      -> () ;
-  | {pexp_desc = Pexp_construct (Longident.Lident("::"),
+  | {pexp_desc = Pexp_construct ({Longident.lid = Longident.Lident("::")},
                    Some({pexp_desc = Pexp_tuple([exp1 ; exp2])}), _)}
      -> fprintf ppf ";@ " ;
         simple_expr ppf exp1 ;
@@ -2000,9 +2003,10 @@ and expression_list_helper ppf exp =
 
 and expression_list_nonterminal ppf exp =
   match exp with
-  | {pexp_desc = Pexp_construct (Longident.Lident("[]"), None, _)}
+  | {pexp_desc = Pexp_construct ({Longident.lid = Longident.Lident("[]")},
+		   None, _)}
      -> fprintf ppf "[]" ; (* assert false; *)
-  | {pexp_desc = Pexp_construct (Longident.Lident("::"),
+  | {pexp_desc = Pexp_construct ({Longident.lid = Longident.Lident("::")},
                    Some({pexp_desc = Pexp_tuple([exp1 ; exp2])}), _)}
      -> simple_expr ppf exp1;
         fprintf ppf " ::@ ";

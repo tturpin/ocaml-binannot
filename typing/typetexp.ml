@@ -58,10 +58,11 @@ type variable_context = int * (string, type_expr) Tbl.t
 
 let rec narrow_unbound_lid_error env loc lid make_error =
   let check_module mlid =
+    let mlid = Longident.longident lid.Longident.loc mlid in
     try ignore (Env.lookup_module mlid env)
     with Not_found -> narrow_unbound_lid_error env loc mlid (fun lid -> Unbound_module lid); assert false
   in
-  begin match lid with
+  begin match lid.Longident.lid with
   | Longident.Lident _ -> ()
   | Longident.Ldot (mlid, _) -> check_module mlid
   | Longident.Lapply (flid, mlid) ->
@@ -73,23 +74,24 @@ let rec narrow_unbound_lid_error env loc lid make_error =
 
 let find_component lookup make_error env loc lid =
   try
-    match lid with
-    | Longident.Ldot (Longident.Lident "*predef*", s) -> lookup (Longident.Lident s) Env.initial
+    match lid.Longident.lid with
+    | Longident.Ldot (Longident.Lident "*predef*", s) ->
+        lookup (Longident.lident lid.Longident.loc s) Env.initial
     | _ -> lookup lid env
   with Not_found ->
     (narrow_unbound_lid_error env loc lid make_error
      : unit (* to avoid a warning *));
     assert false
 
-let find_type = find_component Env.lookup_type (fun lid -> Unbound_type_constructor lid)
+let find_type = find_component Env.lookup_type0 (fun lid -> Unbound_type_constructor lid)
 
-let find_constructor = find_component Env.lookup_constructor (fun lid -> Unbound_constructor lid)
+let find_constructor = find_component Env.lookup_constructor0 (fun lid -> Unbound_constructor lid)
 
-let find_label = find_component Env.lookup_label (fun lid -> Unbound_label lid)
+let find_label = find_component Env.lookup_label0 (fun lid -> Unbound_label lid)
 
 let find_class = find_component Env.lookup_class (fun lid -> Unbound_class lid)
 
-let find_value = find_component Env.lookup_value (fun lid -> Unbound_value lid)
+let find_value = find_component Env.lookup_value0 (fun lid -> Unbound_value lid)
 
 let find_module = find_component Env.lookup_module (fun lid -> Unbound_module lid)
 
@@ -120,7 +122,9 @@ let create_package_mty fake loc env (p, l) =
                ptype_manifest = if fake then None else Some t;
                ptype_variance = [];
                ptype_loc = loc} in
-      {pmty_desc=Pmty_with (mty, [ Longident.Lident s, Pwith_type d ]); pmty_loc=loc}
+      {pmty_desc=
+	  Pmty_with
+	    (mty, [ Longident.lident Location.none s, Pwith_type d ]); pmty_loc=loc}
     )
     {pmty_desc=Pmty_ident p; pmty_loc=loc}
     l
@@ -254,7 +258,7 @@ let rec transl_type env policy styp =
   | Ptyp_class(lid, stl, present) ->
       let (path, decl, is_variant) =
         try
-          let (path, decl) = Env.lookup_type lid env in
+          let (path, decl) = Env.lookup_type0 lid env in
           let rec check decl =
             match decl.type_manifest with
               None -> raise Not_found
@@ -269,13 +273,14 @@ let rec transl_type env policy styp =
           (path, decl,true)
         with Not_found -> try
           if present <> [] then raise Not_found;
-          let lid2 =
-            match lid with
-              Longident.Lident s     -> Longident.Lident ("#" ^ s)
-            | Longident.Ldot(r, s)   -> Longident.Ldot (r, "#" ^ s)
-            | Longident.Lapply(_, _) -> fatal_error "Typetexp.transl_type"
-          in
-          let (path, decl) = Env.lookup_type lid2 env in
+          let lid2 = {
+	    lid with Longident.lid =
+              match lid.Longident.lid with
+		  Longident.Lident s     -> Longident.Lident ("#" ^ s)
+		| Longident.Ldot(r, s)   -> Longident.Ldot (r, "#" ^ s)
+		| Longident.Lapply(_, _) -> fatal_error "Typetexp.transl_type"
+	  } in
+          let (path, decl) = Env.lookup_type0 lid2 env in
           (path, decl, false)
         with Not_found ->
           raise(Error(styp.ptyp_loc, Unbound_class lid))

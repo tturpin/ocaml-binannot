@@ -40,11 +40,16 @@ val find_modtype_expansion: Path.t -> t -> Types.module_type
 
 (* Lookup by long identifiers *)
 
-val lookup_value: Longident.t -> t -> Path.t * value_description
+val lookup_value0: Longident.t -> t -> Path.t * value_description
+val lookup_label0: Longident.t -> t -> Path.t * label_description
+val lookup_type0: Longident.t -> t -> Path.t * type_declaration
+val lookup_constructor0: Longident.t -> t -> Path.t * constructor_description
+
+val lookup_value: Longident.lid -> t -> Path.t * value_description
 val lookup_annot: Longident.t -> t -> Path.t * Annot.ident
-val lookup_constructor: Longident.t -> t -> Path.t * constructor_description
-val lookup_label: Longident.t -> t -> Path.t * label_description
-val lookup_type: Longident.t -> t -> Path.t * type_declaration
+val lookup_constructor: Longident.lid -> t -> Path.t * constructor_description
+val lookup_label: Longident.lid -> t -> Path.t * label_description
+val lookup_type: Longident.lid -> t -> Path.t * type_declaration
 val lookup_module: Longident.t -> t -> Path.t * module_type
 val lookup_modtype: Longident.t -> t -> Path.t * modtype_declaration
 val lookup_class: Longident.t -> t -> Path.t * class_declaration

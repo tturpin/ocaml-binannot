@@ -40,7 +40,7 @@ let rec fmt_longident_aux f x =
       fprintf f "%a(%a)" fmt_longident_aux y fmt_longident_aux z;
 ;;
 
-let fmt_longident f x = fprintf f "\"%a\"" fmt_longident_aux x;;
+let fmt_longident f x = fprintf f "\"%a\"" fmt_longident_aux x.Longident.lid;;
 
 let fmt_constant f x =
   match x with

@@ -459,6 +459,8 @@ and lookup_module lid env =
           raise Not_found
       end
 
+let lookup_module lid = lookup_module lid.lid
+
 let lookup proj1 proj2 lid env =
   match lid with
     Lident s ->
@@ -476,7 +478,7 @@ let lookup proj1 proj2 lid env =
       raise Not_found
 
 let lookup_simple proj1 proj2 lid env =
-  match lid with
+  match lid.lid with
     Lident s ->
       Ident.find_name s (proj1 env)
   | Ldot(l, s) ->
@@ -491,10 +493,12 @@ let lookup_simple proj1 proj2 lid env =
   | Lapply(l1, l2) ->
       raise Not_found
 
+let lookup0 proj1 proj2 lid = lookup proj1 proj2 lid.lid
+
 let lookup_value =
   lookup (fun env -> env.values) (fun sc -> sc.comp_values)
 let lookup_annot id e =
-  lookup (fun env -> env.annotations) (fun sc -> sc.comp_annotations) id e
+  lookup0 (fun env -> env.annotations) (fun sc -> sc.comp_annotations) id e
 and lookup_constructor =
   lookup (fun env -> env.constrs) (fun sc -> sc.comp_constrs)
 and lookup_label =
@@ -502,11 +506,16 @@ and lookup_label =
 and lookup_type =
   lookup (fun env -> env.types) (fun sc -> sc.comp_types)
 and lookup_modtype =
-  lookup (fun env -> env.modtypes) (fun sc -> sc.comp_modtypes)
+  lookup0 (fun env -> env.modtypes) (fun sc -> sc.comp_modtypes)
 and lookup_class =
-  lookup (fun env -> env.classes) (fun sc -> sc.comp_classes)
+  lookup0 (fun env -> env.classes) (fun sc -> sc.comp_classes)
 and lookup_cltype =
-  lookup (fun env -> env.cltypes) (fun sc -> sc.comp_cltypes)
+  lookup0 (fun env -> env.cltypes) (fun sc -> sc.comp_cltypes)
+
+let lookup_value0 lid = lookup_value lid.lid
+let lookup_constructor0 lid = lookup_constructor lid.lid
+let lookup_label0 lid = lookup_label lid.lid
+let lookup_type0 lid = lookup_type lid.lid
 
 let ident_tbl_fold f t acc =
   List.fold_right
@@ -521,7 +530,7 @@ let find_all proj1 proj2 f lid env =
 	(fun id (p, data) -> f (Ident.name id) p data)
 	(proj1 env)
     | Some l ->
-      let p, desc = lookup_module_descr l env in
+      let p, desc = lookup_module_descr l.lid env in
       begin match Lazy.force desc with
           Structure_comps c ->
             Tbl.fold

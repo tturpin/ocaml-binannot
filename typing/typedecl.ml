@@ -776,7 +776,7 @@ let transl_exception env excdecl =
 let transl_exn_rebind env loc lid =
   let (path, cdescr) =
     try
-      Env.lookup_constructor lid env
+      Env.lookup_constructor0 lid env
     with Not_found ->
       raise(Error(loc, Unbound_exception lid)) in
   match cdescr.cstr_tag with

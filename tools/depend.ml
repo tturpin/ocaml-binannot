@@ -32,9 +32,11 @@ let rec addmodule bv lid =
   | Lapply(l1, l2) -> addmodule bv l1; addmodule bv l2
 
 let add bv lid =
-  match lid with
+  match lid.lid with
     Ldot(l, s) -> addmodule bv l
   | _ -> ()
+
+let addmodule bv l = addmodule bv l.lid
 
 let rec add_type bv ty =
   match ty.ptyp_desc with

@@ -12,10 +12,10 @@
 
 (* $Id$ *)
 
-type t =
+type lid =
     Lident of string
-  | Ldot of t * string
-  | Lapply of t * t
+  | Ldot of lid * string
+  | Lapply of lid * lid
 
 let rec flat accu = function
     Lident s -> s :: accu
@@ -41,3 +41,15 @@ let parse s =
     [] -> Lident ""  (* should not happen, but don't put assert false
                         so as not to crash the toplevel (see Genprintval) *)
   | hd :: tl -> List.fold_left (fun p s -> Ldot(p, s)) (Lident hd) tl
+
+type t = {
+  lid : lid;
+  loc : Location.t
+}
+
+let flatten lid = flatten lid.lid
+let last lid = last lid.lid
+let parse loc lid = {lid = parse lid ; loc = loc}
+
+let longident loc lid = {lid = lid ; loc = loc}
+let lident loc name = longident loc (Lident name)

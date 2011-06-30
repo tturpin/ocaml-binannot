@@ -110,7 +110,7 @@ and structure_item ppf tbl s =
 
 and expression ppf tbl e =
   match e.pexp_desc with
-  | Pexp_ident (Longident.Lident id) ->
+  | Pexp_ident {Longident.lid = Longident.Lident id} ->
       begin try (Hashtbl.find tbl id) := true;
       with Not_found -> ()
       end;
