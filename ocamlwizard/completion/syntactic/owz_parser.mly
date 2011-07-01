@@ -37,7 +37,7 @@ let seq_af =  { pexp_desc = Pexp_sequence (exp_af,exp_af);
 let pat_any =  { ppat_desc = Ppat_any;
 		ppat_loc = Location.none }
 
-let class_exp = { pcl_desc = Pcl_constr (Lident "ghost",[]) ;
+let class_exp = { pcl_desc = Pcl_constr (lident Location.none "ghost",[]) ;
 		  pcl_loc  = Location.none }
 
 let len_af = 14 (* (assert false)'s length *)
@@ -75,8 +75,9 @@ let mkcf d =
  let reloc_pat x = { x with ppat_loc = symbol_rloc () };;
  let reloc_exp x = { x with pexp_loc = symbol_rloc () };;
 
- let mkoperator name pos =
-   { pexp_desc = Pexp_ident(Lident name); pexp_loc = rhs_loc pos }
+let mkoperator name pos =
+  let loc = rhs_loc pos in
+  { pexp_desc = Pexp_ident(lident loc name); pexp_loc = loc }
 
  (*
    Ghost expressions and patterns:
@@ -101,7 +102,7 @@ let mkcf d =
 
  let mkassert e =
    match e with
-   | {pexp_desc = Pexp_construct (Lident "false", None, false) } ->
+   | {pexp_desc = Pexp_construct ({lid = Lident "false"}, None, false) } ->
 	  mkexp (Pexp_assertfalse)
    | _ -> mkexp (Pexp_assert (e))
  ;;
@@ -140,9 +141,12 @@ let mkuplus name arg =
   | _ ->
       mkexp(Pexp_apply(mkoperator ("~" ^ name) 1, ["", arg]))
 
- let rec mktailexp = function
+let ghlid lid = longident (symbol_gloc ())lid
+let ghlident name = ghlid (Lident name)
+
+let rec mktailexp = function
      [] ->
-       ghexp(Pexp_construct(Lident "[]", None, false))
+       ghexp(Pexp_construct(ghlident "[]", None, false))
    | e1 :: el ->
        let exp_el = mktailexp el in
        let l = {loc_start = e1.pexp_loc.loc_start;
@@ -150,11 +154,11 @@ let mkuplus name arg =
 		loc_ghost = true}
        in
        let arg = {pexp_desc = Pexp_tuple [e1; exp_el]; pexp_loc = l} in
-       {pexp_desc = Pexp_construct(Lident "::", Some arg, false); pexp_loc = l}
+       {pexp_desc = Pexp_construct(lident l "::", Some arg, false); pexp_loc = l}
 
  let rec mktailpat = function
      [] ->
-       ghpat(Ppat_construct(Lident "[]", None, false))
+       ghpat(Ppat_construct(ghlident "[]", None, false))
    | p1 :: pl ->
        let pat_pl = mktailpat pl in
        let l = {loc_start = p1.ppat_loc.loc_start;
@@ -162,13 +166,13 @@ let mkuplus name arg =
 		loc_ghost = true}
        in
        let arg = {ppat_desc = Ppat_tuple [p1; pat_pl]; ppat_loc = l} in
-       {ppat_desc = Ppat_construct(Lident "::", Some arg, false); ppat_loc = l}
+       {ppat_desc = Ppat_construct(lident l "::", Some arg, false); ppat_loc = l}
 
  let ghstrexp e =
    { pstr_desc = Pstr_eval e; pstr_loc = {e.pexp_loc with loc_ghost = true} }
 
  let array_function str name =
-   Ldot(Lident str, (if !Clflags.fast then "unsafe_" ^ name else name))
+   ghlid (Ldot(Lident str, (if !Clflags.fast then "unsafe_" ^ name else name)))
 
  let rec deep_mkrangepat c1 c2 =
    if c1 = c2 then ghpat(Ppat_constant(Const_char c1)) else
@@ -191,7 +195,7 @@ let mkuplus name arg =
  let unclosed _ _ _ _ = raise Parse_error
 
  let bigarray_function str name =
-   Ldot(Ldot(Lident "Bigarray", str), name)
+   ghlid (Ldot(Ldot(Lident "Bigarray", str), name))
 
  let bigarray_untuplify = function
      { pexp_desc = Pexp_tuple explist} -> explist
@@ -237,7 +241,7 @@ let mkuplus name arg =
    else raise (Syntaxerr.Error(Syntaxerr.Applicative_path (symbol_rloc())))
  
  let exp_of_label lbl =
-   mkexp (Pexp_ident(Lident(Longident.last lbl)))
+   mkexp (Pexp_ident(lident lbl.loc (Longident.last lbl)))
  
  let pat_of_label lbl =
    mkpat (Ppat_var(Longident.last lbl))
@@ -957,13 +961,13 @@ let mkuplus name arg =
    | QUESTION LIDENT COLON simple_core_type_or_tuple MINUSGREATER class_type
        { mkcty(Pcty_fun("?" ^ $2 ,
                        {ptyp_desc =
-                        Ptyp_constr(Ldot (Lident "*predef*", "option"), [$4]);
+                        Ptyp_constr(ghlid (Ldot (Lident "*predef*", "option")), [$4]);
 			 ptyp_loc = $4.ptyp_loc},
 			$6)) }
    | OPTLABEL simple_core_type_or_tuple MINUSGREATER class_type
        { mkcty(Pcty_fun("?" ^ $1 ,
                        {ptyp_desc =
-                        Ptyp_constr(Ldot (Lident "*predef*", "option"), [$2]);
+                        Ptyp_constr(ghlid (Ldot (Lident "*predef*", "option")), [$2]);
 			 ptyp_loc = $2.ptyp_loc},
 			$4)) }
    | LIDENT COLON simple_core_type_or_tuple MINUSGREATER class_type
@@ -1399,7 +1403,7 @@ class_sig_field:
      *====================*/
 
    | expr COLONCOLON expr
-       { mkexp(Pexp_construct(Lident "::",
+       { mkexp(Pexp_construct(ghlident "::",
 			      Some(ghexp(Pexp_tuple[$1;$3])),
 			      false)) }
 
@@ -1407,7 +1411,7 @@ class_sig_field:
      *====================*/
 
    | LPAREN COLONCOLON RPAREN LPAREN expr COMMA expr RPAREN
-       { mkexp(Pexp_construct(Lident "::",
+       { mkexp(Pexp_construct(ghlident "::",
 			      Some(ghexp(Pexp_tuple[$5;$7])),
 			      false)) }
 
@@ -1415,7 +1419,7 @@ class_sig_field:
    | LPAREN COLONCOLON RPAREN LPAREN expr EOF
        { 
 	 add_closing "("  ", assert false)" (rhs_start 4) (rhs_end 4); 
-	 mkexp(Pexp_construct(Lident "::",
+	 mkexp(Pexp_construct(ghlident "::",
 			      Some(ghexp(Pexp_tuple[$5;exp_af])),
 			      false)) }
 
@@ -1423,7 +1427,7 @@ class_sig_field:
    | LPAREN COLONCOLON RPAREN LPAREN expr COMMA expr EOF
        { 
 	 add_closing "("  ")" (rhs_start 4) (rhs_end 4); 
-	 mkexp(Pexp_construct(Lident "::",
+	 mkexp(Pexp_construct(ghlident "::",
 			      Some(ghexp(Pexp_tuple[$5;$7])),
 			      false)) }
 
@@ -1597,7 +1601,8 @@ class_sig_field:
      /* _end patch_28
      *====================*/
 
-   | BEGIN END     { mkexp (Pexp_construct (Lident "()", None, false)) }
+   | BEGIN END
+       { mkexp (Pexp_construct (lident (symbol_rloc ()) "()", None, false)) }
 
 
    | LPAREN seq_expr type_constraint RPAREN
@@ -1818,7 +1823,7 @@ class_sig_field:
        { ("?" ^ $1, $2) }
  ;
  label_ident:
-     LIDENT   { ($1, mkexp(Pexp_ident(Lident $1))) }
+     LIDENT   { ($1, mkexp(Pexp_ident(lident (symbol_rloc ()) $1))) }
  ;
  let_bindings:
    let_binding                                 { [$1] }
@@ -2110,10 +2115,10 @@ pattern:
   | name_tag pattern %prec prec_constr_appl
       { mkpat(Ppat_variant($1, Some $2)) }
   | pattern COLONCOLON pattern
-      { mkpat(Ppat_construct(Lident "::", Some(ghpat(Ppat_tuple[$1;$3])),
+      { mkpat(Ppat_construct(ghlident "::", Some(ghpat(Ppat_tuple[$1;$3])),
                              false)) }
   | LPAREN COLONCOLON RPAREN LPAREN pattern COMMA pattern RPAREN
-      { mkpat(Ppat_construct(Lident "::", Some(ghpat(Ppat_tuple[$5;$7])),
+      { mkpat(Ppat_construct(ghlident "::", Some(ghpat(Ppat_tuple[$5;$7])),
                              false)) }
   | pattern BAR pattern
       { mkpat(Ppat_or($1, $3)) }
@@ -2453,11 +2458,11 @@ core_type2:
       { $1 }
   | QUESTION LIDENT COLON core_type2 MINUSGREATER core_type2
       { mktyp(Ptyp_arrow("?" ^ $2 ,
-               {ptyp_desc = Ptyp_constr(Ldot (Lident "*predef*", "option"), [$4]);
+               {ptyp_desc = Ptyp_constr(ghlid (Ldot (Lident "*predef*", "option")), [$4]);
                 ptyp_loc = $4.ptyp_loc}, $6)) }
   | OPTLABEL core_type2 MINUSGREATER core_type2
       { mktyp(Ptyp_arrow("?" ^ $1 ,
-               {ptyp_desc = Ptyp_constr(Ldot (Lident "*predef*", "option"), [$2]);
+               {ptyp_desc = Ptyp_constr(ghlid (Ldot (Lident "*predef*", "option")), [$2]);
                 ptyp_loc = $2.ptyp_loc}, $4)) }
   | LIDENT COLON core_type2 MINUSGREATER core_type2
       { mktyp(Ptyp_arrow($1, $3, $5)) }
@@ -2652,24 +2657,24 @@ constr_ident:
 /* _begin patch_39
 *====================*/
 val_longident:
-  | val_ident                                   { mkexp(Pexp_ident (Lident $1)) }
+  | val_ident { mkexp(Pexp_ident (lident (symbol_rloc ()) $1)) }
 
   | LIDENT EOF {
 	if rhs_end 1 >= parser_state.eof_pos then (
 	  update_value exp_af [] $1 (symbol_start()) (symbol_end()) V_all;
 	  exp_af
 	) else
-	  mkexp(Pexp_ident (Lident $1))
+	  mkexp(Pexp_ident (lident (rhs_loc 1) $1))
   }
     
     /*     idents whith use "_"
-  | UNDERSCORE EOF                              { mkexp(Pexp_ident (Lident "_")) }
+  | UNDERSCORE EOF { mkexp(Pexp_ident (lident (symbol_rloc ()) "_")) }
     */
 
   | mod_longident DOT val_ident { (* EOF if end_of_file() = true *)
 	let md = $1 in 
 	let value = $3 in
-	let exp = mkexp(Pexp_ident (Ldot(md, value))) in
+	let exp = mkexp(Pexp_ident (longident (symbol_rloc ()) (Ldot(md.lid, value)))) in
 	update_value exp (flatten md) value (symbol_start()) (symbol_end()) V_all;
 	if end_of_file (symbol_end ()) then (
 	  Util.debugln "longident %s" $3;
@@ -2705,10 +2710,10 @@ constr_longident:
 	  *)
       }
       
-  | LBRACKET RBRACKET                           { Lident "[]" }
-  | LPAREN RPAREN                               { Lident "()" }
-  | FALSE                                       { Lident "false" }
-  | TRUE                                        { Lident "true" }
+  | LBRACKET RBRACKET { lident (symbol_rloc ()) "[]" }
+  | LPAREN RPAREN     { lident (symbol_rloc ()) "()" }
+  | FALSE             { lident (symbol_rloc ()) "false" }
+  | TRUE              { lident (symbol_rloc ()) "true" }
 ;
 /* _end patch_40
 *====================*/
@@ -2721,14 +2726,14 @@ label_longident:
   | LIDENT {
 	let id = $1 in
 	update_lbl_longid [] id (symbol_start()) (symbol_end());
-	Lident id
+	lident (symbol_rloc ()) id
       }
   /* _correct_2 */
   | mod_longident DOT LIDENT { 
 	let md = $1 in
 	let id = $3 in
 	update_lbl_longid (flatten md) id (symbol_start()) (symbol_end());
-	Ldot (md,id)
+	longident (symbol_rloc ()) (Ldot (md.lid,id))
       }
 
     /* _correct_3 */
@@ -2747,63 +2752,64 @@ label_longident:
 
 
 type_longident:
-    LIDENT                                      { Lident $1 }
-  | mod_ext_longident DOT LIDENT                { Ldot($1, $3) }
+    LIDENT                         { lident (symbol_rloc ()) $1 }
+  | mod_ext_longident DOT LIDENT   { longident (symbol_rloc ()) (Ldot($1.lid, $3)) }
 ;
 
 
 /* _begin patch_37
 *====================*/
-mod_longident:
+mod_lid:
   | UIDENT {  (* EOF if enf_of_file () = true *)
 	let uid = $1 in
 	update_module [] uid (symbol_start()) (symbol_end());
 	Lident uid
       }
       
-  | mod_longident DOT UIDENT { (* EOF if enf_of_file () = true *)
+  | mod_lid DOT UIDENT { (* EOF if enf_of_file () = true *)
 	let md = $1 in 
 	let uid = $3 in
-	update_module (flatten md) uid (symbol_start()) (symbol_end());
+	let md' = longident (symbol_rloc ()) md in
+	update_module (flatten md') uid (symbol_start()) (symbol_end());
 	Ldot (md,uid)
       }
     
-  | mod_longident DOT EOF { 
+  | mod_lid DOT EOF { 
 	let md = $1 in
-	update_module (flatten md) "" (symbol_start()) (symbol_end());
+	let md' = longident (symbol_rloc ()) md in
+	update_module (flatten md') "" (symbol_start()) (symbol_end());
 	md
       }
 ;
 /* _end patch_37
 *====================*/
 
-
-mod_ext_longident:
+mod_ext_lid:
     UIDENT                                      { Lident $1 }
-  | mod_ext_longident DOT UIDENT                { Ldot($1, $3) }
-  | mod_ext_longident LPAREN mod_ext_longident RPAREN { lapply $1 $3 }
+  | mod_ext_lid DOT UIDENT                { Ldot($1, $3) }
+  | mod_ext_lid LPAREN mod_ext_lid RPAREN { lapply $1 $3 }
 ;
 
-mty_longident:
+mty_lid:
     ident                                       { Lident $1 }
-  | mod_ext_longident DOT ident                 { Ldot($1, $3) }
+  | mod_ext_lid DOT ident                 { Ldot($1, $3) }
 ;
 
-clty_longident:
+clty_lid:
     LIDENT                                      { Lident $1 }
-  | mod_ext_longident DOT LIDENT                { Ldot($1, $3) }
+  | mod_ext_lid DOT LIDENT                { Ldot($1, $3) }
 ;
 
 /* _begin patch_38
 *====================*/
-class_longident:
+class_lid:
   | LIDENT                                      { Lident $1 }
   
     /*idents whith use "_"*/
  /* 
   | UNDERSCORE EOF                              { Lident "_" }
 */
-  | mod_longident DOT LIDENT /*maybe EOF*/{
+  | mod_lid DOT LIDENT /*maybe EOF*/{
 	Ldot($1, $3) (*
 	let lg = Ldot($1, $3)  in 
 	update_pos (symbol_end()) ; 
@@ -2821,7 +2827,7 @@ class_longident:
 	lg 	*)
       }
 
-  | mod_longident EOF { 
+  | mod_lid EOF { 
 	$1  (* 
 	let lg = $1 in
 	update_pos (symbol_end()) ; 
@@ -2841,6 +2847,12 @@ class_longident:
 ;
 /* _end patch_38
 *====================*/
+
+mod_longident: mod_lid { longident (symbol_rloc ()) $1 }
+mod_ext_longident: mod_ext_lid { longident (symbol_rloc ()) $1 }
+mty_longident: mty_lid { longident (symbol_rloc ()) $1 }
+clty_longident: clty_lid { longident (symbol_rloc ()) $1 }
+class_longident: class_lid { longident (symbol_rloc ()) $1 }
 
 
 /* Toplevel directives */

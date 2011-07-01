@@ -78,7 +78,8 @@ let set_match_depth depth =
     | _ ->
 	raise (Arg.Bad ("Completion : illegal match-depth specification"))
 	  
-let set_qualid flat_id = qualid := Longident.parse flat_id
+let set_qualid flat_id =
+  qualid := (Longident.parse Location.none flat_id).Longident.lid
 
 let rec parse_lines f =
   try

@@ -24,11 +24,11 @@
     equally-named elements). *)
 val rename_in_lid :
   Resolve.specifics -> Ident.t list -> string ->
-  Env.t -> Resolve.specifics -> Longident.t -> Longident.t option
+  Env.t -> Resolve.specifics -> Longident.lid -> Longident.lid option
 
 (** Check that no existing occurrence of the new name appearing in a
     longident would be captured by one of the renamed idents if we
     applied the given renaming. *)
 val check_lid :
   Resolve.specifics -> Ident.t list -> string ->
-  Env.t -> Resolve.specifics -> Longident.t -> unit
+  Env.t -> Resolve.specifics -> Longident.lid -> unit

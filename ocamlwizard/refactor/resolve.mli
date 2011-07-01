@@ -22,7 +22,7 @@ type sort = [ `Modtype | `Module | `Value ]
 
 type specifics = {
   sort : sort;
-  lookup : Longident.t -> Env.t -> Path.t;
+  lookup : Longident.lid -> Env.t -> Path.t;
   sig_item : Types.signature_item -> Ident.t option;
   summary_item : Env.summary -> Ident.t option;
 }
@@ -69,7 +69,7 @@ val resolve_modtype :
     of ids in environment env, i.e., if the object directly denoted by
     lid is named with one of ids. This indicates that the rightmost
     name in lid needs renaming (assuming we are renaming ids). *)
-val resolves_to : specifics -> Env.t -> Longident.t -> Ident.t list -> bool
+val resolves_to : specifics -> Env.t -> Longident.lid -> Ident.t list -> bool
 
 (** Retrieve an element in a signature from its name *)
 val lookup_in_signature :

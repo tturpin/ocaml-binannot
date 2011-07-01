@@ -28,7 +28,7 @@ type sort = [
 
 type specifics = {
   sort : sort;
-  lookup : Longident.t -> Env.t -> Path.t;
+  lookup : Longident.lid -> Env.t -> Path.t;
   sig_item : Types.signature_item -> Ident.t option;
   summary_item : Env.summary -> Ident.t option
 }
@@ -37,21 +37,21 @@ let keep_first f lid env = fst (f lid env)
 
 let value_ops = {
   sort = `Value;
-  lookup = keep_first Env.lookup_value;
+  lookup = keep_first Env.lookup_value_lid;
   sig_item = (function Sig_value (i, _) -> Some i | _ -> None);
   summary_item = function Env_value (_, i, _) -> Some i | _ -> None
 }
 
 let module_ops = {
   sort = `Module;
-  lookup = keep_first Env.lookup_module;
+  lookup = keep_first Env.lookup_module_lid;
   sig_item = (function Sig_module (i, _, _) -> Some i | _ -> None);
   summary_item = function Env_module (_, i, _) -> Some i | _ -> None
 }
 
 let modtype_ops = {
   sort = `Modtype;
-  lookup = keep_first Env.lookup_modtype;
+  lookup = keep_first Env.lookup_modtype_lid;
   sig_item = (function Sig_modtype (i, _) -> Some i | _ -> None);
   summary_item = function Env_modtype (_, i, _) -> Some i | _ -> None
 }

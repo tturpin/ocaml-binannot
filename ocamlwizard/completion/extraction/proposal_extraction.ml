@@ -61,7 +61,7 @@ let best_qualif pat env prefix_lis typ =
     | [] -> 
 	begin
 	  try 
-	    let _, const = Env.lookup_constructor lid env  in
+	    let _, const = Env.lookup_constructor_lid lid env  in
 (*
 	    if const.cstr_loc = owz_inf then lid else raise Exit
 *)
@@ -72,23 +72,23 @@ let best_qualif pat env prefix_lis typ =
 	    if const.cstr_res = typ then lid else raise Exit
 	  with _ -> 
 	    if !Common_config.debug then
-	      Format.eprintf "| [] -> lookup_constr : %s@." (Util.lid_to_str lid);
+	      Format.eprintf "| [] -> lookup_constr : %s@." (Util.lid_to_str (longident Location.none lid));
 	    
 	    if List.length prefix_lis > 0 && "Unix" = List.hd prefix_lis then(
 		if !Common_config.debug then
 		  Format.eprintf "> Special case for Unix@.";
 		lid
 	      )else 
-	      if Util.is_list lid then
+	      if Util.is_list (longident Location.none lid) then
 		lid
 	      else unreachable "Proposal_extraction" 3
 	end
     | p :: r ->
 	if !Common_config.debug then
 	  Format.eprintf "| p :: r -> lookup_constr : %s@." 
-	    (Util.lid_to_str lid);
+	    (Util.lid_to_str (longident Location.none lid));
 	try 
-	  let _, const = Env.lookup_constructor lid env in 
+	  let _, const = Env.lookup_constructor_lid lid env in 
 	  if const.cstr_res = typ then lid else raise Exit
 	with _ -> 
 	  let up_qualif = add_qualif (Lident p) lid in
@@ -102,11 +102,11 @@ let best_qualif pat env prefix_lis typ =
   in
 *)
   match pat.ppat_desc with
-    | Ppat_construct (lid, e1, e2) when lid <> Lident "[]" -> 
+    | Ppat_construct (lid, e1, e2) when lid.lid <> Lident "[]" -> 
 	{ pat with 
 	  ppat_desc = 
-	    let best_qualif = qualif_lid lid prefix_lis in
-	    Ppat_construct (best_qualif, e1, e2)
+	    let best_qualif = qualif_lid lid.lid prefix_lis in
+	    Ppat_construct ((longident Location.none best_qualif), e1, e2)
 	}
     | _ -> pat
 
@@ -165,7 +165,8 @@ let rec shortest_path cond = function
 let rev_lookup_member lookup res tcstr cstr =
   let p =
     match tcstr with
-      | Pdot (p, _, _) -> Ldot (Untypeast.lident_of_path p, cstr)
+      | Pdot (p, _, _) ->
+	Ldot ((Untypeast.lident_of_path (path Location.none p)).lid, cstr)
       | Pident _ -> Lident cstr
       | _ -> invalid_arg "rev_lookup_cstr"
   in
@@ -184,14 +185,14 @@ let rev_lookup_member lookup res tcstr cstr =
 
 let rev_lookup_cstr env tcstr cstr =
   rev_lookup_member
-    (function p -> Env.lookup_constructor p env)
+    (function p -> Env.lookup_constructor_lid p env)
     (function cstr_desc -> cstr_desc.cstr_res)
     tcstr
     cstr
 
 let rev_lookup_field env tcstr field =
   rev_lookup_member
-    (function p -> Env.lookup_label p env)
+    (function p -> Env.lookup_label_lid p env)
     (function field_desc -> field_desc.lbl_res)
     tcstr
     field
@@ -222,7 +223,7 @@ let variant_patterns env tcstr cstrs =
       in
       mk_pattern
 	(Ppat_construct
-	   (rev_lookup_cstr env tcstr cstr, arg, false)))
+	   (longident Location.none (rev_lookup_cstr env tcstr cstr), arg, false)))
     cstrs
 
 let record_pattern env tcstr fields =
@@ -230,7 +231,7 @@ let record_pattern env tcstr fields =
     (Ppat_record
        (List.map
 	  (function field, _, t ->
-	    (rev_lookup_field env tcstr field,
+	    (longident Location.none (rev_lookup_field env tcstr field),
 	     mk_pattern Ppat_any))
 	  fields,
 	Asttypes.Closed))

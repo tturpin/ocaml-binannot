@@ -211,7 +211,7 @@ let lapply p1 p2 =
   else raise (Syntaxerr.Error(Syntaxerr.Applicative_path (symbol_rloc())))
 
 let exp_of_label lbl =
-  mkexp (Pexp_ident(lident (lbl.loc) (Longident.last lbl)))
+  mkexp (Pexp_ident(lident lbl.loc (Longident.last lbl)))
 
 let pat_of_label lbl =
   mkpat (Ppat_var(Longident.last lbl))
@@ -1627,10 +1627,10 @@ constr_ident:
 
 val_lid:
     val_ident                                   { Lident $1 }
-  | mod_lid DOT val_ident                 { Ldot($1, $3) }
+  | mod_longident DOT val_ident                 { Ldot($1.lid, $3) }
 ;
 constr_lid:
-    mod_lid       %prec below_DOT         { $1 }
+    mod_longident       %prec below_DOT         { $1.lid }
   | LBRACKET RBRACKET                           { Lident "[]" }
   | LPAREN RPAREN                               { Lident "()" }
   | FALSE                                       { Lident "false" }
@@ -1638,15 +1638,15 @@ constr_lid:
 ;
 label_lid:
     LIDENT                                      { Lident $1 }
-  | mod_lid DOT LIDENT                    { Ldot($1, $3) }
+  | mod_longident DOT LIDENT                    { Ldot($1.lid, $3) }
 ;
 type_lid:
     LIDENT                                      { Lident $1 }
   | mod_ext_lid DOT LIDENT                { Ldot($1, $3) }
 ;
-mod_lid:
-    UIDENT                                      { Lident $1 }
-  | mod_lid DOT UIDENT                    { Ldot($1, $3) }
+mod_longident:
+    UIDENT                         { lident (symbol_rloc ()) $1 }
+  | mod_longident DOT UIDENT       { longident (symbol_rloc ()) (Ldot($1.lid, $3)) }
 ;
 mod_ext_lid:
     UIDENT                                      { Lident $1 }
@@ -1663,19 +1663,21 @@ clty_lid:
 ;
 class_lid:
     LIDENT                                      { Lident $1 }
-  | mod_lid DOT LIDENT                    { Ldot($1, $3) }
+  | mod_longident DOT LIDENT                    { Ldot($1.lid, $3) }
 ;
+
+/* Does not work : we get a conflict because we need to reduce mod_lid earlier
+mod_longident: mod_lid { longident (symbol_rloc ()) $1 }
+ */
 
 val_longident: val_lid { longident (symbol_rloc ()) $1 }
 constr_longident: constr_lid { longident (symbol_rloc ()) $1 }
 label_longident: label_lid { longident (symbol_rloc ()) $1 }
 type_longident: type_lid { longident (symbol_rloc ()) $1 }
-mod_longident: mod_lid { longident (symbol_rloc ()) $1 }
 mod_ext_longident: mod_ext_lid { longident (symbol_rloc ()) $1 }
 mty_longident: mty_lid { longident (symbol_rloc ()) $1 }
 clty_longident: clty_lid { longident (symbol_rloc ()) $1 }
 class_longident: class_lid { longident (symbol_rloc ()) $1 }
-
 
 /* Toplevel directives */
 

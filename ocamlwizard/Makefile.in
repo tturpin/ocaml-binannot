@@ -44,7 +44,7 @@ SITE_START_DIR=/etc/emacs/site-start.d
 
 OCAMLC       = ../boot/ocamlrun ../ocamlc
 OCAMLOPT     = ../boot/ocamlrun ../ocamlopt
-OCAMLDEP     = ../boot/ocamlrun ../ocamldep
+OCAMLDEP     = ../boot/ocamlrun ../tool/ocamldep
 OCAMLLEX     = ../boot/ocamlrun ../boot/ocamllex
 OCAMLYACC    = ../boot/ocamlyacc
 OCAMLDEP     = ../boot/ocamlrun ../tools/ocamldep

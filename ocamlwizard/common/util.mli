@@ -18,10 +18,10 @@
 val get_c_num : Location.t -> int * int
 val module_name : string list -> string
 val concat_string_list : string list -> string
-val add_qualif : Longident.t -> Longident.t -> Longident.t
+val add_qualif : Longident.lid -> Longident.lid -> Longident.lid
 val max_patterns_depth : Parsetree.pattern list -> int
 val pattern_depth : Parsetree.pattern -> int
-val lid_head : Longident.t -> string
+val lid_head : Longident.lid -> string
 
 (** Return the flat path to the module containing the given type. For
     example,  type_path <A.B.t> = ["A" ; "B"]. *)

@@ -39,7 +39,7 @@ val include_dirs : string list ref
 val fic_source : string ref
 val pos : string ref
 val absolute_filenames : bool ref
-val qualid : Longident.t ref
+val qualid : Longident.lid ref
 val loc : (int * int) ref
 val expand_loc : (int * int) ref
 val root_dir : string ref

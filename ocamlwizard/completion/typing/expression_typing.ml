@@ -81,7 +81,7 @@ let locate_expansion_place s loc =
 	if (l.loc_start.pos_cnum, l.loc_end.pos_cnum) = loc &&
 	  ps <> [] &&
 	  List.for_all (function p'' -> p''.pat_loc = l) ps then
-	  Some (Args (p, c, d))
+	  Some (Args (p, c.Path.path, d))
 	else
 	  None
       | _ ->

@@ -180,10 +180,12 @@ let mk_values ce se (env, _) m i =
 	    (Longident.Lident t)
 	    q
 	in
+(*
 	debugln "prefix = %s" (lid_to_str lid);
 	let mo = Env.lookup_module lid env in
 	debugln " OK";
-	Some lid
+*)
+	Some (Longident.longident Location.none lid)
   in
   complete_ident m i env
 

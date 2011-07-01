@@ -109,7 +109,7 @@ let label_is_given lbl_name = function
   | Faccess _ -> false
   | Fdef gvn | Fpat gvn ->
       try
-	List.iter (fun lid -> if lid_head lid = lbl_name then raise Exit) gvn;
+	List.iter (fun lid -> if lid_head lid.Longident.lid = lbl_name then raise Exit) gvn;
 	false
       with _ -> true
 

@@ -170,7 +170,9 @@ let rename_lids renamed_kind id name' lids =
     (fun l (loc, lid, (env, kind)) ->
       match rename_in_lid renamed_kind id name' env kind lid with
 	| Some lid ->
-	  (loc.loc_start.pos_cnum, loc.loc_end.pos_cnum, Util.lid_to_str lid)
+	  (loc.loc_start.pos_cnum,
+	   loc.loc_end.pos_cnum,
+	   Util.lid_to_str (longident Location.none lid))
 	  :: l
 	| None -> l)
     []

@@ -108,7 +108,7 @@ let get_longident (loc, s, (env, occ)) =
     | `mod_ident -> Parser.mod_longident, module_ops
     | _ -> failwith "not implemented"
   in
-  let ast = parser Lexer.token lexbuf in
+  let ast = (parser Lexer.token lexbuf).Longident.lid in
   (loc, ast, (env, kind))
 
 let get_lids file ast =

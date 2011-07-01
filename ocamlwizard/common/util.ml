@@ -90,7 +90,7 @@ let pattern_depth pat =  (* THIS FUNCTION MUST BE CHECKED *)
       | Ppat_construct (_, None ,_) -> d + 1
         
       | Ppat_construct (lid, Some p' ,_) -> 
-	  if lid <> Lident "::" then p_depth (d + 1) p' 
+	  if lid.lid <> Lident "::" then p_depth (d + 1) p' 
 	  else p_depth d  p'
 
       | Ppat_variant (_,None) ->  d + 1
@@ -173,7 +173,7 @@ let qualif_from_oid oid  = function
       end
   | p_desc -> p_desc
       
-let is_list (lid:Longident.t) = match lid with
+let is_list (lid:Longident.t) = match lid.lid with
   | Lident ("[]"|"(hd :: tl)") -> true
   | _ -> false
 
@@ -196,6 +196,8 @@ module Lpp = struct
     | Lident s    -> fprintf fmt "%s" s
     | Ldot (t, s)   -> fprintf fmt "%a.%s" print_lid t s 
     | Lapply (t, t2) -> fprintf fmt "%a %a" print_lid t print_lid t2
+
+  let print_lid fmt lid = print_lid fmt lid.lid
 	
   let rec print_record ?tag_first_wildcard fmt lis =
     let (hd_lid,hd_pat),tl = List.hd lis, List.tl lis in
@@ -237,7 +239,7 @@ module Lpp = struct
 		List.iter (fun p -> fprintf fmt ", %a" print_pattern p.ppat_desc ) r;
 		fprintf fmt ")" 
 	end
-    | Ppat_construct (Lident "::", Some {ppat_desc = Ppat_tuple [t ; q]}, _) ->
+    | Ppat_construct ({lid = Lident "::"}, Some {ppat_desc = Ppat_tuple [t ; q]}, _) ->
       fprintf fmt "%a :: %a"
 	print_pattern t.ppat_desc
 	print_pattern q.ppat_desc

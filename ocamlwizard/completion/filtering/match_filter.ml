@@ -89,8 +89,8 @@ let given_is_include special_behv gvn my_p =
 	F.eprintf "|given-lg| = %d and |extracted-lp| = %d@."
 	  (L.length lg)(L.length lp)
       end;
-    let lg = L.map (fun (nm,ty) -> (Util.lid_head nm,ty)) lg in
-    let lp = L.map (fun (nm,ty) -> (Util.lid_head nm,ty)) lp in
+    let lg = L.map (fun (nm,ty) -> (Util.lid_head nm.Longident.lid,ty)) lg in
+    let lp = L.map (fun (nm,ty) -> (Util.lid_head nm.Longident.lid,ty)) lp in
     
     let f_cmp (nm1, _) (nm2, _) = compare nm1 nm2 in 
     let normalize lnorm = L.filter (fun (nm,_) -> L.mem_assoc nm lnorm) in
@@ -174,8 +174,8 @@ let rec make_projection acc gvn exp_p =
 	  L.fold_left2 make_projection acc l1 l2
 	  
       | Ppat_record (lg, _), Ppat_record (lp, _) -> 
-	  let lg = L.map (fun (nm,ty) -> (Util.lid_head nm,ty)) lg in
-	  let lp = L.map (fun (nm,ty) -> (Util.lid_head nm,ty)) lp in
+	  let lg = L.map (fun (nm,ty) -> (Util.lid_head nm.Longident.lid,ty)) lg in
+	  let lp = L.map (fun (nm,ty) -> (Util.lid_head nm.Longident.lid,ty)) lp in
 	  let f_cmp (nm1, _) (nm2, _) = compare nm1 nm2 in 
 	  let normalize lnrm = L.filter (fun (nm,_) -> L.mem_assoc nm lnrm) in
 	  let lp = L.sort f_cmp (normalize lg lp)in

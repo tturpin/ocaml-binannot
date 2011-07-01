@@ -67,6 +67,8 @@ let rec print_lid fmt = function
   | Lident s    -> fprintf fmt "%s" s
   | Ldot (t, s)   -> fprintf fmt "%a.%s" print_lid t s 
   | Lapply (t, t2) -> fprintf fmt "%a %a" print_lid t print_lid t2
+
+let print_lid fmt lid = print_lid fmt lid.lid
       
 let rec print_record fmt lis =
   let (hd_lid,hd_pat),tl = List.hd lis, List.tl lis in

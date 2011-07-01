@@ -38,8 +38,8 @@ let mk_option_list lis =
     
 let mk_bool_pats () = 
   let loc = Location.none in
-  let yea = Longident.Lident "true" in
+  let yea = Longident.lident Location.none "true" in
   let yea = {ppat_desc = Ppat_construct(yea, None, false); ppat_loc = loc} in
-  let no = Longident.Lident "false" in
+  let no = Longident.lident Location.none "false" in
   let no = {ppat_desc = Ppat_construct(no, None, false); ppat_loc = loc} in 
   [yea ; no]
