@@ -200,6 +200,7 @@ let from_ident ident = Ident.name ident
 
 
 let from_path path = Path.name path
+let from_path_loc path = Path.name path.Path.path
 
 let to_path n =
   match

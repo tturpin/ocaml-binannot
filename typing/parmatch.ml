@@ -326,7 +326,7 @@ let all_record_args lbls = match lbls with
 | (_, {lbl_all=lbl_all},_)::_ ->
     let t =
       Array.map
-        (fun lbl -> Path.Pident (Ident.create "?"), lbl,omega) lbl_all in
+        (fun lbl -> Path.pident Location.none (Ident.create "?"), lbl,omega) lbl_all in
     List.iter
       (fun ((_, lbl,_) as x) ->  t.(lbl.lbl_pos) <- x)
       lbls ;
@@ -699,7 +699,7 @@ let complete_tags nconsts nconstrs tags =
 
 (* build a pattern from a constructor list *)
 let pat_of_constr ex_pat cstr =
- {ex_pat with pat_desc = Tpat_construct (Path.Pident (Ident.create "?"), cstr,omegas cstr.cstr_arity)}
+ {ex_pat with pat_desc = Tpat_construct (Path.pident ex_pat.pat_loc (Ident.create "?"), cstr,omegas cstr.cstr_arity)}
 
 let rec pat_of_constrs ex_pat = function
 | [] -> raise Empty

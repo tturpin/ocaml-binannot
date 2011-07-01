@@ -43,7 +43,7 @@ let rec lident_of_path path =
 	Longident.Lapply (lident_of_path p1, lident_of_path p2)
 
 let lident_of_path path =
-  Longident.longident Location.none (lident_of_path path)
+  Longident.longident path.Path.loc (lident_of_path path.Path.path)
 
 let rec untype_structure str =
   List.map untype_structure_item str.str_items
@@ -259,10 +259,10 @@ and untype_expression exp =
     | Texp_new (path, _) -> Pexp_new (lident_of_path path)
     | Texp_instvar (_, path) -> Pexp_ident (lident_of_path path)
     | Texp_setinstvar (_, path, exp) ->
-        Pexp_setinstvar (Path.name path, untype_expression exp)
+        Pexp_setinstvar (Path.name path.Path.path, untype_expression exp)
     | Texp_override (_, list) ->
         Pexp_override (List.map (fun (path, exp) ->
-              Path.name path, untype_expression exp
+              Path.name path.Path.path, untype_expression exp
           ) list)
     | Texp_letmodule (id, mexpr, exp) ->
         Pexp_letmodule (Ident.name id, untype_module_expr mexpr,

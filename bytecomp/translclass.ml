@@ -255,7 +255,7 @@ let rec build_class_init cla cstr super inh_init cl_init msubst top cl =
     Tcl_ident (path, _) ->
       begin match inh_init with
         (obj_init, path')::inh_init ->
-          let lpath = transl_path path in
+          let lpath = transl_path_loc path in
           (inh_init,
            Llet (Strict, obj_init,
                  mkappl(Lprim(Pfield 1, [lpath]), Lvar cla ::
@@ -339,8 +339,8 @@ let rec build_class_init cla cstr super inh_init cl_init msubst top cl =
       let cl = ignore_cstrs cl in
       begin match cl.cl_desc, inh_init with
         Tcl_ident (path, _), (obj_init, path')::inh_init ->
-          assert (Path.same path path');
-          let lpath = transl_path path in
+          assert (Path.same path.Path.path path'.Path.path);
+          let lpath = transl_path_loc path in
           let inh = Ident.create "inh"
           and ofs = List.length vals + 1
           and valids, methids = super in
@@ -399,7 +399,7 @@ let rec transl_class_rebind obj_init cl vf =
   match cl.cl_desc with
     Tcl_ident (path, _) ->
       if vf = Concrete then begin
-        try if (Env.find_class path cl.cl_env).cty_new = None then raise Exit
+        try if (Env.find_class path.Path.path cl.cl_env).cty_new = None then raise Exit
         with Not_found -> raise Exit
       end;
       (path, obj_init)
@@ -425,7 +425,7 @@ let rec transl_class_rebind obj_init cl vf =
   | Tcl_constraint (cl', _, _, _, _) ->
       let path, obj_init = transl_class_rebind obj_init cl' vf in
       let rec check_constraint = function
-          Cty_constr(path', _, _) when Path.same path path' -> ()
+          Cty_constr(path', _, _) when Path.same path.Path.path path' -> ()
         | Cty_fun (_, _, cty) -> check_constraint cty
         | _ -> raise Exit
       in
@@ -450,7 +450,7 @@ let transl_class_rebind ids cl vf =
     if not (Translcore.check_recursive_lambda ids obj_init') then
       raise(Error(cl.cl_loc, Illegal_class_expr));
     let id = (obj_init' = lfunction [self] obj_init0) in
-    if id then transl_path path else
+    if id then transl_path_loc path else
 
     let cla = Ident.create "class"
     and new_init = Ident.create "new_init"
@@ -460,7 +460,7 @@ let transl_class_rebind ids cl vf =
     Llet(
     Strict, new_init, lfunction [obj_init] obj_init',
     Llet(
-    Alias, cla, transl_path path,
+    Alias, cla, transl_path_loc path,
     Lprim(Pmakeblock(0, Immutable),
           [mkappl(Lvar new_init, [lfield cla 0]);
            lfunction [table]
@@ -747,7 +747,7 @@ let transl_class ids cl_id pub_meths cl vflag =
     Lprim(Pmakeblock(0, Immutable),
           menv :: List.map (fun id -> Lvar id) !new_ids_init)
   and linh_envs =
-    List.map (fun (_, p) -> Lprim(Pfield 3, [transl_path p]))
+    List.map (fun (_, p) -> Lprim(Pfield 3, [transl_path_loc p]))
       (List.rev inh_init)
   in
   let make_envs lam =
@@ -762,9 +762,9 @@ let transl_class ids cl_id pub_meths cl vflag =
   in
   let inh_paths =
     List.filter
-      (fun (_,path) -> List.mem (Path.head path) new_ids) inh_init in
+      (fun (_,path) -> List.mem (Path.head path.Path.path) new_ids) inh_init in
   let inh_keys =
-    List.map (fun (_,p) -> Lprim(Pfield 1, [transl_path p])) inh_paths in
+    List.map (fun (_,p) -> Lprim(Pfield 1, [transl_path_loc p])) inh_paths in
   let lclass lam =
     Llet(Strict, class_init,
          Lfunction(Curried, [cla], def_ids cla cl_init), lam)

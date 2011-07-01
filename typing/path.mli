@@ -27,3 +27,11 @@ val nopos: int
 
 val name: t -> string
 val head: t -> Ident.t
+
+type t_loc = {
+  path : t;
+  loc : Location.t
+}
+
+val path : Location.t -> t -> t_loc
+val pident : Location.t -> Ident.t -> t_loc

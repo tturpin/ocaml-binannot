@@ -235,7 +235,7 @@ let rec transl_type env policy styp =
            try unify_param env ty' cty.ctyp_type with Unify trace ->
              raise (Error(sty.ptyp_loc, Type_mismatch (swap_list trace))))
         (List.combine stl args) params;
-      let constr = newconstr path (List.map (fun ctyp -> ctyp.ctyp_type) args) in
+      let constr = newconstr path.Path.path (List.map (fun ctyp -> ctyp.ctyp_type) args) in
       begin try
         Ctype.enforce_constraints env constr
       with Unify trace ->
@@ -297,7 +297,7 @@ let rec transl_type env policy styp =
         (List.combine stl args) params;
 	let ty_args = List.map (fun ctyp -> ctyp.ctyp_type) args in
       let ty =
-        try Ctype.expand_head env (newconstr path ty_args)
+        try Ctype.expand_head env (newconstr path.Path.path ty_args)
         with Unify trace ->
           raise (Error(styp.ptyp_loc, Type_mismatch trace))
       in
@@ -321,7 +321,7 @@ let rec transl_type env policy styp =
               row.row_fields
           in
           let row = { row_closed = true; row_fields = fields;
-                      row_bound = (); row_name = Some (path, ty_args);
+                      row_bound = (); row_name = Some (path.Path.path, ty_args);
                       row_fixed = false; row_more = newvar () } in
           let static = Btype.static_row row in
           let row =
@@ -501,7 +501,7 @@ let rec transl_type env policy styp =
 			     s, transl_type env policy pty
 			  ) l in
       let path = !transl_modtype_longident styp.ptyp_loc env p in
-      let ty = newty (Tpackage (path,
+      let ty = newty (Tpackage (path.Path.path,
                        List.map fst l,
                        List.map (fun (s,cty) -> cty.ctyp_type) ptys))
       in

@@ -69,15 +69,15 @@ exception Error of Location.t * error
 val report_error: formatter -> error -> unit
 
 (* Support for first-class modules. *)
-val transl_modtype_longident: (Location.t -> Env.t -> Longident.t -> Path.t) ref  (* from Typemod *)
+val transl_modtype_longident: (Location.t -> Env.t -> Longident.t -> Path.t_loc) ref  (* from Typemod *)
 val transl_modtype: (Env.t -> Parsetree.module_type -> Typedtree.module_type) ref (* from Typemod *)
 val create_package_mty: Location.t -> Env.t -> Parsetree.package_type -> (string * Parsetree.core_type) list * Parsetree.module_type
 
-val find_type: Env.t -> Location.t -> Longident.t -> Path.t * Types.type_declaration
-val find_constructor: Env.t -> Location.t -> Longident.t -> Path.t * Types.constructor_description
-val find_label: Env.t -> Location.t -> Longident.t -> Path.t * Types.label_description
-val find_value: Env.t -> Location.t -> Longident.t -> Path.t * Types.value_description
-val find_class:  Env.t -> Location.t -> Longident.t -> Path.t * Types.class_declaration
-val find_module: Env.t -> Location.t -> Longident.t -> Path.t * Types.module_type
-val find_modtype: Env.t -> Location.t -> Longident.t -> Path.t * Types.modtype_declaration
-val find_cltype: Env.t -> Location.t -> Longident.t -> Path.t * Types.class_type_declaration
+val find_type: Env.t -> Location.t -> Longident.t -> Path.t_loc * Types.type_declaration
+val find_constructor: Env.t -> Location.t -> Longident.t -> Path.t_loc * Types.constructor_description
+val find_label: Env.t -> Location.t -> Longident.t -> Path.t_loc * Types.label_description
+val find_value: Env.t -> Location.t -> Longident.t -> Path.t_loc * Types.value_description
+val find_class:  Env.t -> Location.t -> Longident.t -> Path.t_loc * Types.class_declaration
+val find_module: Env.t -> Location.t -> Longident.t -> Path.t_loc * Types.module_type
+val find_modtype: Env.t -> Location.t -> Longident.t -> Path.t_loc * Types.modtype_declaration
+val find_cltype: Env.t -> Location.t -> Longident.t -> Path.t_loc * Types.class_type_declaration

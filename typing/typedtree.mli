@@ -36,7 +36,7 @@ the pattern matching engine, and don't introduce bugs. *)
 and alias_kind =
   TPat_alias of Ident.t
 | TPat_constraint of core_type
-| TPat_type of Path.t
+| TPat_type of Path.t_loc
 
 and pattern_desc =
     Tpat_any
@@ -44,9 +44,9 @@ and pattern_desc =
   | Tpat_alias of pattern * alias_kind
   | Tpat_constant of constant
   | Tpat_tuple of pattern list
-  | Tpat_construct of Path.t * constructor_description * pattern list
+  | Tpat_construct of Path.t_loc * constructor_description * pattern list
   | Tpat_variant of label * pattern option * row_desc ref
-  | Tpat_record of (Path.t * label_description * pattern) list * closed_flag
+  | Tpat_record of (Path.t_loc * label_description * pattern) list * closed_flag
   | Tpat_array of pattern list
   | Tpat_or of pattern * pattern * row_desc option
   | Tpat_lazy of pattern
@@ -59,7 +59,7 @@ and expression =
 
 
 and expression_desc =
-    Texp_ident of Path.t * Types.value_description
+    Texp_ident of Path.t_loc * Types.value_description
   | Texp_constant of constant
   | Texp_let of rec_flag * (pattern * expression) list * expression
   | Texp_function of label * (pattern * expression) list * partial
@@ -67,11 +67,11 @@ and expression_desc =
   | Texp_match of expression * (pattern * expression) list * partial
   | Texp_try of expression * (pattern * expression) list
   | Texp_tuple of expression list
-  | Texp_construct of Path.t * constructor_description * expression list
+  | Texp_construct of Path.t_loc * constructor_description * expression list
   | Texp_variant of label * expression option
-  | Texp_record of (Path.t * label_description * expression) list * expression option
-  | Texp_field of expression * Path.t * label_description
-  | Texp_setfield of expression * Path.t * label_description * expression
+  | Texp_record of (Path.t_loc * label_description * expression) list * expression option
+  | Texp_field of expression * Path.t_loc * label_description
+  | Texp_setfield of expression * Path.t_loc * label_description * expression
   | Texp_array of expression list
   | Texp_ifthenelse of expression * expression * expression option
   | Texp_sequence of expression * expression
@@ -81,10 +81,10 @@ and expression_desc =
   | Texp_constraint of expression * core_type option * core_type option
   | Texp_when of expression * expression
   | Texp_send of expression * meth * expression option
-  | Texp_new of Path.t * Types.class_declaration
-  | Texp_instvar of Path.t * Path.t
-  | Texp_setinstvar of Path.t * Path.t * expression
-  | Texp_override of Path.t * (Path.t * expression) list
+  | Texp_new of Path.t_loc * Types.class_declaration
+  | Texp_instvar of Path.t_loc * Path.t_loc
+  | Texp_setinstvar of Path.t_loc * Path.t_loc * expression
+  | Texp_override of Path.t_loc * (Path.t_loc * expression) list
   | Texp_letmodule of Ident.t * module_expr * expression
   | Texp_assert of expression
   | Texp_assertfalse
@@ -93,7 +93,7 @@ and expression_desc =
   | Texp_object of class_structure * string list
   | Texp_newtype of string * expression
   | Texp_pack of module_expr
-  | Texp_open of Path.t * expression
+  | Texp_open of Path.t_loc * expression
 
 and meth =
     Tmeth_name of string
@@ -108,7 +108,7 @@ and class_expr =
     cl_env: Env.t }
 
 and class_expr_desc =
-    Tcl_ident of Path.t * core_type list
+    Tcl_ident of Path.t_loc * core_type list
   | Tcl_structure of class_structure
   | Tcl_fun of label * pattern * (Ident.t * expression) list * class_expr * partial
   | Tcl_apply of class_expr * (label * expression option * optional) list
@@ -158,7 +158,7 @@ and module_type_constraint =
 | Tmodtype_explicit of module_type
 
 and module_expr_desc =
-    Tmod_ident of Path.t
+    Tmod_ident of Path.t_loc
   | Tmod_structure of structure
   | Tmod_functor of Ident.t * module_type * module_expr
   | Tmod_apply of module_expr * module_expr * module_coercion
@@ -181,11 +181,11 @@ and structure_item_desc =
   | Tstr_primitive of Ident.t * value_description
   | Tstr_type of (Ident.t * type_declaration) list
   | Tstr_exception of Ident.t * exception_declaration
-  | Tstr_exn_rebind of Ident.t * Path.t
+  | Tstr_exn_rebind of Ident.t * Path.t_loc
   | Tstr_module of Ident.t * module_expr
   | Tstr_recmodule of (Ident.t * module_type * module_expr) list
   | Tstr_modtype of Ident.t * module_type
-  | Tstr_open of Path.t
+  | Tstr_open of Path.t_loc
   | Tstr_class of (class_declaration * string list * virtual_flag) list
 (*      (Ident.t * int * string list * class_expr * virtual_flag) list *)
   | Tstr_class_type of (Ident.t * class_type_declaration) list
@@ -197,10 +197,10 @@ and module_type =
     mty_loc: Location.t }
 
 and module_type_desc =
-    Tmty_ident of Path.t
+    Tmty_ident of Path.t_loc
   | Tmty_signature of signature
   | Tmty_functor of Ident.t * module_type * module_type
-  | Tmty_with of module_type * (Path.t * with_constraint) list
+  | Tmty_with of module_type * (Path.t_loc * with_constraint) list
   | Tmty_typeof of module_expr
 
 and signature = {
@@ -219,7 +219,7 @@ and signature_item_desc =
   | Tsig_module of Ident.t * module_type
   | Tsig_recmodule of (Ident.t * module_type) list
   | Tsig_modtype of Ident.t * modtype_declaration
-  | Tsig_open of Path.t
+  | Tsig_open of Path.t_loc
   | Tsig_include of module_type
   | Tsig_class of class_description list
   | Tsig_class_type of class_type_declaration list
@@ -230,9 +230,9 @@ and modtype_declaration =
 
 and with_constraint =
     Twith_type of type_declaration
-  | Twith_module of Path.t
+  | Twith_module of Path.t_loc
   | Twith_typesubst of type_declaration
-  | Twith_modsubst of Path.t
+  | Twith_modsubst of Path.t_loc
 
 and module_coercion =
     Tcoerce_none
@@ -251,16 +251,16 @@ and core_type_desc =
   | Ttyp_var of string
   | Ttyp_arrow of label * core_type * core_type
   | Ttyp_tuple of core_type list
-  | Ttyp_constr of Path.t * core_type list
+  | Ttyp_constr of Path.t_loc * core_type list
   | Ttyp_object of core_field_type list
-  | Ttyp_class of Path.t * core_type list * label list
+  | Ttyp_class of Path.t_loc * core_type list * label list
   | Ttyp_alias of core_type * string
   | Ttyp_variant of row_field list * bool * label list option
   | Ttyp_poly of string list * core_type
   | Ttyp_package of package_type
 
 and package_type = {
-  pack_name : Path.t;
+  pack_name : Path.t_loc;
   pack_fields : (string * core_type) list;
   pack_type : Types.module_type;
 }
@@ -308,7 +308,7 @@ and class_type =
     cltyp_loc: Location.t }
 
 and class_type_desc =
-    Tcty_constr of Path.t * core_type list
+    Tcty_constr of Path.t_loc * core_type list
   | Tcty_signature of class_signature
   | Tcty_fun of label * core_type * class_type
 

@@ -46,3 +46,11 @@ let rec head = function
     Pident id -> id
   | Pdot(p, s, pos) -> head p
   | Papply(p1, p2) -> assert false
+
+type t_loc = {
+  path : t;
+  loc : Location.t
+}
+
+let path loc p = {path = p ; loc = loc}
+let pident loc name = path loc (Pident name)

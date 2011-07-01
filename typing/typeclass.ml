@@ -457,7 +457,7 @@ and class_type env scty =
             cty'
         )       styl params
       in
-      let typ = Cty_constr (path, params, clty) in
+      let typ = Cty_constr (path.Path.path, params, clty) in
       cltyp (Tcty_constr (path, ctys)) typ loc
 
   | Pcty_signature pcsig ->
@@ -810,7 +810,7 @@ and class_expr cl_num val_env met_env scl =
       let (params, clty) =
         Ctype.instance_class decl.cty_params decl.cty_type
       in
-      let clty' = abbreviate_class_type path params clty in
+      let clty' = abbreviate_class_type path.Path.path params clty in
       if List.length params <> List.length tyl then
         raise(Error(scl.pcl_loc,
                     Parameter_arity_mismatch (lid, List.length params,
@@ -1491,7 +1491,7 @@ let rec unify_parents env ty cl =
   match cl.cl_desc with
     Tcl_ident (p, _) ->
       begin try
-        let decl = Env.find_class p env in
+        let decl = Env.find_class p.Path.path env in
         let _, body = Ctype.find_cltype_for_path env decl.cty_path in
         Ctype.unify env ty (Ctype.instance body)
       with exn -> assert (exn = Not_found)

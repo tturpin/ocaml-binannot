@@ -44,7 +44,7 @@ module Typedtree_search :
       (** This function returns the [Path.t] associated to the given exception rebind name,
          in the table.
          @raise Not_found if the exception rebind was not found.*)
-      val search_exception_rebind : tab -> string -> Path.t
+      val search_exception_rebind : tab -> string -> Path.t_loc
 
       (** This function returns the [Typedtree.type_declaration] associated to the given type name,
          in the given table.

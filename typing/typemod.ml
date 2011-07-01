@@ -66,7 +66,7 @@ let extract_sig_open env loc mty =
 let type_open env loc lid =
   let (path, mty) = Typetexp.find_module env loc lid in
   let sg = extract_sig_open env loc mty in
-  path, Env.open_signature path sg env
+  path, Env.open_signature path.Path.path sg env
 
 (* Record a module type *)
 let rm node =
@@ -155,14 +155,14 @@ let merge_constraint initial_env loc sg lid constr =
     | (Sig_module(id, mty, rs), [s], Pwith_module lid)
       when Ident.name id = s ->
         let (path, mty') = Typetexp.find_module initial_env loc lid in
-        let newmty = Mtype.strengthen env mty' path in
+        let newmty = Mtype.strengthen env mty' path.Path.path in
             ignore(Includemod.modtypes env newmty mty);
             (Pident id, Twith_module path),
         Sig_module(id, newmty, rs) :: rem
     | (Sig_module(id, mty, rs), [s], Pwith_modsubst lid)
       when Ident.name id = s ->
         let (path, mty') = Typetexp.find_module initial_env loc lid in
-        let newmty = Mtype.strengthen env mty' path in
+        let newmty = Mtype.strengthen env mty' path.Path.path in
         ignore(Includemod.modtypes env newmty mty);
         real_id := Some id;
         (Pident id, Twith_modsubst path), rem
@@ -179,7 +179,8 @@ let merge_constraint initial_env loc sg lid constr =
         cstr, item :: items in
   try
     let names = Longident.flatten lid in
-    let (tcstr, sg) = merge initial_env sg names None in
+    let ((path, tcstr), sg) = merge initial_env sg names None in
+    let tcstr = Path.path lid.Longident.loc path, tcstr in
     let sg =
     match names, constr with
       [s], Pwith_typesubst sdecl ->
@@ -200,13 +201,13 @@ let merge_constraint initial_env loc sg lid constr =
         let (path, _) =
           try Env.lookup_type lid initial_env with Not_found -> assert false
         in
-        let sub = Subst.add_type id path Subst.identity in
+        let sub = Subst.add_type id path.Path.path Subst.identity in
         Subst.signature sub sg
     | [s], Pwith_modsubst lid ->
         let id =
           match !real_id with None -> assert false | Some id -> id in
         let (path, _) = Typetexp.find_module initial_env loc lid in
-        let sub = Subst.add_module id path Subst.identity in
+        let sub = Subst.add_module id path.Path.path Subst.identity in
         Subst.signature sub sg
     | _ ->
           sg
@@ -239,7 +240,7 @@ let rec approx_modtype env smty =
   match smty.pmty_desc with
     Pmty_ident lid ->
       let (path, info) = Typetexp.find_modtype env smty.pmty_loc lid in
-      Mty_ident path
+      Mty_ident path.Path.path
   | Pmty_signature ssg ->
       Mty_signature(approx_sig env ssg)
   | Pmty_functor(param, sarg, sres) ->
@@ -379,7 +380,7 @@ let rec transl_modtype env smty =
   match smty.pmty_desc with
     Pmty_ident lid ->
       let path = transl_modtype_longident loc env lid in
-      mkmty (Tmty_ident path) (Mty_ident path) loc
+      mkmty (Tmty_ident path) (Mty_ident path.Path.path) loc
   | Pmty_signature ssg ->
       let sg = transl_signature env ssg in
       mkmty (Tmty_signature sg) (Mty_signature sg.sig_type) loc
@@ -575,7 +576,7 @@ exception Not_a_path
 
 let rec path_of_module mexp =
   match mexp.mod_desc with
-    Tmod_ident p -> p
+    Tmod_ident p -> p.Path.path
   | Tmod_apply(funct, arg, coercion) when !Clflags.applicative_functors ->
       Papply(path_of_module funct, path_of_module arg)
   | _ -> raise Not_a_path
@@ -766,7 +767,7 @@ let rec type_module sttn funct_body anchor env smod =
     Pmod_ident lid ->
       let (path, mty) = Typetexp.find_module env smod.pmod_loc lid in
       rm { mod_desc = Tmod_ident path;
-           mod_type = if sttn then Mtype.strengthen env mty path else mty;
+           mod_type = if sttn then Mtype.strengthen env mty path.Path.path else mty;
            mod_env = env;
            mod_loc = smod.pmod_loc }
   | Pmod_structure sstr ->
@@ -920,7 +921,7 @@ and type_structure funct_body anchor env sstr scope =
         let (path, arg) = Typedecl.transl_exn_rebind env loc longid in
         let (id, newenv) = Env.enter_exception name arg env in
         let (str_rem, sig_rem, final_env) = type_struct newenv srem in
-        (mkstr (Tstr_exn_rebind(id, path)) loc :: str_rem,
+        (mkstr (Tstr_exn_rebind(id, Path.path loc path)) loc :: str_rem,
          Sig_exception(id, arg) :: sig_rem,
          final_env)
     | Pstr_module(name, smodl) ->

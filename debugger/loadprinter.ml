@@ -129,7 +129,7 @@ let install_printer ppf lid =
   let (ty_arg, path, is_old_style) = find_printer_type lid in
   let v =
     try
-      use_debugger_symtable eval_path path
+      use_debugger_symtable eval_path path.Path.path
     with Symtable.Error(Symtable.Undefined_global s) ->
       raise(Error(Unavailable_module(s, lid))) in
   let print_function =
@@ -137,12 +137,12 @@ let install_printer ppf lid =
       (fun formatter repr -> Obj.obj v (Obj.obj repr))
     else
       (fun formatter repr -> Obj.obj v formatter (Obj.obj repr)) in
-  Printval.install_printer path ty_arg ppf print_function
+  Printval.install_printer path.Path.path ty_arg ppf print_function
 
 let remove_printer lid =
   let (ty_arg, path, is_old_style) = find_printer_type lid in
   try
-    Printval.remove_printer path
+    Printval.remove_printer path.Path.path
   with Not_found ->
     raise(Error(No_active_printer lid))
 

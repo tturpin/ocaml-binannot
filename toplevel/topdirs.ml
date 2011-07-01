@@ -176,20 +176,20 @@ let find_printer_type ppf lid =
 let dir_install_printer ppf lid =
   try
     let (ty_arg, path, is_old_style) = find_printer_type ppf lid in
-    let v = eval_path path in
+    let v = eval_path path.Path.path in
     let print_function =
       if is_old_style then
         (fun formatter repr -> Obj.obj v (Obj.obj repr))
       else
         (fun formatter repr -> Obj.obj v formatter (Obj.obj repr)) in
-    install_printer path ty_arg print_function
+    install_printer path.Path.path ty_arg print_function
   with Exit -> ()
 
 let dir_remove_printer ppf lid =
   try
     let (ty_arg, path, is_old_style) = find_printer_type ppf lid in
     begin try
-      remove_printer path
+      remove_printer path.Path.path
     with Not_found ->
       fprintf ppf "No printer named %a.@." Printtyp.longident lid
     end
@@ -217,7 +217,7 @@ let dir_trace ppf lid =
         fprintf ppf "%a is an external function and cannot be traced.@."
         Printtyp.longident lid
     | _ ->
-        let clos = eval_path path in
+        let clos = eval_path path.Path.path in
         (* Nothing to do if it's not a closure *)
         if Obj.is_block clos
         && (Obj.tag clos = Obj.closure_tag || Obj.tag clos = Obj.infix_tag)
@@ -225,12 +225,12 @@ let dir_trace ppf lid =
         match is_traced clos with
         | Some opath ->
             fprintf ppf "%a is already traced (under the name %a).@."
-            Printtyp.path path
+            Printtyp.path path.Path.path
             Printtyp.path opath
         | None ->
             (* Instrument the old closure *)
             traced_functions :=
-              { path = path;
+              { path = path.Path.path;
                 closure = clos;
                 actual_code = get_code_pointer clos;
                 instrumented_fun =
@@ -252,7 +252,7 @@ let dir_untrace ppf lid =
         fprintf ppf "%a was not traced.@." Printtyp.longident lid;
         []
     | f :: rem ->
-        if Path.same f.path path then begin
+        if Path.same f.path path.Path.path then begin
           set_code_pointer f.closure f.actual_code;
           fprintf ppf "%a is no longer traced.@." Printtyp.longident lid;
           rem

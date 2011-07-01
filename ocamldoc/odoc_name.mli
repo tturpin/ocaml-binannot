@@ -61,6 +61,7 @@ val from_ident : Ident.t -> t
 
 (** Get a name from a [Path.t]. *)
 val from_path : Path.t -> t
+val from_path_loc : Path.t_loc -> t
 
 (** Get a [Path.t] from a name.*)
 val to_path : t -> Path.t

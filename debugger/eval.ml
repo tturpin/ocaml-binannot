@@ -78,10 +78,10 @@ let rec expression event env = function
                Env.lookup_value_lid (Longident.Lident ("self-" ^ cl_num)) env
              in
              let v = path event p0 in
-             let i = path event p in
+             let i = path event p.Path.path in
              Debugcom.Remote_value.field v (Debugcom.Remote_value.obj i)
          | _ ->
-             path event p
+             path event p.Path.path
          end,
          Ctype.correct_levels valdesc.val_type)
       with Not_found ->

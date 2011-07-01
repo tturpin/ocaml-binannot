@@ -244,7 +244,7 @@ let compile_recmodule compile_rhs bindings cont =
 let rec transl_module cc rootpath mexp =
   match mexp.mod_desc with
     Tmod_ident path ->
-      apply_coercion cc (transl_path path)
+      apply_coercion cc (transl_path_loc path)
   | Tmod_structure str ->
       transl_struct [] cc rootpath str
   | Tmod_functor(param, mty, body) ->
@@ -310,7 +310,7 @@ and transl_structure fields cc rootpath = function
       Llet(Strict, id, transl_exception id (field_path rootpath id) decl,
            transl_structure (id :: fields) cc rootpath rem)
   | Tstr_exn_rebind(id, path) ->
-      Llet(Strict, id, transl_path path,
+      Llet(Strict, id, transl_path_loc path,
            transl_structure (id :: fields) cc rootpath rem)
   | Tstr_module(id, modl) ->
       Llet(Strict, id,
@@ -408,7 +408,7 @@ let transl_store_structure glob map prims str =
       Lsequence(Llet(Strict, id, lam, store_ident id),
                 transl_store (add_ident false id subst) rem)
   | Tstr_exn_rebind(id, path) ->
-      let lam = subst_lambda subst (transl_path path) in
+      let lam = subst_lambda subst (transl_path_loc path) in
       Lsequence(Llet(Strict, id, lam, store_ident id),
                 transl_store (add_ident false id subst) rem)
   | Tstr_module(id, modl) ->
@@ -628,7 +628,7 @@ let transl_toplevel_item item =
   | Tstr_exception(id, decl) ->
       toploop_setvalue id (transl_exception id None decl)
   | Tstr_exn_rebind(id, path) ->
-      toploop_setvalue id (transl_path path)
+      toploop_setvalue id (transl_path_loc path)
   | Tstr_module(id, modl) ->
       (* we need to use the unique name for the module because of issues
          with "open" (PR#1672) *)

@@ -125,10 +125,10 @@ module ForIterator = struct
     let enter_expression exp =
       match exp.exp_desc with
         Texp_ident (path, _) ->
-          let full_name = name_of_path path in
+          let full_name = name_of_path path.Path.path in
           begin
             try
-              let annot = Env.find_annot path exp.exp_env in
+              let annot = Env.find_annot path.Path.path exp.exp_env in
               Stypes.record
                 (Stypes.An_ident (exp.exp_loc, full_name , annot))
             with Not_found ->

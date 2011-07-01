@@ -418,7 +418,7 @@ let rec lookup_module_descr lid env =
       end
   | Lapply(l1, l2) ->
       let (p1, desc1) = lookup_module_descr l1 env in
-      let (p2, mty2) = lookup_module l2 env in
+      let (p2, mty2) = lookup_module_lid l2 env in
       begin match Lazy.force desc1 with
         Functor_comps f ->
           !check_modtype_inclusion env mty2 p2 f.fcomp_arg;
@@ -427,7 +427,7 @@ let rec lookup_module_descr lid env =
           raise Not_found
       end
 
-and lookup_module lid env =
+and lookup_module_lid lid env =
   match lid with
     Lident s ->
       begin try
@@ -448,7 +448,7 @@ and lookup_module lid env =
       end
   | Lapply(l1, l2) ->
       let (p1, desc1) = lookup_module_descr l1 env in
-      let (p2, mty2) = lookup_module l2 env in
+      let (p2, mty2) = lookup_module_lid l2 env in
       let p = Papply(p1, p2) in
       begin match Lazy.force desc1 with
         Functor_comps f ->
@@ -458,8 +458,6 @@ and lookup_module lid env =
       | Structure_comps c ->
           raise Not_found
       end
-
-let lookup_module lid = lookup_module lid.lid
 
 let lookup proj1 proj2 lid env =
   match lid with
@@ -512,14 +510,19 @@ and lookup_class_lid =
 and lookup_cltype_lid =
   lookup (fun env -> env.cltypes) (fun sc -> sc.comp_cltypes)
 
-let lookup_value lid = lookup_value_lid lid.lid
-let lookup_annot lid = lookup_annot_lid lid.lid
-let lookup_constructor lid = lookup_constructor_lid lid.lid
-let lookup_label lid = lookup_label_lid lid.lid
-let lookup_type lid = lookup_type_lid lid.lid
-let lookup_modtype lid = lookup_modtype_lid lid.lid
-let lookup_class lid = lookup_class_lid lid.lid
-let lookup_cltype lid = lookup_cltype_lid lid.lid
+let lookup f lid env =
+  let p, x = f lid.lid env in
+  path lid.Longident.loc p, x
+
+let lookup_value = lookup lookup_value_lid
+let lookup_annot = lookup lookup_annot_lid
+let lookup_constructor = lookup lookup_constructor_lid
+let lookup_label = lookup lookup_label_lid
+let lookup_type = lookup lookup_type_lid
+let lookup_module = lookup lookup_module_lid
+let lookup_modtype = lookup lookup_modtype_lid
+let lookup_class = lookup lookup_class_lid
+let lookup_cltype = lookup lookup_cltype_lid
 
 let ident_tbl_fold f t acc =
   List.fold_right

@@ -412,7 +412,7 @@ module Analyser =
       );
 *)
       match clexp.Typedtree.cl_desc with
-        Typedtree.Tcl_ident (p,_) -> Name.from_path p
+        Typedtree.Tcl_ident (p,_) -> Name.from_path_loc p
       | Typedtree.Tcl_constraint (class_expr, _, _, _, _)
       | Typedtree.Tcl_apply (class_expr, _) -> tt_name_of_class_expr class_expr
 (*
@@ -662,7 +662,7 @@ module Analyser =
         (Parsetree.Pcl_constr (lid, _), tt_class_exp_desc ) ->
           let name =
             match tt_class_exp_desc with
-              Typedtree.Tcl_ident (p, _) -> Name.from_path p
+              Typedtree.Tcl_ident (p, _) -> Name.from_path_loc p
             | _ ->
                 (* we try to get the name from the environment. *)
                 (* A VOIR : dommage qu'on n'ait pas un Tcl_ident :-( même quand on a class tutu = toto *)
@@ -751,7 +751,7 @@ module Analyser =
             (* we want an ident, or else the class applied will appear in the form object ... end,
                because if the class applied has no name, the code is kinda ugly, isn't it ? *)
             match tt_class_expr2.Typedtree.cl_desc with
-              Typedtree.Tcl_ident (p, _) -> Name.from_path p (* A VOIR : obtenir le nom complet *)
+              Typedtree.Tcl_ident (p, _) -> Name.from_path_loc p (* A VOIR : obtenir le nom complet *)
             | _ ->
                 (* A VOIR : dommage qu'on n'ait pas un Tcl_ident :-( même quand on a class tutu = toto *)
                 match p_class_expr2.Parsetree.pcl_desc with
@@ -849,7 +849,7 @@ module Analyser =
        is not an ident of a constraint on an ident. *)
     let rec tt_name_from_module_expr mod_expr =
       match mod_expr.Typedtree.mod_desc with
-        Typedtree.Tmod_ident p -> Name.from_path p
+        Typedtree.Tmod_ident p -> Name.from_path_loc p
       | Typedtree.Tmod_constraint (m_exp, _, _, _) -> tt_name_from_module_expr m_exp
       | Typedtree.Tmod_structure _
       | Typedtree.Tmod_functor _
@@ -1243,7 +1243,7 @@ module Analyser =
               ex_name = complete_name ;
               ex_info = comment_opt ;
               ex_args = [] ;
-              ex_alias = Some { ea_name = (Odoc_env.full_exception_name env (Name.from_path tt_path)) ;
+              ex_alias = Some { ea_name = (Odoc_env.full_exception_name env (Name.from_path_loc tt_path)) ;
                                 ea_ex = None ; } ;
               ex_loc = { loc_impl = Some (!file_name, loc.Location.loc_start.Lexing.pos_cnum) ; loc_inter = None } ;
               ex_code = None ;
@@ -1544,7 +1544,7 @@ module Analyser =
       in
       match (p_module_expr.Parsetree.pmod_desc, tt_module_expr.Typedtree.mod_desc) with
         (Parsetree.Pmod_ident longident, Typedtree.Tmod_ident path) ->
-          let alias_name = Odoc_env.full_module_name env (Name.from_path path) in
+          let alias_name = Odoc_env.full_module_name env (Name.from_path_loc path) in
           { m_base with m_kind = Module_alias { ma_name = alias_name ;
                                                 ma_module = None ; } }
 
@@ -1664,7 +1664,7 @@ module Analyser =
             let s = get_string_of_file exp_loc_end loc_end in
             Printf.sprintf "(val ...%s" s
           in
-          (* let name = Odoc_env.full_module_type_name env (Name.from_path (fst pkg_type)) in *)
+          (* let name = Odoc_env.full_module_type_name env (Name.from_path_loc (fst pkg_type)) in *)
           let name =
             match tt_modtype with
             | Mty_ident p ->

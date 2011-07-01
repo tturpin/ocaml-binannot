@@ -480,7 +480,7 @@ let rec push_defaults loc bindings pat_expr_list partial =
         { exp with exp_loc = loc; exp_desc =
           Texp_match
             ({exp with exp_type = pat.pat_type; exp_desc =
-              Texp_ident (Path.Pident param,
+              Texp_ident (Path.pident Location.none param,
                           {val_type = pat.pat_type; val_kind = Val_reg})},
              pat_expr_list, partial) }
       in
@@ -582,7 +582,7 @@ and transl_exp0 e =
   | Texp_ident(path, {val_kind = Val_anc _}) ->
       raise(Error(e.exp_loc, Free_super_var))
   | Texp_ident(path, {val_kind = Val_reg | Val_self _}) ->
-      transl_path path
+      transl_path_loc path
   | Texp_ident _ -> fatal_error "Translcore.transl_exp: bad Texp_ident"
   | Texp_constant cst ->
       Lconst(Const_base cst)
@@ -746,15 +746,15 @@ and transl_exp0 e =
       in
       event_after e lam
   | Texp_new (cl, _) ->
-      Lapply(Lprim(Pfield 0, [transl_path cl]), [lambda_unit], Location.none)
+      Lapply(Lprim(Pfield 0, [transl_path_loc cl]), [lambda_unit], Location.none)
   | Texp_instvar(path_self, path) ->
-      Lprim(Parrayrefu Paddrarray, [transl_path path_self; transl_path path])
+      Lprim(Parrayrefu Paddrarray, [transl_path_loc path_self; transl_path_loc path])
   | Texp_setinstvar(path_self, path, expr) ->
-      transl_setinstvar (transl_path path_self) path expr
+      transl_setinstvar (transl_path_loc path_self) path expr
   | Texp_override(path_self, modifs) ->
       let cpy = Ident.create "copy" in
       Llet(Strict, cpy,
-           Lapply(Translobj.oo_prim "copy", [transl_path path_self],
+           Lapply(Translobj.oo_prim "copy", [transl_path_loc path_self],
                   Location.none),
            List.fold_right
              (fun (path, expr) rem ->
@@ -952,7 +952,7 @@ and transl_let rec_flag pat_expr_list body =
 
 and transl_setinstvar self var expr =
   Lprim(Parraysetu (if maybe_pointer expr then Paddrarray else Pintarray),
-                    [self; transl_path var; transl_exp expr])
+                    [self; transl_path_loc var; transl_exp expr])
 
 and transl_record all_labels repres lbl_expr_list opt_init_expr =
   let size = Array.length all_labels in

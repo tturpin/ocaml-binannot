@@ -326,7 +326,7 @@ let build_or_pat env loc lid =
   in
   let tyl = List.map (fun _ -> newvar()) decl.type_params in
   let row0 =
-    let ty = expand_head env (newty(Tconstr(path, tyl, ref Mnil))) in
+    let ty = expand_head env (newty(Tconstr(path.Path.path, tyl, ref Mnil))) in
     match ty.desc with
       Tvariant row when static_row row -> row
     | _ -> raise(Error(loc, Not_a_variant_type lid))
@@ -347,7 +347,7 @@ let build_or_pat env loc lid =
       ([],[]) (row_repr row0).row_fields in
   let row =
     { row_fields = List.rev fields; row_more = newvar(); row_bound = ();
-      row_closed = false; row_fixed = false; row_name = Some (path, tyl) }
+      row_closed = false; row_fixed = false; row_name = Some (path.Path.path, tyl) }
   in
   let ty = newty (Tvariant row) in
   let gloc = {loc with Location.loc_ghost=true} in
@@ -963,7 +963,7 @@ let rec approx_type env sty =
         let (path, decl) = Env.lookup_type lid env in
         if List.length ctl <> decl.type_arity then raise Not_found;
         let tyl = List.map (approx_type env) ctl in
-        newconstr path tyl
+        newconstr path.Path.path tyl
       with Not_found -> newvar ()
       end
   | Ptyp_poly (_, sty) ->
@@ -1062,7 +1062,7 @@ let create_package_type loc env (p, l) =
   let s = !Typetexp.transl_modtype_longident loc env p in
   let fields = List.map (fun (name, ct) ->
 			   name, Typetexp.transl_simple_type env false ct) l in
-  let ty = newty (Tpackage (s,
+  let ty = newty (Tpackage (s.Path.path,
                    List.map fst l,
                    List.map (fun (_, cty) -> cty.ctyp_type) fields))
   in
@@ -1107,7 +1107,7 @@ let rec type_exp env sexp =
                       name_of_path p ^ "." ^ s
                 | Path.Papply(p1, p2) -> name_of_path p1 ^ "(" ^ name_of_path p2 ^ ")" in
               Stypes.record  (* moved to genannot *)
-                (Stypes.An_ident (loc, name_of_path path, annot)) (* moved to genannot *)
+                (Stypes.An_ident (loc, name_of_path path.Path.path, annot)) (* moved to genannot *)
             with _ -> ()
           end;
         let (path, desc) = Typetexp.find_value env loc lid in
@@ -1118,12 +1118,12 @@ let rec type_exp env sexp =
                 let (self_path, _) =
                   Env.lookup_value_lid (Longident.Lident ("self-" ^ cl_num)) env
                 in
-                Texp_instvar(self_path, path)
+                Texp_instvar(Path.path loc self_path, path)
             | Val_self (_, _, cl_num, _) ->
                 let (path, _) =
                   Env.lookup_value_lid (Longident.Lident ("self-" ^ cl_num)) env
                 in
-                Texp_ident(path, desc)
+                Texp_ident(Path.path loc path, desc)
             | Val_unbound ->
                 raise(Error(loc, Masked_instance_variable lid))
             | _ ->
@@ -1503,14 +1503,14 @@ let rec type_exp env sexp =
                   unify env obj_ty desc.val_type;
                   unify env res_ty (instance typ);
 		  let exp =
-		    Texp_apply({ exp_desc = Texp_ident(Path.Pident method_id,
+		    Texp_apply({ exp_desc = Texp_ident(Path.pident loc method_id,
                                                      {val_type = method_type;
                                                        val_kind = Val_reg});
                                 exp_loc = loc;
                                 exp_type = method_type;
                                 exp_env = env },
                           ["",
-                            Some {exp_desc = Texp_ident(path, desc);
+                            Some {exp_desc = Texp_ident(Path.path loc path, desc);
                                      exp_loc = obj.exp_loc;
                                      exp_type = desc.val_type;
                                      exp_env = env },
@@ -1580,7 +1580,10 @@ let rec type_exp env sexp =
               Env.lookup_value_lid (Longident.Lident ("self-" ^ cl_num)) env
             in
             re {
-              exp_desc = Texp_setinstvar(path_self, path, newval);
+              exp_desc = Texp_setinstvar
+		(Path.path Location.none path_self,
+		 Path.path Location.none path,
+		 newval);
               exp_loc = loc;
               exp_type = instance Predef.type_unit;
               exp_env = env }
@@ -1614,7 +1617,7 @@ let rec type_exp env sexp =
           let type_override (lab, snewval) =
             begin try
               let (id, _, _, ty) = Vars.find lab !vars in
-              (Path.Pident id, type_expect env snewval (instance ty))
+              (Path.pident Location.none id, type_expect env snewval (instance ty))
             with
               Not_found ->
                 raise(Error(loc, Unbound_instance_variable lab))
@@ -1622,7 +1625,7 @@ let rec type_exp env sexp =
           in
           let modifs = List.map type_override lst in
           re {
-            exp_desc = Texp_override(path_self, modifs);
+            exp_desc = Texp_override(Path.path Location.none path_self, modifs);
             exp_loc = loc;
             exp_type = self_ty;
             exp_env = env }
@@ -1815,7 +1818,7 @@ and type_argument env sarg ty_expected' =
         {pat_desc = Tpat_var id; pat_type = ty;
          pat_loc = Location.none; pat_env = env},
         {exp_type = ty; exp_loc = Location.none; exp_env = env; exp_desc =
-         Texp_ident(Path.Pident id,{val_type = ty; val_kind = Val_reg})}
+         Texp_ident(Path.pident Location.none id,{val_type = ty; val_kind = Val_reg})}
       in
       let eta_pat, eta_var = var_pair "eta" ty_arg in
       let func texp =

@@ -357,6 +357,8 @@ let rec transl_path = function
   | Papply(p1, p2) ->
       fatal_error "Lambda.transl_path"
 
+let transl_path_loc p = transl_path p.path
+
 (* Compile a sequence of expressions *)
 
 let rec make_sequence fn = function
