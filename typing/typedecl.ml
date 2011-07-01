@@ -209,7 +209,7 @@ let transl_declaration env (name, sdecl) id =
   (* Add abstract row *)
   if is_fixed_type sdecl then begin
     let (p, _) =
-      try Env.lookup_type (Longident.Lident(Ident.name id ^ "#row")) env
+      try Env.lookup_type_lid (Longident.Lident(Ident.name id ^ "#row")) env
       with Not_found -> assert false in
     set_fixed_row env sdecl.ptype_loc p decl
   end;
@@ -776,7 +776,7 @@ let transl_exception env excdecl =
 let transl_exn_rebind env loc lid =
   let (path, cdescr) =
     try
-      Env.lookup_constructor0 lid env
+      Env.lookup_constructor lid env
     with Not_found ->
       raise(Error(loc, Unbound_exception lid)) in
   match cdescr.cstr_tag with

@@ -1332,7 +1332,7 @@ let get_mod_field modname field =
       let mod_ident = Ident.create_persistent modname in
       let env = Env.open_pers_signature modname Env.initial in
       let p = try
-        match Env.lookup_value (Longident.Lident field) env with
+        match Env.lookup_value_lid (Longident.Lident field) env with
         | (Path.Pdot(_,_,i), _) -> i
         | _ -> fatal_error ("Primitive "^modname^"."^field^" not found.")
       with Not_found -> fatal_error ("Primitive "^modname^"."^field^" not found.")

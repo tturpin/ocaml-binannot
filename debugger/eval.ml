@@ -75,7 +75,7 @@ let rec expression event env = function
         (begin match valdesc.val_kind with
            Val_ivar (_, cl_num) ->
              let (p0, _) =
-               Env.lookup_value (Longident.Lident ("self-" ^ cl_num)) env
+               Env.lookup_value_lid (Longident.Lident ("self-" ^ cl_num)) env
              in
              let v = path event p0 in
              let i = path event p in

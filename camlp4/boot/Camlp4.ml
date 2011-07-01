@@ -14300,8 +14300,9 @@ module Struct =
                  fun s -> try Hashtbl.find t s with | Not_found -> s)
 
             let array_function str name =
-              ldot (lident str)
-                (if !Camlp4_config.unsafe then "unsafe_" ^ name else name)
+	      longident Camlp4_import.Location.none
+		(ldot (lident str)
+                   (if !Camlp4_config.unsafe then "unsafe_" ^ name else name))
 
             let mkrf =
               function
@@ -14352,11 +14353,12 @@ module Struct =
                 | _ -> error (loc_of_ident i) "invalid long identifier"
               in self i None
 
-            let ident ?conv_lid i = fst (ident_tag ?conv_lid i)
+            let ident ?conv_lid i =
+	      longident (mkloc (loc_of_ident i)) (fst (ident_tag ?conv_lid i))
 
             let long_lident msg i =
               match ident_tag i with
-              | (i, `lident) -> i
+              | (lid, `lident) -> longident (mkloc (loc_of_ident i)) lid
               | _ -> error (loc_of_ident i) msg
 
             let long_type_ident = long_lident "invalid long identifier type"
@@ -14370,6 +14372,10 @@ module Struct =
               | (i, `app) -> i
               | _ -> error (loc_of_ident i) "uppercase identifier expected"
 
+	    let long_uident ?conv_con i =
+	      longident (mkloc (loc_of_ident i)) (long_uident ?conv_con i)
+
+(*
             let rec ctyp_long_id_prefix t =
               match t with
               | Ast.TyId (_, i) -> ident i
@@ -14377,6 +14383,12 @@ module Struct =
                   let li1 = ctyp_long_id_prefix m1 in
                   let li2 = ctyp_long_id_prefix m2 in Lapply (li1, li2)
               | t -> error (loc_of_ctyp t) "invalid module expression"
+*)
+
+	    let lident = Camlp4_import.Longident.lident Camlp4_import.Location.none
+	    let mkli s ml =
+	      Camlp4_import.Longident.longident Camlp4_import.Location.none
+		(mkli s ml)
 
             let ctyp_long_id t =
               match t with
@@ -14879,7 +14891,7 @@ module Struct =
               function
               | Ast.ExAcc (loc, x, (Ast.ExId (_, (Ast.IdLid (_, "val"))))) ->
                   mkexp loc
-                    (Pexp_apply ((mkexp loc (Pexp_ident (Lident "!"))),
+                    (Pexp_apply ((mkexp loc (Pexp_ident (lident "!"))),
                        [ ("", (expr x)) ]))
               | (ExAcc (loc, _, _) | Ast.ExId (loc, (Ast.IdAcc (_, _, _))) as
                  e) ->
@@ -14958,7 +14970,7 @@ module Struct =
                     (match e with
                      | Ast.ExAcc (loc, x,
                          (Ast.ExId (_, (Ast.IdLid (_, "val"))))) ->
-                         Pexp_apply ((mkexp loc (Pexp_ident (Lident ":="))),
+                         Pexp_apply ((mkexp loc (Pexp_ident (lident ":="))),
                            [ ("", (expr x)); ("", (expr v)) ])
                      | ExAcc (loc, _, _) ->
                          (match (expr e).pexp_desc with

@@ -333,7 +333,7 @@ let lookup_tag obj tag =
     Cop(Cextcall("caml_get_public_method", typ_addr, false, Debuginfo.none),
         [obj; tag]))
 
-let lookup_label obj lab =
+let lookup_label_lid obj lab =
   bind "lab" lab (fun lab ->
     let table = Cop (Cload Word, [obj]) in
     addr_array_ref table lab)
@@ -859,7 +859,7 @@ let rec transl = function
       bind "obj" (transl obj) (fun obj ->
         match kind, args with
           Self, _ ->
-            bind "met" (lookup_label obj (transl met)) (call_met obj args)
+            bind "met" (lookup_label_lid obj (transl met)) (call_met obj args)
         | Cached, cache :: pos :: args ->
             call_cached_method obj (transl met) (transl cache) (transl pos)
               (List.map transl args) dbg

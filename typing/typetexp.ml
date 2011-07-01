@@ -83,15 +83,15 @@ let find_component lookup make_error env loc lid =
      : unit (* to avoid a warning *));
     assert false
 
-let find_type = find_component Env.lookup_type0 (fun lid -> Unbound_type_constructor lid)
+let find_type = find_component Env.lookup_type (fun lid -> Unbound_type_constructor lid)
 
-let find_constructor = find_component Env.lookup_constructor0 (fun lid -> Unbound_constructor lid)
+let find_constructor = find_component Env.lookup_constructor (fun lid -> Unbound_constructor lid)
 
-let find_label = find_component Env.lookup_label0 (fun lid -> Unbound_label lid)
+let find_label = find_component Env.lookup_label (fun lid -> Unbound_label lid)
 
 let find_class = find_component Env.lookup_class (fun lid -> Unbound_class lid)
 
-let find_value = find_component Env.lookup_value0 (fun lid -> Unbound_value lid)
+let find_value = find_component Env.lookup_value (fun lid -> Unbound_value lid)
 
 let find_module = find_component Env.lookup_module (fun lid -> Unbound_module lid)
 
@@ -258,7 +258,7 @@ let rec transl_type env policy styp =
   | Ptyp_class(lid, stl, present) ->
       let (path, decl, is_variant) =
         try
-          let (path, decl) = Env.lookup_type0 lid env in
+          let (path, decl) = Env.lookup_type lid env in
           let rec check decl =
             match decl.type_manifest with
               None -> raise Not_found
@@ -280,7 +280,7 @@ let rec transl_type env policy styp =
 		| Longident.Ldot(r, s)   -> Longident.Ldot (r, "#" ^ s)
 		| Longident.Lapply(_, _) -> fatal_error "Typetexp.transl_type"
 	  } in
-          let (path, decl) = Env.lookup_type0 lid2 env in
+          let (path, decl) = Env.lookup_type lid2 env in
           (path, decl, false)
         with Not_found ->
           raise(Error(styp.ptyp_loc, Unbound_class lid))

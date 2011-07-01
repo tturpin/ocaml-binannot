@@ -166,11 +166,13 @@ opt_signed_int64_eol :
 
 /* Identifiers and long identifiers */
 
-longident :
+lid :
     LIDENT                      { Lident $1 }
   | module_path DOT LIDENT      { Ldot($1, $3) }
   | OPERATOR                    { Lident $1 }
 ;
+
+longident : lid { longident (Location.symbol_rloc ()) $1 }
 
 module_path :
     UIDENT                      { Lident $1 }
@@ -181,9 +183,10 @@ longident_eol :
     longident end_of_line       { $1 };
 
 opt_longident :
-    UIDENT                      { Some (Lident $1) }
-  | LIDENT                      { Some (Lident $1) }
-  | module_path DOT UIDENT      { Some (Ldot($1, $3)) }
+    UIDENT                      { Some (lident (Location.symbol_rloc ()) $1) }
+  | LIDENT                      { Some (lident (Location.symbol_rloc ()) $1) }
+  | module_path DOT UIDENT
+      { Some (longident (Location.symbol_rloc ()) (Ldot($1, $3))) }
   |                             { None };
 
 opt_longident_eol :

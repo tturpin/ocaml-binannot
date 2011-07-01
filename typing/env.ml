@@ -495,27 +495,31 @@ let lookup_simple proj1 proj2 lid env =
 
 let lookup0 proj1 proj2 lid = lookup proj1 proj2 lid.lid
 
-let lookup_value =
+let lookup_value_lid =
   lookup (fun env -> env.values) (fun sc -> sc.comp_values)
-let lookup_annot id e =
-  lookup0 (fun env -> env.annotations) (fun sc -> sc.comp_annotations) id e
-and lookup_constructor =
+let lookup_annot_lid id e =
+  lookup (fun env -> env.annotations) (fun sc -> sc.comp_annotations) id e
+and lookup_constructor_lid =
   lookup (fun env -> env.constrs) (fun sc -> sc.comp_constrs)
-and lookup_label =
+and lookup_label_lid =
   lookup (fun env -> env.labels) (fun sc -> sc.comp_labels)
-and lookup_type =
+and lookup_type_lid =
   lookup (fun env -> env.types) (fun sc -> sc.comp_types)
-and lookup_modtype =
-  lookup0 (fun env -> env.modtypes) (fun sc -> sc.comp_modtypes)
-and lookup_class =
-  lookup0 (fun env -> env.classes) (fun sc -> sc.comp_classes)
-and lookup_cltype =
-  lookup0 (fun env -> env.cltypes) (fun sc -> sc.comp_cltypes)
+and lookup_modtype_lid =
+  lookup (fun env -> env.modtypes) (fun sc -> sc.comp_modtypes)
+and lookup_class_lid =
+  lookup (fun env -> env.classes) (fun sc -> sc.comp_classes)
+and lookup_cltype_lid =
+  lookup (fun env -> env.cltypes) (fun sc -> sc.comp_cltypes)
 
-let lookup_value0 lid = lookup_value lid.lid
-let lookup_constructor0 lid = lookup_constructor lid.lid
-let lookup_label0 lid = lookup_label lid.lid
-let lookup_type0 lid = lookup_type lid.lid
+let lookup_value lid = lookup_value_lid lid.lid
+let lookup_annot lid = lookup_annot_lid lid.lid
+let lookup_constructor lid = lookup_constructor_lid lid.lid
+let lookup_label lid = lookup_label_lid lid.lid
+let lookup_type lid = lookup_type_lid lid.lid
+let lookup_modtype lid = lookup_modtype_lid lid.lid
+let lookup_class lid = lookup_class_lid lid.lid
+let lookup_cltype lid = lookup_cltype_lid lid.lid
 
 let ident_tbl_fold f t acc =
   List.fold_right

@@ -96,11 +96,12 @@ let rec eval_path = function
 (* Install, remove a printer (as in toplevel/topdirs) *)
 
 let match_printer_type desc typename =
+  let lid = Ldot(Lident "Topdirs", typename) in
   let (printer_type, _) =
     try
-      Env.lookup_type (Ldot(Lident "Topdirs", typename)) Env.empty
+      Env.lookup_type_lid lid Env.empty
     with Not_found ->
-      raise (Error(Unbound_identifier(Ldot(Lident "Topdirs", typename)))) in
+      raise (Error(Unbound_identifier(longident Location.none lid))) in
   Ctype.init_def(Ident.current_time());
   Ctype.begin_def();
   let ty_arg = Ctype.newvar() in

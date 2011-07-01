@@ -111,7 +111,9 @@ module Make (Ast : Sig.Camlp4Ast) = struct
   ;
 
   value array_function str name =
-    ldot (lident str) (if Camlp4_config.unsafe.val then "unsafe_" ^ name else name)
+    longident Camlp4_import.Location.none
+      (ldot (lident str)
+	 (if Camlp4_config.unsafe.val then "unsafe_" ^ name else name))
   ;
 
   value mkrf =
@@ -163,11 +165,12 @@ module Make (Ast : Sig.Camlp4Ast) = struct
       | _ -> error (loc_of_ident i) "invalid long identifier" ]
     in self i None;
 
-  value ident ?conv_lid i = fst (ident_tag ?conv_lid i);
+  value ident ?conv_lid i =
+	longident (mkloc (loc_of_ident i)) (fst (ident_tag ?conv_lid i));
 
   value long_lident msg i =
     match ident_tag i with
-    [ (i, `lident) -> i
+    [ (lid, `lident) -> longident (mkloc (loc_of_ident i)) lid
     | _ -> error (loc_of_ident i) msg ]
   ;
 
@@ -182,6 +185,11 @@ module Make (Ast : Sig.Camlp4Ast) = struct
     | _ -> error (loc_of_ident i) "uppercase identifier expected" ]
   ;
 
+  value long_uident ?conv_con i =
+    longident (mkloc (loc_of_ident i)) (long_uident ?conv_con i)
+  ;
+
+(*
   value rec ctyp_long_id_prefix t =
     match t with
     [ <:ctyp< $id:i$ >> -> ident i
@@ -190,6 +198,13 @@ module Make (Ast : Sig.Camlp4Ast) = struct
         let li2 = ctyp_long_id_prefix m2 in
         Lapply li1 li2
     | t -> error (loc_of_ctyp t) "invalid module expression" ]
+  ;
+*)
+
+  value lident = Camlp4_import.Longident.lident Camlp4_import.Location.none
+  ;
+  value mkli s ml =
+    Camlp4_import.Longident.longident Camlp4_import.Location.none (mkli s ml)
   ;
 
   value ctyp_long_id t =
@@ -598,7 +613,7 @@ module Make (Ast : Sig.Camlp4Ast) = struct
     fun
     [ <:expr@loc< $x$.val >> ->
         mkexp loc
-          (Pexp_apply (mkexp loc (Pexp_ident (Lident "!"))) [("", expr x)])
+          (Pexp_apply (mkexp loc (Pexp_ident (lident "!"))) [("", expr x)])
     | ExAcc loc _ _ | <:expr@loc< $id:<:ident< $_$ . $_$ >>$ >> as e ->
         let (e, l) =
           match sep_expr_acc [] e with
@@ -658,7 +673,7 @@ module Make (Ast : Sig.Camlp4Ast) = struct
         let e =
           match e with
           [ <:expr@loc< $x$.val >> ->
-              Pexp_apply (mkexp loc (Pexp_ident (Lident ":=")))
+              Pexp_apply (mkexp loc (Pexp_ident (lident ":=")))
                 [("", expr x); ("", expr v)]
           | ExAcc loc _ _ ->
               match (expr e).pexp_desc with

@@ -77,6 +77,8 @@ let rec string_of_longident li =
   | Longident.Lapply(l1, l2) ->
       string_of_longident l1 ^ "(" ^ string_of_longident l2 ^ ")"
 
+let string_of_longident li = string_of_longident li.Longident.lid
+
 let get_fields type_expr =
   let (fields, _) = Ctype.flatten_fields (Ctype.object_fields type_expr) in
   List.fold_left

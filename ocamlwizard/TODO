@@ -1,6 +1,6 @@
-- Rename: replace all the id definitions ; not just the initial one
 - Rename: replace in multiple files
 - Rename: check that we always lookup in the right environment
+- Rename: do more testing
 
 - Rename: rename everything an not just values
 - Rename: collect all occurrences in a or-pattern
@@ -19,4 +19,3 @@
 - Match_cases completion: buffer still marked modified if we undo the completion
 - Expansion: allow expansion even if the match_case is unfinished
 - Expansion: add parentheses as needed for or-patterns
-- Emacs mode: use a mode for .ml files

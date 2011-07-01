@@ -157,13 +157,13 @@ module Make(O : OBJ)(EVP : EVALPATH with type value = O.t) = struct
     let tree_of_constr =
       tree_of_qualified
       (fun lid env -> 
-        let (_path, cstr) = Env.lookup_constructor lid env
+        let (_path, cstr) = Env.lookup_constructor_lid lid env
         in
         cstr.cstr_res)
 
     and tree_of_label =
     tree_of_qualified (fun lid env -> 
-        let (_path, label) = Env.lookup_label lid env
+        let (_path, label) = Env.lookup_label_lid lid env
         in 
         label.lbl_res)
 
@@ -350,7 +350,7 @@ module Make(O : OBJ)(EVP : EVALPATH with type value = O.t) = struct
       try
         (* Attempt to recover the constructor description for the exn
            from its name *)
-        let (_path, cstr) = Env.lookup_constructor0 lid env in
+        let (_path, cstr) = Env.lookup_constructor lid env in
         let path =
           match cstr.cstr_tag with
             Cstr_exception p -> p | _ -> raise Not_found in

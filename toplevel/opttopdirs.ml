@@ -103,7 +103,7 @@ type 'a printer_type_old = 'a -> unit
 let match_printer_type ppf desc typename =
   let (printer_type, _) =
     try
-      Env.lookup_type (Ldot(Lident "Topdirs", typename)) !toplevel_env
+      Env.lookup_type_lid (Ldot(Lident "Topdirs", typename)) !toplevel_env
     with Not_found ->
       fprintf ppf "Cannot find type Topdirs.%s.@." typename;
       raise Exit in
@@ -119,7 +119,7 @@ let match_printer_type ppf desc typename =
 
 let find_printer_type ppf lid =
   try
-    let (path, desc) = Env.lookup_value lid !toplevel_env in
+    let (path, desc) = Env.lookup_value_lid lid !toplevel_env in
     let (ty_arg, is_old_style) =
       try
         (match_printer_type ppf desc "printer_type_new", false)

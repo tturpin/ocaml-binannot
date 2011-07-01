@@ -120,13 +120,13 @@ let type_option ty =
 
 let option_none ty loc =
   let lid = Longident.lident Location.none "None" in
-  let (path, cnone) = Env.lookup_constructor0 lid Env.initial in
+  let (path, cnone) = Env.lookup_constructor lid Env.initial in
   { exp_desc = Texp_construct(path, cnone, []);
     exp_type = ty; exp_loc = loc; exp_env = Env.initial }
 
 let option_some texp =
   let lid = Longident.lident Location.none "Some" in
-  let (path, csome) = Env.lookup_constructor0 lid Env.initial in
+  let (path, csome) = Env.lookup_constructor lid Env.initial in
   { exp_desc = Texp_construct(path, csome, [texp]); exp_loc = texp.exp_loc;
     exp_type = type_option texp.exp_type; exp_env = texp.exp_env }
 
@@ -960,7 +960,7 @@ let rec approx_type env sty =
       newty (Ttuple (List.map (approx_type env) args))
   | Ptyp_constr (lid, ctl) ->
       begin try
-        let (path, decl) = Env.lookup_type0 lid env in
+        let (path, decl) = Env.lookup_type lid env in
         if List.length ctl <> decl.type_arity then raise Not_found;
         let tyl = List.map (approx_type env) ctl in
         newconstr path tyl
@@ -1116,12 +1116,12 @@ let rec type_exp env sexp =
           begin match desc.val_kind with
               Val_ivar (_, cl_num) ->
                 let (self_path, _) =
-                  Env.lookup_value (Longident.Lident ("self-" ^ cl_num)) env
+                  Env.lookup_value_lid (Longident.Lident ("self-" ^ cl_num)) env
                 in
                 Texp_instvar(self_path, path)
             | Val_self (_, _, cl_num, _) ->
                 let (path, _) =
-                  Env.lookup_value (Longident.Lident ("self-" ^ cl_num)) env
+                  Env.lookup_value_lid (Longident.Lident ("self-" ^ cl_num)) env
                 in
                 Texp_ident(path, desc)
             | Val_unbound ->
@@ -1490,8 +1490,8 @@ let rec type_exp env sexp =
                 end
               in
               begin match
-                Env.lookup_value (Longident.Lident ("selfpat-" ^ cl_num)) env,
-                Env.lookup_value (Longident.Lident ("self-" ^cl_num)) env
+                Env.lookup_value_lid (Longident.Lident ("selfpat-" ^ cl_num)) env,
+                Env.lookup_value_lid (Longident.Lident ("self-" ^cl_num)) env
               with
                 (_, ({val_kind = Val_self (meths, _, _, privty)} as desc)),
                 (path, _) ->
@@ -1572,12 +1572,12 @@ let rec type_exp env sexp =
         end
   | Pexp_setinstvar (lab, snewval) ->
       begin try
-        let (path, desc) = Env.lookup_value (Longident.Lident lab) env in
+        let (path, desc) = Env.lookup_value_lid (Longident.Lident lab) env in
         match desc.val_kind with
           Val_ivar (Mutable, cl_num) ->
             let newval = type_expect env snewval (instance desc.val_type) in
             let (path_self, _) =
-              Env.lookup_value (Longident.Lident ("self-" ^ cl_num)) env
+              Env.lookup_value_lid (Longident.Lident ("self-" ^ cl_num)) env
             in
             re {
               exp_desc = Texp_setinstvar(path_self, path, newval);
@@ -1604,8 +1604,8 @@ let rec type_exp env sexp =
         [] in
       begin match
         try
-          Env.lookup_value (Longident.Lident "selfpat-*") env,
-          Env.lookup_value (Longident.Lident "self-*") env
+          Env.lookup_value_lid (Longident.Lident "selfpat-*") env,
+          Env.lookup_value_lid (Longident.Lident "self-*") env
         with Not_found ->
           raise(Error(loc, Outside_class))
       with
