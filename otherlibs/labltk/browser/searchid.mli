@@ -16,7 +16,7 @@
 
 val start_env : Env.t ref
 val module_list : string list ref
-val longident_of_path :  Path.t ->Longident.t
+val longident_of_path :  Path.t ->Longident.lid
 
 type pkind =
     Pvalue
@@ -33,9 +33,9 @@ val string_of_kind :  pkind -> string
 exception Error of int * int
 
 val search_string_type :
-      string -> mode:[`Exact|`Included] -> (Longident.t * pkind) list
-val search_pattern_symbol : string -> (Longident.t * pkind) list
-val search_string_symbol : string -> (Longident.t * pkind) list
+      string -> mode:[`Exact|`Included] -> (Longident.lid * pkind) list
+val search_pattern_symbol : string -> (Longident.lid * pkind) list
+val search_string_symbol : string -> (Longident.lid * pkind) list
 
 val search_structure :
     Parsetree.structure ->

@@ -267,7 +267,7 @@ let search_all_types t ~mode =
   in List2.flat_map !module_list ~f:
     begin fun modname ->
     let mlid = Lident modname in
-    try match lookup_module mlid initial with
+    try match lookup_module_lid mlid initial with
       _, Mty_signature sign ->
         List2.flat_map tl
           ~f:(search_type_in_signature ~sign ~prefix:[modname] ~mode)
@@ -349,7 +349,7 @@ let search_pattern_symbol text =
   let check i = check_match ~pattern (explode (Ident.name i)) in
   let l = List.map !module_list ~f:
     begin fun modname -> Lident modname,
-    try match lookup_module (Lident modname) initial with
+    try match lookup_module_lid (Lident modname) initial with
       _, Mty_signature sign ->
         List2.flat_map sign ~f:
           begin function
@@ -394,13 +394,13 @@ let search_string_symbol text =
     try let _ = f lid Env.initial in [lid, k]
     with Not_found | Env.Error _ -> []
   in
-  try_lookup lookup_constructor Pconstructor @
-  try_lookup lookup_module Pmodule @
-  try_lookup lookup_modtype Pmodtype @
-  try_lookup lookup_value Pvalue @
-  try_lookup lookup_type Ptype @
-  try_lookup lookup_label Plabel @
-  try_lookup lookup_class Pclass
+  try_lookup lookup_constructor_lid Pconstructor @
+  try_lookup lookup_module_lid Pmodule @
+  try_lookup lookup_modtype_lid Pmodtype @
+  try_lookup lookup_value_lid Pvalue @
+  try_lookup lookup_type_lid Ptype @
+  try_lookup lookup_label_lid Plabel @
+  try_lookup lookup_class_lid Pclass
 
 open Parsetree
 
