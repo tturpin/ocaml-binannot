@@ -40,6 +40,7 @@ module Occurrence =
       type t = Location.t * (Env.t * occurrence_kind)
       module IteratorArgument(Action : sig val found : t -> unit end) = struct
 	include DefaultIteratorArgument
+	open Path
 
 	let found loc env occ = Action.found (loc, (env, occ))
 
@@ -68,7 +69,7 @@ module Occurrence =
 
 	let enter_structure_item i =
 	  match i.str_desc with
-	    | Tstr_open _ -> found i.str_loc (assert false) `str_open
+	    | Tstr_open m -> found m.loc (assert false) `str_open
 
 	    | _ -> ()
 

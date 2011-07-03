@@ -1,3 +1,4 @@
+- Library: remove the need for .cmi in /usr/local/lib/ocaml
 - Rename: replace in multiple files
 - Rename: check that we always lookup in the right environment
 - Rename: do more testing

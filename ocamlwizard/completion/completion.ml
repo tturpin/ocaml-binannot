@@ -157,7 +157,7 @@ let main ce =
 	in
 	match_exp.Typedtree.exp_env, match_exp.Typedtree.exp_type
       | Other -> assert false
-      | Error _ -> assert false
+      | Error e -> raise e
   in
 
   Format.eprintf "pattern_type = %a\n%!" Printtyp.type_expr pattern_type;
