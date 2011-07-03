@@ -34,3 +34,9 @@ open Format
 val report_error: formatter -> error -> unit
 
 val in_comment : unit -> bool;;
+
+module Tbl : Hashtbl.S with type key = string
+
+val record_ident_locations : unit -> unit
+
+val flush_idents : unit -> Location.t Tbl.t option

@@ -117,9 +117,13 @@ let implementation ppf sourcefile outputprefix =
   let env = initial_env() in
   if !Clflags.print_types then begin
     try ignore(
-      Pparse.file ppf inputfile Parse.implementation ast_impl_magic_number
+      let ast, ident_locations =
+	Pparse.file ppf inputfile Parse.implementation' ast_impl_magic_number
+      in
+      ast
       ++ print_if ppf Clflags.dump_parsetree Printast.implementation
-      ++ Typemod.type_implementation sourcefile outputprefix modulename env)
+      ++ Typemod.type_implementation
+	   sourcefile outputprefix modulename env ident_locations)
     with x ->
       Pparse.remove_preprocessed_if_ast inputfile;
       raise x
@@ -127,10 +131,14 @@ let implementation ppf sourcefile outputprefix =
     let objfile = outputprefix ^ ".cmo" in
     let oc = open_out_bin objfile in
     try
-      Pparse.file ppf inputfile Parse.implementation ast_impl_magic_number
+      let ast, ident_locations =
+	Pparse.file ppf inputfile Parse.implementation' ast_impl_magic_number
+      in
+      ast
       ++ print_if ppf Clflags.dump_parsetree Printast.implementation
       ++ Unused_var.warn ppf
-      ++ Typemod.type_implementation sourcefile outputprefix modulename env
+      ++ Typemod.type_implementation
+	   sourcefile outputprefix modulename env ident_locations
       ++ Translmod.transl_implementation modulename
       ++ print_if ppf Clflags.dump_rawlambda Printlambda.lambda
       ++ Simplif.simplify_lambda

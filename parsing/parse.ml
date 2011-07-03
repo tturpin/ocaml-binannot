@@ -62,3 +62,13 @@ let implementation = wrap Parser.implementation
 and interface = wrap Parser.interface
 and toplevel_phrase = wrap Parser.toplevel_phrase
 and use_file = wrap Parser.use_file
+
+let with_ident_locations parsing_fun lexbuf =
+  Lexer.record_ident_locations ();
+  let ast = parsing_fun lexbuf in
+    match Lexer.flush_idents () with
+      | Some idents -> ast, idents
+      | None -> assert false
+
+let implementation' = with_ident_locations implementation
+and interface' = with_ident_locations interface

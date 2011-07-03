@@ -359,6 +359,7 @@ type saved_type =
 | Saved_module_type of module_type
 | Saved_pattern of pattern
 | Saved_class_expr of class_expr
+| Saved_ident_locations of Location.t Lexer.Tbl.t
 
 let saved_types = ref []
 let get_saved_types () = !saved_types

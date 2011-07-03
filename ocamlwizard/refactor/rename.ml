@@ -179,8 +179,17 @@ let rename_lids renamed_kind id name' lids =
 let read_cmt file =
   if Filename.check_suffix file ".cmt" then
     let c = open_in file in
-    match (input_value c).(0) with
-      | Saved_implementation str -> str
+    let data = input_value c in
+    close_in c;
+    match data.(0) with
+      | Saved_implementation str ->
+	  (try
+	     match data.(1) with
+	       | Saved_ident_locations loc ->
+		   str, loc
+	       | _ -> raise Not_found
+	   with
+	       _ -> failwith "ident location table not found in cmt")
       | _ -> failwith "error reading cmt file"
   else
     invalid_arg "read_cmt"
@@ -208,7 +217,7 @@ let valid_ident kind name = true
 
 (* Temporary : we rename only in one file *)
 let rename loc name name' file =
-  let s = read_cmt (Filename.chop_suffix file ".ml" ^ ".cmt") in
+  let s, _ = read_cmt (Filename.chop_suffix file ".ml" ^ ".cmt") in
 
   (* Get the "initial" id to rename and its sort *)
   let renamed_kind, id = locate_renamed_id (`structure s) loc in

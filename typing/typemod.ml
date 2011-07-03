@@ -1177,14 +1177,14 @@ let save_signature tsg outputprefix =
     output_value oc [| Saved_signature tsg |];
     close_out oc
 
-let type_implementation sourcefile outputprefix modulename initial_env ast =
+let type_implementation sourcefile outputprefix modulename initial_env loc ast =
   try
     Typedtree.set_saved_types [];
     let (str, coercion) = type_implementation sourcefile outputprefix modulename initial_env ast in
     if !Clflags.annotations then begin
         Typedtree.set_saved_types [];
         let oc = open_out (outputprefix ^ ".cmt") in
-        output_value oc [| Saved_implementation str |];
+        output_value oc [| Saved_implementation str ; Saved_ident_locations loc |];
         close_out oc;
 (*
         let oc = open_out (outputprefix ^ "_ast2src.ml") in
