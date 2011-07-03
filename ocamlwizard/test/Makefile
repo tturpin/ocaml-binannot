@@ -44,7 +44,7 @@ match_cases_res.ml: $(M_TESTS)
 %_mres.ml: %.ml %_mcomp.ml
 	tail -n 1 $< >$@ ; echo "=>" >>$@ ; \
 	head -c `grep -o -b \\\\$$ $< | cut -d : -f 1` $< | tail -n 1 >>$@ ; \
-	cat $(subst .ml,_mcomp.ml, $<) >>$@ ; echo EOF\\n >>$@
+	cat $(subst .ml,_mcomp.ml, $<) >>$@ ; echo -e EOF\\n >>$@
 
 %_mcomp.ml: %.ml %_no_dollar.ml $(OWZ)
 	$(OCAMLWIZARD) completion $(subst .ml,_no_dollar.ml, $<) \
@@ -67,7 +67,7 @@ expansion_res.ml: $(PE_TESTS)
 %_peres.ml: %.ml %_pecomp.ml
 	tail -n 1 $< >$@ ; echo "=>" >>$@ ; \
 	head -c `grep -o -b \\\\$$ $< | cut -d : -f 1` $< | tail -n 1 >>$@ ; \
-	cat $(subst .ml,_pecomp.ml, $<) >>$@ ; echo EOF\\n >>$@
+	cat $(subst .ml,_pecomp.ml, $<) >>$@ ; echo -e EOF\\n >>$@
 
 # We use tail to perform +1 and +2 :-(
 %_pecomp.ml: %.ml %_no_dollar.ml $(OWZ)
@@ -93,7 +93,7 @@ path_res.ml: $(PC_TESTS)
 %_pcres.ml: %.ml %_pccomp.ml
 	tail -n 1 $< >$@ ; echo "=>" >>$@ ; \
 	head -c `grep -o -b \\\\$$ $< | cut -d : -f 1` $< | tail -n 1 >>$@ ; \
-	cat $(subst .ml,_pccomp.ml, $<) >>$@ ; echo EOF\\n >>$@
+	cat $(subst .ml,_pccomp.ml, $<) >>$@ ; echo -e EOF\\n >>$@
 
 # We use tail to perform +1 and +2 :-(
 %_pccomp.ml: %.ml %_no_dollar.ml $(OWZ)
@@ -107,7 +107,7 @@ path_res.ml: $(PC_TESTS)
 errors_res.ml: errors.ml errors_comp.ml
 	cat $< >$@ ; echo "=>" >>$@ ; \
 	head -c `grep -o -b \\\\$$ $< | cut -d : -f 1` $< | tail -n 1 >>$@ ; \
-	cat $(subst .ml,_comp.ml, $<) >>$@ ; echo EOF\\n >>$@
+	cat $(subst .ml,_comp.ml, $<) >>$@ ; echo -e EOF\\n >>$@
 
 # We use tail to perform +1 and +2 :-(
 errors_comp.ml: errors.ml errors_no_dollar.ml $(OWZ)
