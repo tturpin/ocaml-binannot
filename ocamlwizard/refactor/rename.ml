@@ -185,8 +185,10 @@ let read_cmt file =
       | Saved_implementation str ->
 	  (try
 	     match data.(1) with
-	       | Saved_ident_locations loc ->
+	       | Saved_ident_locations (Some loc) ->
 		   str, loc
+	       | Saved_ident_locations None ->
+		   failwith "ident location table is empty"
 	       | _ -> raise Not_found
 	   with
 	       _ -> failwith "ident location table not found in cmt")
@@ -198,12 +200,12 @@ let sort_replaces =
   List.sort
     (fun (x, _, _) (y, _, _) -> compare  x y)
 
-let find_id_defs ids s =
+let find_id_defs ids name s =
   List.fold_right
     (fun id acc ->
       try
 	let loc = find_id_def s id in
-	(loc.loc_start.pos_cnum, loc.loc_end.pos_cnum, Ident.name id) :: acc
+	(loc.loc_start.pos_cnum, loc.loc_end.pos_cnum, name) :: acc
       with
 	  Not_found -> acc)
     ids
@@ -217,7 +219,7 @@ let valid_ident kind name = true
 
 (* Temporary : we rename only in one file *)
 let rename loc name name' file =
-  let s, _ = read_cmt (Filename.chop_suffix file ".ml" ^ ".cmt") in
+  let s, idents = read_cmt (Filename.chop_suffix file ".ml" ^ ".cmt") in
 
   (* Get the "initial" id to rename and its sort *)
   let renamed_kind, id = locate_renamed_id (`structure s) loc in
@@ -233,7 +235,10 @@ let rename loc name name' file =
     ids;
 
   (* Compute the replacements for the *definitions* of the rename ids *)
+(*
   let def_replaces = find_id_defs ids (`structure s) in (* obviously incomplete ! *)
+*)
+  let def_replaces = find_id_defs ids name' idents in (* obviously incomplete ! *)
 
   (* Check that our new name will not capture useful signature members *)
   check_other_implicit_references renamed_kind ids name' incs includes;

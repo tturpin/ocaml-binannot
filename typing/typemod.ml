@@ -1171,10 +1171,10 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
     end
   end
 
-let save_signature tsg outputprefix =
+let save_signature loc tsg outputprefix =
   if !Clflags.annotations then
     let oc = open_out (outputprefix ^ ".cmti") in
-    output_value oc [| Saved_signature tsg |];
+    output_value oc [| Saved_signature tsg ; Saved_ident_locations loc |];
     close_out oc
 
 let type_implementation sourcefile outputprefix modulename initial_env loc ast =

@@ -67,7 +67,7 @@ let with_ident_locations parsing_fun lexbuf =
   Lexer.record_ident_locations ();
   let ast = parsing_fun lexbuf in
     match Lexer.flush_idents () with
-      | Some idents -> ast, idents
+      | Some idents -> ast, Some idents
       | None -> assert false
 
 let implementation' = with_ident_locations implementation

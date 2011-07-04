@@ -165,3 +165,6 @@ let find_id_def s id =
 	let _, id', loc = ident_of_subtree t in
 	if id' = id then Some loc else None
       with Not_found -> None)
+
+let find_id_def table id =
+  StringTbl.find table (Ident.name id)

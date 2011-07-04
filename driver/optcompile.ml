@@ -77,8 +77,8 @@ let interface ppf sourcefile outputprefix =
   Env.set_unit_name modulename;
   let inputfile = Pparse.preprocess sourcefile in
   try
-    let ast =
-      Pparse.file ppf inputfile Parse.interface ast_intf_magic_number in
+    let ast, ident_locations =
+      Pparse.file ppf inputfile Parse.interface' ast_intf_magic_number in
     if !Clflags.dump_parsetree then fprintf ppf "%a@." Printast.interface ast;
     let sg = Typemod.transl_signature (initial_env()) ast in
     if !Clflags.print_types then
@@ -117,15 +117,25 @@ let implementation ppf sourcefile outputprefix =
   let objfile = outputprefix ^ ext_obj in
   try
     if !Clflags.print_types then ignore(
-      Pparse.file ppf inputfile Parse.implementation ast_impl_magic_number
+      let ast, ident_locations =
+	Pparse.file
+	  ppf inputfile Parse.implementation' ast_impl_magic_number
+      in
+      ast
       ++ print_if ppf Clflags.dump_parsetree Printast.implementation
       ++ Unused_var.warn ppf
-      ++ Typemod.type_implementation sourcefile outputprefix modulename env)
+      ++ Typemod.type_implementation
+	sourcefile outputprefix modulename env ident_locations)
     else begin
-      Pparse.file ppf inputfile Parse.implementation ast_impl_magic_number
+      let ast, ident_locations =
+	Pparse.file
+	  ppf inputfile Parse.implementation' ast_impl_magic_number
+      in
+      ast
       ++ print_if ppf Clflags.dump_parsetree Printast.implementation
       ++ Unused_var.warn ppf
-      ++ Typemod.type_implementation sourcefile outputprefix modulename env
+      ++ Typemod.type_implementation
+	sourcefile outputprefix modulename env ident_locations
       ++ Translmod.transl_store_implementation modulename
       +++ print_if ppf Clflags.dump_rawlambda Printlambda.lambda
       +++ Simplif.simplify_lambda

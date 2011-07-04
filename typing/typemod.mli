@@ -23,7 +23,7 @@ val type_structure:
         Env.t -> Parsetree.structure -> Location.t ->
          Typedtree.structure * Types.signature * Env.t
 val type_implementation:
-  string -> string -> string -> Env.t -> Location.t Lexer.Tbl.t ->
+  string -> string -> string -> Env.t -> Location.string_table option ->
   Parsetree.structure ->
   Typedtree.structure * Typedtree.module_coercion
 val transl_signature:
@@ -33,7 +33,8 @@ val check_nongen_schemes:
 
 val simplify_signature: signature -> signature
 
-val save_signature : Typedtree.signature -> string -> unit
+val save_signature :
+  Location.string_table option -> Typedtree.signature -> string -> unit
 
 val package_units:
         string list -> string -> string -> Typedtree.module_coercion

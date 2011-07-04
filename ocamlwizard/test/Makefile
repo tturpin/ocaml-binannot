@@ -2,7 +2,16 @@ LD_PATH=../../otherlibs/str:../../otherlibs/unix
 
 OCAMLWIZARD=ocamlwizard
 OWZ=../owz.opt
-RES=match_cases_res.ml expansion_res.ml path_res.ml errors_res.ml
+
+R_CASES=renameSimple.ml renameSigNewCaptured.ml renameSigOldCaptured.ml \
+	renameIncludeNewCaptured.ml renameIncludeOldCaptured.ml \
+	renameOpenNewCaptured.ml renameOpenOldCaptured.ml \
+	renameMultiple.ml renameProp.ml renamePropFunctor.ml \
+	renamePropFunctorNoApp.ml
+R_TESTS=$(subst .ml,_rres.ml, $(R_CASES))
+
+RES=match_cases_res.ml expansion_res.ml path_res.ml errors_res.ml \
+    $(R_TESTS)
 
 all: $(RES)
 	for i in $(RES); do \
@@ -118,11 +127,6 @@ errors_comp.ml: errors.ml errors_no_dollar.ml $(OWZ)
 # Renaming
 ##########
 
-R_CASES=renameSimple.ml renameSigNewCaptured.ml renameSigOldCaptured.ml \
-	renameIncludeNewCaptured.ml renameIncludeOldCaptured.ml \
-	renameOpenNewCaptured.ml renameOpenOldCaptured.ml
-R_TESTS=$(subst .ml,_rres.ml, $(R_CASES))
-
 %_rres.ml: %.ml %_no_dollar.ml %_no_dollar.cmt $(OWZ)
 	mv $(subst .ml,_no_dollar.ml, $<) $@
 	mv $(subst .ml,_no_dollar.cmt, $<) $(subst .ml,.cmt, $@)
@@ -130,9 +134,9 @@ R_TESTS=$(subst .ml,_rres.ml, $(R_CASES))
 	`grep -o -b \\\\$$ $< | cut -d : -f 1`-\
 	`tail -c +2 $< | grep -o -b € | cut -d : -f 1` \
 	x y $@
-	cat ../../.ocamlwizard-stderr >> $@
 
-renaming: $(R_TESTS)
+#	cat ../../.ocamlwizard-stderr >> $@
+
 
 
 # Old

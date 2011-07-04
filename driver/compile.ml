@@ -80,8 +80,8 @@ let interface ppf sourcefile outputprefix =
   Env.set_unit_name modulename;
   let inputfile = Pparse.preprocess sourcefile in
   try
-    let ast =
-      Pparse.file ppf inputfile Parse.interface ast_intf_magic_number in
+    let ast, ident_locations =
+      Pparse.file ppf inputfile Parse.interface' ast_intf_magic_number in
     if !Clflags.dump_parsetree then fprintf ppf "%a@." Printast.interface ast;
     let tsg = Typemod.transl_signature (initial_env()) ast in
     let sg = tsg.sig_type in
@@ -91,7 +91,7 @@ let interface ppf sourcefile outputprefix =
     Warnings.check_fatal ();
     if not !Clflags.print_types then begin
       Env.save_signature sg modulename (outputprefix ^ ".cmi");
-      Typemod.save_signature tsg outputprefix;
+      Typemod.save_signature ident_locations tsg outputprefix;
     end;
     Pparse.remove_preprocessed inputfile
   with e ->

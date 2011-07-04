@@ -96,17 +96,10 @@ let keyword_table =
 
 (* A table for locating indents *)
 
-module Tbl = Hashtbl.Make
-  (struct
-     type t = string
-     let equal = ( == )
-     let hash = Hashtbl.hash
-   end)
-
 let ident_table = ref None
 
 let record_ident_locations () =
-  ident_table := Some (Tbl.create 1000)
+  ident_table := Some (Location.StringTbl.create 1000)
 
 let flush_idents () =
   let idents = !ident_table in
@@ -115,7 +108,7 @@ let flush_idents () =
 
 let ident i lexbuf =
   match !ident_table with
-    | Some t -> Tbl.add t i (Location.curr lexbuf)
+    | Some t -> Location.StringTbl.add t i (Location.curr lexbuf)
     | None -> ()
 
 let lident i lexbuf = ident i lexbuf ; LIDENT i
