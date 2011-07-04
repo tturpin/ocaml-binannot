@@ -1,3 +1,4 @@
+- Rename: return a list of files that emacs should revert
 - Rename: replace in multiple files
 - Rename: check that we always lookup in the right environment
 

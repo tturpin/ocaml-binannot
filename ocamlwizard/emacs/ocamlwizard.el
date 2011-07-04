@@ -150,7 +150,49 @@
   (delete-char 1)
 )
 
-  
+(defun ocamlwizard-rename (name)
+  "rename a value using Ocamlwizard"
+  (interactive "sRename with: ")
+  (setq pos (point))
+  (save-excursion
+    (search-backward-regexp "[^a-zA-Z._0-9]")
+    (forward-char 1)
+    (setq start (point))
+    (search-forward-regexp "[^a-zA-Z._0-9]")
+    (setq end (- (point) 1))
+    (setq word (buffer-substring start end)))
+;  (interactive (concat "sRename " word))
+;  (message "New name: %s" name)
+  (setq file (buffer-name))
+  (setq buffer (get-buffer-create "*ocamlwizard*"))
+  (save-excursion
+    (set-buffer buffer)
+    (compilation-minor-mode 1)
+    (erase-buffer)
+    (insert "\n\n"))
+  (do-auto-save)
+  (setq exit-status 
+	(call-process 
+	 "ocamlwizard" nil (list t nil) nil
+	 "completion" "refactor" "-rename"
+	 (concat (int-to-string (- start 1)) "-" (int-to-string (- end 1)))
+	 word
+	 name
+	 file))
+  (if (not (eq exit-status 10))
+      (message "ocamlwizard: no completion"))
+; Thank you stackoverflow:
+  (save-excursion
+    (clear-visited-file-modtime)
+    (widen)
+    (delete-region (point-min) (point-max))
+    (insert-file-contents (buffer-file-name)))
+; Problem: if we undo and then redo, emacs forgets the goto.
+  (goto-char pos)
+  (set-buffer-modified-p nil)
+  (set-visited-file-modtime)
+  )
+
 (defun ocamlwizard ()
   (interactive)
   (define-key (current-local-map) [f1] 'ocamlwizard-locate)

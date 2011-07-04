@@ -15,7 +15,9 @@ have to:
 - change the install dir with by giving the configure script a
   --prefix option
 - manually copy the file emacs/ocamlwizard.el into your ~/.emacs.d/
-- append the contents of emacs/52ocamlwizard.el to your ~/.emacs
+- add the following to your ~/.emacs:
+    (add-to-list 'load-path "~/.emacs.d")
+    <contents of emacs/52ocamlwizard.el>
 
 
 Compilation and installation

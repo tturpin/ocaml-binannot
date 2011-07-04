@@ -29,6 +29,7 @@ type occurrence_kind = [
 | `str_open
 | `sig_open
 | `mty_with
+| `mty_ident
 ]
 
 (* This should only be complete w.r.t. values and module paths ! But
@@ -63,6 +64,12 @@ module Occurrence =
 	let enter_module_expr m =
 	  match m.mod_desc with
 	    | Tmod_ident _ -> found m.mod_loc m.mod_env `mod_ident
+
+	    | _ -> ()
+
+	let enter_module_type t =
+	  match t.mty_desc with
+	    | Tmty_ident p -> found t.mty_loc (assert false) `mty_ident
 
 	    | _ -> ()
 
@@ -142,29 +149,23 @@ let get_occurrences s =
 *)
 
 let ident_of_subtree = function
-  | `pattern {pat_desc = Tpat_var id ; pat_loc = loc}
-  | `expression {exp_desc = Texp_for (id, _, _, _, _) ; exp_loc = loc}
-  | `signature_item {sig_desc = Tsig_value (id, _) ; sig_loc = loc}
-    -> value_ops, id, loc
-  | `structure_item {str_desc = Tstr_module (id, _) ; str_loc = loc}
-    -> module_ops, id, loc
+  | `pattern {pat_desc = Tpat_var id}
+  | `expression {exp_desc = Texp_for (id, _, _, _, _)}
+  | `signature_item {sig_desc = Tsig_value (id, _)}
+    -> value_ops, id
+  | `structure_item {str_desc = Tstr_module (id, _)}
+    -> module_ops, id
+  | `structure_item {str_desc = Tstr_modtype (id, _)}
+    -> modtype_ops, id
   | _ -> raise Not_found
 
 (* Should be almost complete for expressions, but this is not a safety
    requirement anyway. *)
 let locate_renamed_id s loc =
   try
-    let kind, id, _ = ident_of_subtree (locate_innermost s loc) in kind, id
+    let kind, id = ident_of_subtree (locate_innermost s loc) in kind, id
   with Not_found ->
     invalid_arg "rename"
-
-let find_id_def s id =
-  find_map_innermost s
-    (function t ->
-      try
-	let _, id', loc = ident_of_subtree t in
-	if id' = id then Some loc else None
-      with Not_found -> None)
 
 let find_id_def table id =
   StringTbl.find table (Ident.name id)

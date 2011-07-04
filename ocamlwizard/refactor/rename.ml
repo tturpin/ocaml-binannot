@@ -214,8 +214,10 @@ let find_id_defs ids name s =
  [fst loc, snd loc, name']
 *)
 
-(* TODO *)
-let valid_ident kind name = true
+let fix_case kind =
+  match kind.sort with
+    | `Module | `Modtype -> String.capitalize
+    | _ -> String.uncapitalize
 
 (* Temporary : we rename only in one file *)
 let rename loc name name' file =
@@ -223,6 +225,8 @@ let rename loc name name' file =
 
   (* Get the "initial" id to rename and its sort *)
   let renamed_kind, id = locate_renamed_id (`structure s) loc in
+
+  let name' = fix_case renamed_kind name' in
 
   (* Collect constraints requiring simultaneous renaming *)
   let incs, includes = collect_signature_inclusions s in
