@@ -113,10 +113,7 @@ let get_occurrences s =
       compare loc.loc_start.pos_cnum loc.loc_end.pos_cnum)
     (Occurrence.find_all (`structure s))
 
-
-
-
-let get_longident (loc, s, (env, occ)) =
+let extract_longident (loc, s, (env, occ)) =
   let parse parser s =
     let lexbuf = Lexing.from_string s in
       parser Lexer.token lexbuf
@@ -140,7 +137,7 @@ let get_longident (loc, s, (env, occ)) =
 
 let get_lids file ast =
   List.map
-    get_longident
+    extract_longident
     (source_locations file (get_occurrences ast))
 
 

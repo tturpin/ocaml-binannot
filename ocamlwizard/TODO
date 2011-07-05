@@ -1,3 +1,4 @@
+- Rename: rename in signatures
 - Rename: update documentation
 - Rename: return a list of files that emacs should revert
 - Rename: replace in multiple files

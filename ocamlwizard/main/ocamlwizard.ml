@@ -76,7 +76,7 @@ let main () =
 
     | Refactor r ->
       (match r with
-	| Rename (loc, name, name', file) -> Rename.rename loc name name' file
+	| Rename (loc, name', file) -> Rename.rename loc name' file
 	| Depend | Qualif -> failwith "not yet")
 
     | Locate -> failwith "not yet"

@@ -154,15 +154,13 @@
   "rename a value using Ocamlwizard"
   (interactive "sRename with: ")
   (setq pos (point))
-  (save-excursion
-    (search-backward-regexp "[^a-zA-Z._0-9]")
-    (forward-char 1)
-    (setq start (point))
-    (search-forward-regexp "[^a-zA-Z._0-9]")
-    (setq end (- (point) 1))
-    (setq word (buffer-substring start end)))
-;  (interactive (concat "sRename " word))
-;  (message "New name: %s" name)
+;  (save-excursion
+;    (search-backward-regexp "[^a-zA-Z._0-9]")
+;    (forward-char 1)
+;    (setq start (point))
+;    (search-forward-regexp "[^a-zA-Z._0-9]")
+;    (setq end (- (point) 1))
+;    (setq word (buffer-substring start end)))
   (setq file (buffer-name))
   (setq buffer (get-buffer-create "*ocamlwizard*"))
   (save-excursion
@@ -174,8 +172,7 @@
 	(call-process 
 	 "ocamlwizard" nil buffer nil
 	 "completion" "refactor" "-rename"
-	 (concat (int-to-string (- start 1)) "-" (int-to-string (- end 1)))
-	 word
+	 (concat (int-to-string (- pos 1)) "-" (int-to-string pos))
 	 name
 	 file))
   (if (eq exit-status 0)
@@ -199,4 +196,5 @@
   (define-key (current-local-map) [f3] 'ocamlwizard-match-with-completion)
   (define-key (current-local-map) [f12] 'ocamlwizard-path-completion)
   (define-key (current-local-map) [f11] 'ocamlwizard-expand-patvar)
+  (define-key (current-local-map) "\C-c\C-or" 'ocamlwizard-rename)
   )

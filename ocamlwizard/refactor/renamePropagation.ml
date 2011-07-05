@@ -48,12 +48,16 @@ let rec constraint_modtype incs env t t' =
      does not match
        module type X = sig  end" *)
   try
-    let sg' = modtype_signature env t' in
-    let sg =
-      try modtype_signature env t
+    let t' = modtype env t' in
+    let t =
+      try modtype env t
       with Abstract_modtype -> assert false
     in
-    constraint_signature incs env sg sg'
+      match t, t' with
+	| `sign sg, `sign sg' -> constraint_signature incs env sg sg'
+	| `func (_, arg, res), `func (_, arg', res') ->
+	    constraint_modtype incs env arg arg';
+	    constraint_modtype incs env res res'
   with
       Abstract_modtype -> ()
 
@@ -142,7 +146,7 @@ let collect_signature_inclusions s =
    to their (non-trivial) equivalence class. *)
 type 'a equivalence = ('a, 'a list ref) Hashtbl.t
 
-let add_rel eq x y =
+let add_relation eq x y =
   let open Hashtbl in
       match x, y, mem eq x, mem eq y with
 	| _, _, false, false ->
@@ -177,7 +181,7 @@ let propagate_renamings kind id incs includes =
 	let item = lookup_in_signature kind name sg in
 	let id = sig_item_id item in
 	  implicit_refs := (flag, sg, id') :: !implicit_refs;
-	  add_rel eq id id'
+	  add_relation eq id id'
       with Not_found -> assert false
     in
       ConstraintSet.iter

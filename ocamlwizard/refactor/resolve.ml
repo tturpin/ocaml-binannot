@@ -148,7 +148,7 @@ let first_of_in_sig kind ids name sg =
 	    raise (Name id)
 	| None -> ()))
     (List.rev sg);
-  invalid_arg "ckeck_in_sig"
+  raise Not_found
 
 let rec first_of kind ids name env = function
   | Env_empty -> raise Not_found
@@ -182,7 +182,7 @@ exception Masked_by of bool * Ident.t
 
 (* Check that the renaming of one of ids in name is not masked in the env. *)
 
-let check ~renamed first_of arg =
+let check_in ~renamed first_of arg =
   try
     ignore (first_of arg);
     assert false
@@ -194,10 +194,16 @@ let check ~renamed first_of arg =
 	  | _ -> assert false
 
 let check kind id name env summary =
-  check (first_of kind id name env) summary
+  try
+    check_in (first_of kind id name env) summary
+  with
+      Not_found -> invalid_arg "ckeck_in_sig"
 
 and check_in_sig kind id name sg =
-  check (first_of_in_sig kind id name) sg
+  try
+    check_in (first_of_in_sig kind id name) sg
+  with
+      Not_found -> invalid_arg "ckeck_in_sig"
 
 (*
 let check kind id name env summary =

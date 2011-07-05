@@ -256,7 +256,7 @@ let rename_in_file renamed_kind id name' file (s, idents) =
   def_replaces, occ_replaces 
 
 (* Renaming entry point: user interface... *)
-let rename loc name name' file =
+let rename loc name' file =
   try
 
     backup file;
@@ -279,12 +279,15 @@ let rename loc name name' file =
     (* Read the typedtree *)
     let s, idents = read_cmt cmt_file in
 
-    try
+    (* Get the "initial" id to rename and its sort *)
+    let renamed_kind, id = locate_renamed_id (`structure s) loc in
 
-      (* Get the "initial" id to rename and its sort *)
-      let renamed_kind, id = locate_renamed_id (`structure s) loc in
-
+    let name = Ident.name id in
+(*
       if Ident.name id <> name then failwith "name does not match location";
+*)
+
+    try
 
       let name' = fix_case renamed_kind name' in
 
@@ -303,8 +306,8 @@ let rename loc name name' file =
 
     with
       | Masked_by (renamed, id) ->
-	  let def = find_id_def idents id in
-	    Location.print Format.std_formatter def;
+	  let loc = find_id_def idents id in
+	    Location.print Format.std_formatter loc;
 	    if renamed then
 	      Printf.printf
 		"This existing definition of %s would capture an occurrence of %s"
@@ -318,10 +321,10 @@ let rename loc name name' file =
       | e -> raise e
   with
     | Failure s ->
+	Printf.printf "Error: %s\n" s;
 	Printexc.print_backtrace stdout;
-	Printf.printf "Error: %s" s;
 	exit 2
     | e ->
+	Printf.printf "Error: %s\n" (Printexc.to_string e);
 	Printexc.print_backtrace stdout;
-	Printf.printf "Error: %s" (Printexc.to_string e);
 	exit 2

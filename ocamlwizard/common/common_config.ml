@@ -164,7 +164,7 @@ let set_parser = function
     
 
 type refactor_option = 
-  | Rename of (int * int) * string * string * string
+  | Rename of (int * int) * string * string
   | Depend
   | Qualif
 
@@ -184,9 +184,9 @@ let get_refactor_option = function
 *)
 
 let parse_refactor_command = function
-  | [| "-rename" ; loc ; name ; name' ; file |] ->
+  | [| "-rename" ; loc ; name' ; file |] ->
     ignore (search_dirs file); (* for -print-project-dir *)
-    Rename (get_loc loc "rename", name, name', file)
+    Rename (get_loc loc "rename", name', file)
   | [||] -> failwith "refactor : no command given"
   | c -> failwith ("invalid refactor command " ^ c.(0))
 
