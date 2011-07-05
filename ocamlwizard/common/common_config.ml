@@ -127,8 +127,14 @@ let directory_of source =
   else
     Filename.dirname source
 
+(* Very approximative ! *)
 let search_dirs source =
-  let dirs = (!include_dirs @ [Config.standard_library]) in
+  let dirs =
+    List.map
+      (Misc.expand_directory Config.standard_library)
+      !include_dirs
+    @ [Config.standard_library]
+  in
   let dir = directory_of source in
   let dirs =
     try
@@ -330,3 +336,19 @@ let () =
       Format.eprintf "warning: could not load .ocamlwizard (%s)@."
 	(Printexc.to_string e)
   end
+
+let auto_save f =
+  let b = Filename.basename f and d = Filename.dirname f in
+  let auto_save = Filename.concat d ("#" ^ b ^ "#") in
+  if not !ignore_auto_save && Sys.file_exists auto_save then (
+    if !debug then Printf.eprintf "Using auto_save file %s" auto_save;
+    Some auto_save
+  ) else
+    None
+
+let check_auto_save f =
+  match auto_save f with
+  | None -> f
+  | Some f -> f
+
+let has_auto_save f = auto_save f <> None

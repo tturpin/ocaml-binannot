@@ -33,25 +33,29 @@ type specifics = {
   summary_item : Env.summary -> Ident.t option
 }
 
-let keep_first f lid env = fst (f lid env)
+let wrap_lookup to_string name lookup x e =
+  try lookup x e
+  with Not_found -> failwith ("unbound " ^ name ^ " " ^ to_string x)
+
+let keep_first name f lid env = fst (wrap_lookup lid_to_str name f lid env)
 
 let value_ops = {
   sort = `Value;
-  lookup = keep_first Env.lookup_value;
+  lookup = keep_first "value" Env.lookup_value;
   sig_item = (function Sig_value (i, _) -> Some i | _ -> None);
   summary_item = function Env_value (_, i, _) -> Some i | _ -> None
 }
 
 let module_ops = {
   sort = `Module;
-  lookup = keep_first Env.lookup_module;
+  lookup = keep_first "module" Env.lookup_module;
   sig_item = (function Sig_module (i, _, _) -> Some i | _ -> None);
   summary_item = function Env_module (_, i, _) -> Some i | _ -> None
 }
 
 let modtype_ops = {
   sort = `Modtype;
-  lookup = keep_first Env.lookup_modtype;
+  lookup = keep_first "module type" Env.lookup_modtype;
   sig_item = (function Sig_modtype (i, _) -> Some i | _ -> None);
   summary_item = function Env_modtype (_, i, _) -> Some i | _ -> None
 }
@@ -70,7 +74,7 @@ exception Abstract_modtype
 
 (* Return the signature of a given (extended) module type path *)
 let rec resolve_modtype env path =
-  match Env.find_modtype path env with
+  match wrap_lookup Path.name "module type" Env.find_modtype path env with
   | Modtype_abstract -> raise Abstract_modtype
   | Modtype_manifest mt -> modtype env mt
 
@@ -92,7 +96,13 @@ let modtype_functor env m =
 
 (* Return the signature of a given (extended) module path *)
 let resolve_module env path =
-  modtype_signature env (Env.find_module path env)
+  modtype_signature env (wrap_lookup Path.name "module" Env.find_module path env)
+
+(* unused *)
+let resolve_module_lid env lid =
+  modtype_signature env
+    (snd (wrap_lookup lid_to_str "module" Env.lookup_module lid env))
+
 
 let is_one_of id = List.exists (Ident.same id)
 

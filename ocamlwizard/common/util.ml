@@ -287,3 +287,12 @@ let source_locations file locs =
       close_in c;
       List.rev acc
 
+(* Copied from driver/compile (to avoid many dependencies) *)
+let initial_env () =
+  Ident.reinit();
+  try
+    if !Clflags.nopervasives
+    then Env.initial
+    else Env.open_pers_signature "Pervasives" Env.initial
+  with Not_found ->
+    Misc.fatal_error "cannot open pervasives.cmi"

@@ -34,6 +34,9 @@ val modtype_ops : specifics
 (** Return the specific operations associated with a signature item. *)
 val sig_item_ops : Types.signature_item -> specifics
 
+(* Turns Not_found into a Failure with the unbound name *)
+val wrap_lookup : ('a -> string) -> string -> ('a -> 'b -> 'c) -> 'a -> 'b -> 'c
+
 (** Raised by modtype, modtype_signature, and modtype_functor when
     looking for the signature of an abstract module type. *)
 exception Abstract_modtype
@@ -55,6 +58,7 @@ val modtype_functor :
 (* Unused outside of this module
 (** See modtype_signature. *)
 val resolve_module : Env.t -> Path.t -> Types.signature
+val resolve_module_lid : Env.t -> Longident.t -> Types.signature
 
 (** See modtype. *)
 val resolve_modtype :

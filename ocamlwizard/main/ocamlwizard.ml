@@ -45,15 +45,6 @@ let check_validity () =
   in 
   cut_pos
 
-let check_auto_save f =
-  let b = Filename.basename f and d = Filename.dirname f in
-  let auto_save = Filename.concat d ("#" ^ b ^ "#") in
-  if not !ignore_auto_save && Sys.file_exists auto_save then (
-    debugln "Using auto_save file %s" auto_save;
-    auto_save
-  ) else
-    f
-
 (** Return info of Completion in record *)
 let mk_info rg = 
   {

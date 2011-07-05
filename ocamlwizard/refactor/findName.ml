@@ -52,7 +52,9 @@ module Occurrence =
 	       ident. Otherwise, there is no way to know if we
 	       need renaming until we get the longident. *)
 
+(* needed for modules
 	    | Texp_open _ -> found e.exp_loc e.exp_env `exp_open
+*)
 
 	    (* No instance variables for now *)
 	    | Texp_instvar (_self, var)
@@ -67,6 +69,7 @@ module Occurrence =
 
 	    | _ -> ()
 
+(* needed for modules
 	let enter_module_type t =
 	  match t.mty_desc with
 	    | Tmty_ident p -> found t.mty_loc (assert false) `mty_ident
@@ -78,12 +81,14 @@ module Occurrence =
 	    | Tstr_open _ -> found i.str_loc (assert false) `str_open
 
 	    | _ -> ()
+*)
 
-(*
+(* needed for modules
 	let enter_module_type t =
 	  match t.mty_desc with
 	    | Tmty_with _ ->
 *)
+(*
 	let enter_with_constraint = function
 	  | Twith_module _
 	  | Twith_modsubst _ ->
@@ -96,7 +101,7 @@ module Occurrence =
 	    | Tsig_open _ -> found i.sig_loc (assert false) `sig_open
 
 	    | _ -> ()
-
+*)
       end
 
      end)
@@ -108,15 +113,30 @@ let get_occurrences s =
       compare loc.loc_start.pos_cnum loc.loc_end.pos_cnum)
     (Occurrence.find_all (`structure s))
 
+
+
+
 let get_longident (loc, s, (env, occ)) =
-  let lexbuf = Lexing.from_string s in
+  let parse parser s =
+    let lexbuf = Lexing.from_string s in
+      parser Lexer.token lexbuf
+  in
   let parser, kind = match occ with
-    | `exp_ident -> Parser.val_longident, value_ops
-    | `mod_ident -> Parser.mod_longident, module_ops
+    | `exp_ident ->
+	(function s ->
+	   try parse Parser.val_longident s
+	   with _ -> Longident.Lident (parse Parser.operator s)),
+	value_ops
+    | `mod_ident -> parse Parser.mod_longident, module_ops
     | _ -> failwith "not implemented"
   in
-  let ast = parser Lexer.token lexbuf in
-  (loc, ast, (env, kind))
+  let ast =
+    try
+      parser s
+    with _ ->
+      failwith ("error parsing the following ident: " ^ s)
+  in
+    (loc, ast, (env, kind))
 
 let get_lids file ast =
   List.map

@@ -29,16 +29,6 @@ open Util
 
 exception Compilation_failed
 
-(* Copied from driver/compile (to avoid many dependencies) *)
-let initial_env () =
-  Ident.reinit();
-  try
-    if !Clflags.nopervasives
-    then Env.initial
-    else Env.open_pers_signature "Pervasives" Env.initial
-  with Not_found ->
-    Misc.fatal_error "cannot open pervasives.cmi"
-
 let compile_file ast c_env =
   Clflags.include_dirs := (*! Clflags.include_dirs @*) c_env.includ;
   let exp_dirs =

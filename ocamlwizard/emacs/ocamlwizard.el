@@ -189,10 +189,8 @@
        ; Problem: if we undo and then redo, emacs forgets the goto.
 	(goto-char pos)
 	(set-buffer-modified-p nil)
-	(set-visited-file-modtime)
-	(message "Renaming succeeded"))
-    (message "Renaming failed")
-    (display-message-or-buffer buffer))
+	(set-visited-file-modtime)))
+  (display-message-or-buffer buffer)
   )
 
 (defun ocamlwizard ()

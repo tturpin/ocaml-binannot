@@ -403,6 +403,7 @@ The precedences must be listed from low to high.
 /* Additional entry points for renaming */
 
 %start val_longident
+%start operator
 %start constr_longident
 %start label_longident
 %start type_longident
@@ -422,6 +423,8 @@ The precedences must be listed from low to high.
     mty_longident
     clty_longident
     class_longident
+
+%type <string> operator
 
 %%
 

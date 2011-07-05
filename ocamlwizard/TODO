@@ -1,3 +1,4 @@
+- Rename: update documentation
 - Rename: return a list of files that emacs should revert
 - Rename: replace in multiple files
 - Rename: check that we always lookup in the right environment
@@ -6,8 +7,6 @@
 - Rename: collect all occurrences in a or-pattern
 - Rename: retrieve a definition from an occurrence
 - Rename: warn about potential future captures
-- Rename: do a backup before replacing
-- Rename: check that .cmt files are up to date
 - Rename: tell emacs to revert all relevant buffers
 - Use a best qualification for labels
 - Errors: do not output anything, and stop everything in the emacs mode
@@ -18,3 +17,4 @@
 - Match_cases completion: buffer still marked modified if we undo the completion
 - Expansion: allow expansion even if the match_case is unfinished
 - Expansion: add parentheses as needed for or-patterns
+- Emacs: fix the ident regexps w.r.t. quotes

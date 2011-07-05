@@ -17,15 +17,10 @@
 
 open Longident
 open Resolve
+open Util
 
 (* Rename the ident id of type renamed_kind in the longident lid of kind sort *)
-let rec rename_in_lid
-    renamed_kind
-    (ids : Ident.t list)
-    (name : string)
-    (env : Env.t)
-    kind
-    (lid : Longident.t) =
+let rec rename_in_lid renamed_kind ids name env kind lid =
   let rename = rename_in_lid renamed_kind ids name env module_ops in
   match renamed_kind.sort, lid with
     | _, Lident i ->
@@ -37,7 +32,7 @@ let rec rename_in_lid
     | _, Ldot (pref, n) ->
       let n' =
 	if kind.sort = renamed_kind.sort && resolves_to kind env lid ids then (
-	  let _, t = Env.lookup_module pref env in
+	  let _, t = wrap_lookup lid_to_str "module" Env.lookup_module pref env in
 	  check_in_sig kind ids name (modtype_signature env t) ~renamed:true;
 	  Some name
 	) else
@@ -65,7 +60,7 @@ let rec check_lid renamed_kind ids name env kind lid =
     | Ldot (pref, n) ->
       check_lid pref;
       if kind.sort = renamed_kind.sort && n = name then
-	let _, t = Env.lookup_module pref env in
+	let _, t = wrap_lookup lid_to_str "module" Env.lookup_module pref env in
 	check_in_sig kind ids name (modtype_signature env t) ~renamed:false
     | Lapply (lid, lid') ->
       if renamed_kind.sort = `Module then (

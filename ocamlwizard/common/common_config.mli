@@ -51,3 +51,5 @@ val ignore_auto_save : bool ref
 val options : (string * Arg.spec * string) list
 val usage : string
 val anonymous : string -> unit
+val check_auto_save : string -> string
+val has_auto_save : string -> bool

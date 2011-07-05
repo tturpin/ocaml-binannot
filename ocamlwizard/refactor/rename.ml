@@ -23,7 +23,6 @@ open Path
 open Types
 open Typedtree
 open TypedtreeOps
-open Env
 open Resolve
 open FindName
 open RenameLid
@@ -219,24 +218,28 @@ let fix_case kind =
     | `Module | `Modtype -> String.capitalize
     | _ -> String.uncapitalize
 
-(* Temporary : we rename only in one file *)
-let rename renamed_kind id name' file (s, idents) =
+let backup file =
+  let backup = file ^ ".backup_" ^ string_of_int (int_of_float (Unix.time ())) in
+    if Sys.file_exists backup then
+      failwith "bad luck"
+    else
+      Edit.cp file backup
+
+(* Rename an ident in a structure file, with given ast. *)
+let rename_in_file renamed_kind id name' file (s, idents) =
 
   (* Collect constraints requiring simultaneous renaming *)
-  let incs, includes = collect_signature_inclusions s in
+  let constraints, includes = collect_signature_inclusions s in
 
   (* Deduce the minimal set of ids to rename *)
-  let ids, implicit_refs = propagate_renamings renamed_kind id incs includes in
-
-  List.iter
-    (function id -> debugln "rename %s\n%!" (Ident.unique_name id))
-    ids;
+  let ids, implicit_refs =
+    propagate_renamings renamed_kind id constraints includes in
 
   (* Compute the replacements for the *definitions* of the rename ids *)
   let def_replaces = find_id_defs ids name' idents in
 
   (* Check that our new name will not capture useful signature members *)
-  check_other_implicit_references renamed_kind ids name' incs includes;
+  check_other_implicit_references renamed_kind ids name' constraints includes;
 
   (* Check that useful renamed signature members are not masked. *)
   check_renamed_implicit_references renamed_kind ids name' implicit_refs;
@@ -250,42 +253,75 @@ let rename renamed_kind id name' file (s, idents) =
   (* Compute renamed lids, checking that they are not captured *)
   let occ_replaces = rename_lids renamed_kind ids name' lids in
 
-  (* We  need to sort them again ! *)
-  sort_replaces (def_replaces @ occ_replaces)
+  def_replaces, occ_replaces 
 
+(* Renaming entry point: user interface... *)
 let rename loc name name' file =
-  let s, idents = read_cmt (Filename.chop_suffix file ".ml" ^ ".cmt") in
   try
 
-    (* Get the "initial" id to rename and its sort *)
-    let renamed_kind, id = locate_renamed_id (`structure s) loc in
+    backup file;
 
-    let name' = fix_case renamed_kind name' in
+    (* Setup the environment *)
+    let dirs = Common_config.search_dirs file in
+    Config.load_path := "" :: List.rev_append dirs (Clflags.std_include_dir ());
+    ignore (initial_env ()); (* Make sure that Pervasives is loaded *)
+    debugln "load_path:"; List.iter (debugln "  %s") !Config.load_path;
 
-    let replaces = rename renamed_kind id name' file (s, idents) in
+    (* Check that everything is up-to-date *)
+    if Common_config.has_auto_save file then
+      failwith "buffer must be saved before renaming";
+    let cmt_file = Filename.chop_suffix file ".ml" ^ ".cmt" in
+    if not (Sys.file_exists cmt_file) then
+      failwith ("no cmt file for " ^ file);
+    if Unix.( (stat file).st_mtime > (stat cmt_file).st_mtime ) then
+      failwith "cmt file is older than source file";
 
-      List.iter
-	(function b, e, s -> debugln "replace %d--%d by %s\n%!" b e s)
-	replaces;
+    (* Read the typedtree *)
+    let s, idents = read_cmt cmt_file in
+
+    try
+
+      (* Get the "initial" id to rename and its sort *)
+      let renamed_kind, id = locate_renamed_id (`structure s) loc in
+
+      if Ident.name id <> name then failwith "name does not match location";
+
+      let name' = fix_case renamed_kind name' in
+
+      let def_replaces, occ_replaces =
+	rename_in_file renamed_kind id name' file (s, idents) in
+
+      (* We need to sort them again (they may interleave). *)
+      let replaces = sort_replaces (def_replaces @ occ_replaces) in
 
       (* Replace lids in the source file *)
       Edit.edit replaces file;
 
+      Printf.printf "Renamed %d definition(s) and %d reference(s)"
+	(List.length def_replaces) (List.length occ_replaces);
       exit 0
+
+    with
+      | Masked_by (renamed, id) ->
+	  let def = find_id_def idents id in
+	    Location.print Format.std_formatter def;
+	    if renamed then
+	      Printf.printf
+		"This existing definition of %s would capture an occurrence of %s"
+		name' name
+	    else
+	      Printf.printf
+		"This definition of %s that you are trying to rename would \
+                 capture an occurrence of an existing definition of %s"
+		name name';
+	    exit 1
+      | e -> raise e
   with
-    | Masked_by (renamed, id) ->
-	let def = find_id_def idents id in
-	  Location.print Format.std_formatter def;
-	  if renamed then
-	    Printf.printf
-	    "This existing definition of %s would capture an occurrence of the \
-             renamed element"
-	      name'
-	  else
-	    Printf.printf
-	      "This definition of %s that you are trying to rename would capture \
-               an occurrence of an existing definition of %s"
-	      name name';
-	  exit 1
-    | _ ->
+    | Failure s ->
+	Printexc.print_backtrace stdout;
+	Printf.printf "Error: %s" s;
+	exit 2
+    | e ->
+	Printexc.print_backtrace stdout;
+	Printf.printf "Error: %s" (Printexc.to_string e);
 	exit 2
