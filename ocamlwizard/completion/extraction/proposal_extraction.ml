@@ -282,8 +282,7 @@ let complete_match ce pm_comp (env, t) =
 
 let main sg ce se ty_check = 
   match se.comp with
-    | Match pm_comp -> complete_match ce pm_comp ty_check
+    | Match pm_comp | Try pm_comp -> complete_match ce pm_comp ty_check
     | Path  pc -> complete_path sg ce se pc ty_check
-    | Try pm -> assert false
     | Other -> assert false
     | Error e -> raise e

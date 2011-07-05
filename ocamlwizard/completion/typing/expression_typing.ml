@@ -43,10 +43,13 @@ let expansion_type = function
       | Path.Pident i -> Ident.name i
       | _ -> invalid_arg "expansion_type"
     in
-    match t.Types.type_kind with
-      | Types.Type_variant cs ->
-	env,
-	Types.Ttuple (List.assoc c cs)
+    match desc.Types.cstr_tag, t.Types.type_kind with
+      | Types.Cstr_exception pe, _ ->
+	  env,
+	  Types.Ttuple desc.Types.cstr_args
+      | _, Types.Type_variant cs ->
+	  env,
+	  Types.Ttuple (List.assoc c cs)
       | _ -> invalid_arg "expansion_type"
 
 let locate_expression s loc =
@@ -65,14 +68,11 @@ let locate_expression s loc =
     | `expression e -> e
     | _ -> raise Not_found
 
-let locate_expansion_place s loc =
+let locate_expansion_place s (b, e as loc) =
   let pattern p =
-    debugln "looking for pattern at loc:";
-    (*
-      if !Common_config.debug then
-      print Format.err_formatter loc;
-      debugln "";
-    *)
+    debugln "looking for pattern at loc: [%d, %d[" b e;
+    debugln "visiting pattern at loc: [%d, %d["
+      p.Typedtree.pat_loc.loc_start.pos_cnum p.Typedtree.pat_loc.loc_end.pos_cnum;
     match p.Typedtree.pat_desc with
       (* The pattern Cons _ is parsed as Cons (_, _) with
 	 identical locations, so we need a special case. *)
@@ -80,9 +80,10 @@ let locate_expansion_place s loc =
 	  (c, d, ({pat_loc = l ; pat_desc = Tpat_any} :: ps)) ->
 	if (l.loc_start.pos_cnum, l.loc_end.pos_cnum) = loc &&
 	  ps <> [] &&
-	  List.for_all (function p'' -> p''.pat_loc = l) ps then
-	  Some (Args (p, c, d))
-	else
+	  List.for_all (function p'' -> p''.pat_loc = l) ps then (
+	    debugln "found constructor arguments";
+	    Some (Args (p, c, d))
+	  ) else
 	  None
       | _ ->
 	    (*
@@ -90,9 +91,10 @@ let locate_expansion_place s loc =
 	      print Format.err_formatter p.Typedtree.pat_loc;
 	    *)
 	let l = p.Typedtree.pat_loc in
-	if (l.loc_start.pos_cnum, l.loc_end.pos_cnum) = loc then
+	if (l.loc_start.pos_cnum, l.loc_end.pos_cnum) = loc then (
+	  debugln "found pattern";
 	  Some (Pat p)
-	else
+	) else
 	  None
   in
   find_pattern pattern (`structure s)

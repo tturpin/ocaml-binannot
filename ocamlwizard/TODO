@@ -5,7 +5,6 @@
 - Rename: rename everything an not just values
 - Rename: collect all occurrences in a or-pattern
 - Rename: retrieve a definition from an occurrence
-- Rename: report masking and capture errors accurately
 - Rename: warn about potential future captures
 - Rename: do a backup before replacing
 - Rename: check that .cmt files are up to date

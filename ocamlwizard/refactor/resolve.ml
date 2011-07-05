@@ -168,7 +168,7 @@ let rec first_of kind ids name env = function
 	-> first_of kind ids name env s
       | Env_open _ | Env_empty _ -> assert false
 
-exception Masked_by of Ident.t
+exception Masked_by of bool * Ident.t
 
 (* Check that the renaming of one of ids in name is not masked in the env. *)
 
@@ -180,7 +180,7 @@ let check ~renamed first_of arg =
       (Ident _ | Name _) as e ->
 	match renamed, e with
 	  | (true, Ident _ | false, Name _) -> ()
-	  | (true, Name id | false, Ident id) -> raise (Masked_by id)
+	  | (true, Name id | false, Ident id) -> raise (Masked_by (renamed, id))
 	  | _ -> assert false
 
 let check kind id name env summary =

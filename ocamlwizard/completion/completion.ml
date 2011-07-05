@@ -125,7 +125,7 @@ let main ce =
 	    | None -> assert false
 	in
 	match_exp.Typedtree.exp_env, match_exp.Typedtree.exp_type
-      | Match (BranchCs (p, l)) ->
+      | Match (BranchCs (p, l)) | Try (BranchCs (p, l)) ->
 	let place =
 	  Expression_typing.locate_expansion_place structure
 	    ! Common_config.expand_loc

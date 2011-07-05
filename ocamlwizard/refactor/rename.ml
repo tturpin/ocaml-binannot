@@ -220,13 +220,7 @@ let fix_case kind =
     | _ -> String.uncapitalize
 
 (* Temporary : we rename only in one file *)
-let rename loc name name' file =
-  let s, idents = read_cmt (Filename.chop_suffix file ".ml" ^ ".cmt") in
-
-  (* Get the "initial" id to rename and its sort *)
-  let renamed_kind, id = locate_renamed_id (`structure s) loc in
-
-  let name' = fix_case renamed_kind name' in
+let rename renamed_kind id name' file (s, idents) =
 
   (* Collect constraints requiring simultaneous renaming *)
   let incs, includes = collect_signature_inclusions s in
@@ -239,10 +233,7 @@ let rename loc name name' file =
     ids;
 
   (* Compute the replacements for the *definitions* of the rename ids *)
-(*
-  let def_replaces = find_id_defs ids (`structure s) in (* obviously incomplete ! *)
-*)
-  let def_replaces = find_id_defs ids name' idents in (* obviously incomplete ! *)
+  let def_replaces = find_id_defs ids name' idents in
 
   (* Check that our new name will not capture useful signature members *)
   check_other_implicit_references renamed_kind ids name' incs includes;
@@ -259,14 +250,42 @@ let rename loc name name' file =
   (* Compute renamed lids, checking that they are not captured *)
   let occ_replaces = rename_lids renamed_kind ids name' lids in
 
-  (* We will need to sort them again ! *)
-  let replaces = sort_replaces (def_replaces @ occ_replaces) in
+  (* We  need to sort them again ! *)
+  sort_replaces (def_replaces @ occ_replaces)
 
-  List.iter
-    (function b, e, s -> debugln "replace %d--%d by %s\n%!" b e s)
-    replaces;
+let rename loc name name' file =
+  let s, idents = read_cmt (Filename.chop_suffix file ".ml" ^ ".cmt") in
+  try
 
-  (* Replace lids in the source file *)
-  Edit.edit replaces file;
+    (* Get the "initial" id to rename and its sort *)
+    let renamed_kind, id = locate_renamed_id (`structure s) loc in
 
-  exit 0
+    let name' = fix_case renamed_kind name' in
+
+    let replaces = rename renamed_kind id name' file (s, idents) in
+
+      List.iter
+	(function b, e, s -> debugln "replace %d--%d by %s\n%!" b e s)
+	replaces;
+
+      (* Replace lids in the source file *)
+      Edit.edit replaces file;
+
+      exit 0
+  with
+    | Masked_by (renamed, id) ->
+	let def = find_id_def idents id in
+	  Location.print Format.std_formatter def;
+	  if renamed then
+	    Printf.printf
+	    "This existing definition of %s would capture an occurrence of the \
+             renamed element"
+	      name'
+	  else
+	    Printf.printf
+	      "This definition of %s that you are trying to rename would capture \
+               an occurrence of an existing definition of %s"
+	      name name';
+	  exit 1
+    | _ ->
+	exit 2

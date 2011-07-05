@@ -99,9 +99,10 @@ let project_file_name = ".ocamlwizard"
 (* Try to locate a project file in the directory containing d. *)
 let rec find_project_file d =
   let pf = Filename.concat d project_file_name in
-  if Sys.file_exists pf then
+  if Sys.file_exists pf then (
+    if !debug then Printf.eprintf "Found project file in directory %s" d;
     d, pf
-  else if d = "/" then
+  ) else if d = "/" then
     raise Not_found
   else
     find_project_file (Filename.dirname d)

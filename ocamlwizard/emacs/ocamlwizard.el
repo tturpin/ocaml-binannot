@@ -168,29 +168,31 @@
   (save-excursion
     (set-buffer buffer)
     (compilation-minor-mode 1)
-    (erase-buffer)
-    (insert "\n\n"))
+    (erase-buffer))
   (do-auto-save)
   (setq exit-status 
 	(call-process 
-	 "ocamlwizard" nil (list t nil) nil
+	 "ocamlwizard" nil buffer nil
 	 "completion" "refactor" "-rename"
 	 (concat (int-to-string (- start 1)) "-" (int-to-string (- end 1)))
 	 word
 	 name
 	 file))
-  (if (not (eq exit-status 10))
-      (message "ocamlwizard: no completion"))
-; Thank you stackoverflow:
-  (save-excursion
-    (clear-visited-file-modtime)
-    (widen)
-    (delete-region (point-min) (point-max))
-    (insert-file-contents (buffer-file-name)))
-; Problem: if we undo and then redo, emacs forgets the goto.
-  (goto-char pos)
-  (set-buffer-modified-p nil)
-  (set-visited-file-modtime)
+  (if (eq exit-status 0)
+      ; Thank you stackoverflow:
+      (progn
+	(save-excursion
+	  (clear-visited-file-modtime)
+	  (widen)
+	  (delete-region (point-min) (point-max))
+	  (insert-file-contents (buffer-file-name)))
+       ; Problem: if we undo and then redo, emacs forgets the goto.
+	(goto-char pos)
+	(set-buffer-modified-p nil)
+	(set-visited-file-modtime)
+	(message "Renaming succeeded"))
+    (message "Renaming failed")
+    (display-message-or-buffer buffer))
   )
 
 (defun ocamlwizard ()

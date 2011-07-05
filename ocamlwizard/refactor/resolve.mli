@@ -76,8 +76,9 @@ val lookup_in_signature :
   specifics -> string -> Types.signature -> Types.signature_item
 
 (** Raised by check to signal an impossible renaming due to a masking
-    of the new name by another element *)
-exception Masked_by of Ident.t
+    of an existing occurrence of the new name, or of a renamed
+    occurrence (the boolean specifies if it is a renamed occurrence). *)
+exception Masked_by of bool * Ident.t
 
 (** Check that the renaming of a list of idents (with the same name)
     into a new name would not change the meaning of a reference in a
