@@ -95,13 +95,11 @@ let find_all_occurrences idents tree =
 	  | Texp_instvar (_self, var)
 	  | Texp_setinstvar (_self, var, _) -> None
 	  | Texp_override (_self, modifs) -> None
-
 	  | _ -> None)
 
       | `module_expr m ->
 	(match m.mod_desc with
 	  | Tmod_ident _ -> found m.mod_loc m.mod_env `mod_ident
-
 	  | _ -> None)
 
       | `module_type t ->
@@ -126,13 +124,10 @@ let find_all_occurrences idents tree =
 	    found (assert false) (assert false) (assert false)
 	  *)
 
-	  (* needed for modules
-	     | `structure_item i =
-	     match i.str_desc with
-	     | Tstr_open _ -> found i.str_loc (assert false) `str_open
-
-	     | _ -> ()
-	  *)
+      | `structure_item i ->
+	(match i.str_desc with
+	  | Tstr_open _ -> found i.str_loc i.str_env `str_open
+	  | _ -> None)
 
 	  (* needed for modules
 	     | `module_type t =

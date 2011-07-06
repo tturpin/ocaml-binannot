@@ -756,8 +756,8 @@ let wrap_constraint env arg mty explicit =
 
 (* Type a module value expression *)
 
-let mkstr desc loc =
-  let str = { str_desc = desc; str_loc = loc } in
+let mkstr desc loc env =
+  let str = { str_desc = desc; str_loc = loc; str_env = env } in
   Typedtree.add_saved_type (Saved_structure_item str);
   str
 
@@ -858,6 +858,7 @@ and type_structure funct_body anchor env sstr scope =
   and module_names = ref StringSet.empty
   and modtype_names = ref StringSet.empty in
   let rec type_struct env sstr =
+    let mkstr desc loc = mkstr desc loc env in
     Ctype.init_def(Ident.current_time());
     match sstr with
       [] ->
