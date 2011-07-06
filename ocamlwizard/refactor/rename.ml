@@ -229,7 +229,7 @@ let backup file =
 let rename_in_file renamed_kind id name' file (s, idents) =
 
   (* Collect constraints requiring simultaneous renaming *)
-  let constraints, includes = collect_signature_inclusions s in
+  let constraints, includes = collect_signature_inclusions (`structure s) in
 
   (* Deduce the minimal set of ids to rename *)
   let ids, implicit_refs =
@@ -245,7 +245,7 @@ let rename_in_file renamed_kind id name' file (s, idents) =
   check_renamed_implicit_references renamed_kind ids name' implicit_refs;
 
   (* Collect all lids *)
-  let lids = get_lids file s in
+  let lids = get_lids file idents (`structure s) in
 
   (* Check that our new name will not capture other occurrences *)
   check_lids renamed_kind ids name' lids;

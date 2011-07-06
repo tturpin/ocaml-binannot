@@ -25,7 +25,9 @@ val get_occurrences :
 *)
 
 val get_lids :
-  string -> Typedtree.structure ->
+  string ->
+  Location.string_table ->
+  [ `signature of Typedtree.signature | `structure of Typedtree.structure ]->
   (Location.t * Longident.t * (Env.t * Resolve.specifics)) list
 
 val locate_renamed_id :

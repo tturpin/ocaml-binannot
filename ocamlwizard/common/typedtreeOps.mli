@@ -33,63 +33,64 @@ type 'a funs = {
 }
 *)
 
-(** Generic interface with functors *)
+(** The common type for all typedtree nodes. *)
+type node = [
+  `structure of structure
+| `value_description of value_description
+| `type_declaration of type_declaration
+| `exception_declaration of exception_declaration
+| `pattern of pattern
+| `expression of expression
+| `package_type of package_type
+| `signature of signature
+| `signature_item of signature_item
+| `modtype_declaration of modtype_declaration
+| `module_type of module_type
+| `module_expr of module_expr
+| `with_constraint of with_constraint
+| `class_expr of class_expr
+| `class_signature of class_signature
+| `class_description of class_description
+| `class_type_declaration of class_type_declaration
+| `class_infos of unit class_infos
+| `class_type of class_type
+| `class_type_field of class_type_field
+| `core_type of core_type
+| `core_field_type of core_field_type
+| `class_structure of class_structure
+| `class_field of class_field
+| `structure_item of structure_item
+| `binding of pattern * expression
+| `bindings of Asttypes.rec_flag
+]
 
-module type FindArgument = sig
-  type t
-  module IteratorArgument :
-    functor (Action : sig val found : t -> unit end) -> IteratorArgument
-end
+(** Return the constructor name, as a string. *)
+val node_kind : node -> string
 
-(*
-(** The functions to provide to Find. *)
-module type FindArgument = sig
-  type t
-  val pattern : pattern -> t option
-  val expression : expression -> t option
-end
+(** Traverse a typedtree, calling the provided enter and leave
+    functions just before and just after each node, respectively. *)
+val iterator : enter:(node -> unit) -> leave:(node -> unit) -> unit sfun
 
-(** Default functions that do nothing: include this and overwrite only
-    what you need. *)
-module DefaultFindArgument :
-  functor (T : sig type t end) -> FindArgument
-  with type t = T.t
-*)
+(** Find the innermost node for which some condition holds. *)
+val find_map : [`outermost | `innermost] -> (node -> 'a option) -> 'a sfun
 
-(** Find and find_all. *)
-module Find :
-  functor (T : FindArgument) -> sig
-    val find : T.t sfun
-    val find_all : T.t list sfun
-(*
-    val find' : T.t funs
-    val find_all' : T.t list funs
-*)
-  end
+(** Find all nodes satisfying some condition. *)
+val find_all_map : (node -> 'a option) -> 'a list sfun
+
+(** Return the innermost subtree whose locations contains a given
+    character number interval [a, b[. *)
+val locate : [`outermost | `innermost] -> int * int -> node sfun
 
 
 (** Finding only one sort of nodes: *)
 
-val find_pattern : (Typedtree.pattern -> 'a option) -> 'a sfun
-val find_expression : (Typedtree.expression -> 'a option) -> 'a sfun
+val find_pattern :
+  [`outermost | `innermost] -> (Typedtree.pattern -> 'a option) -> 'a sfun
+val find_expression :
+  [`outermost | `innermost] -> (Typedtree.expression -> 'a option) -> 'a sfun
 
-(** Find the innermost subtree for which some condition holds. *)
-val find_map_innermost :
-  [ `signature of signature | `structure of structure ] ->
-  ([
-    `pattern of pattern
-  | `expression of expression
-  | `structure_item of structure_item
-  | `signature_item of signature_item
-  ] -> 'a option) -> 'a
+module NodeTbl : Hashtbl.S with type key = node
 
-(** Return the innermost subtree whose locations contains a given
-    character number interval [a, b[. *)
-val locate_innermost :
-  [ `signature of signature | `structure of structure ] ->
-  int * int -> [
-    `pattern of pattern
-  | `expression of expression
-  | `structure_item of structure_item
-  | `signature_item of signature_item
-  ]
+type father_table = node NodeTbl.t
+
+val reverse : father_table sfun

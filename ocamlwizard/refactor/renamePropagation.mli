@@ -30,7 +30,7 @@ module IncludeSet : Set.S
 (** Collect the set of signature inclusion constraints and include
     statements for a structure. *)
 val collect_signature_inclusions :
-  Typedtree.structure -> ConstraintSet.t * IncludeSet.t
+  (ConstraintSet.t * IncludeSet.t) TypedtreeOps.sfun
 
 (** Return the minimal set of idents which may be renamed and contains
     a given id, as well as the "implicit" bindings of signature

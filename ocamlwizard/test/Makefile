@@ -7,7 +7,8 @@ R_CASES=renameSimple.ml renameSigNewCaptured.ml renameSigOldCaptured.ml \
 	renameIncludeNewCaptured.ml renameIncludeOldCaptured.ml \
 	renameOpenNewCaptured.ml renameOpenOldCaptured.ml \
 	renameMultiple.ml renameProp.ml renamePropFunctor.ml \
-	renamePropFunctorNoApp.ml renameModtype.ml
+	renamePropFunctorNoApp.ml
+# renameModtype.ml
 R_TESTS=$(subst .ml,_rres.ml, $(R_CASES))
 
 RES=match_cases_res.ml expansion_res.ml path_res.ml errors_res.ml \
@@ -51,12 +52,12 @@ match_cases_res.ml: $(M_TESTS)
 	cat $^ >$@
 
 %_mres.ml: %.ml %_mcomp.ml
-	tail -n 1 $< >$@ ; echo "=>" >>$@ ; \
+	tail -n 1 $< >$@ ; /bin/echo "=>" >>$@ ; \
 	head -c `grep -o -b \\\\$$ $< | cut -d : -f 1` $< | tail -n 1 >>$@ ; \
-	cat $(subst .ml,_mcomp.ml, $<) >>$@ ; echo -e EOF\\n >>$@
+	cat $(subst .ml,_mcomp.ml, $<) >>$@ ; /bin/echo -e EOF\\n >>$@
 
 %_mcomp.ml: %.ml %_no_dollar.ml $(OWZ)
-	$(OCAMLWIZARD) completion $(subst .ml,_no_dollar.ml, $<) \
+	- $(OCAMLWIZARD) completion $(subst .ml,_no_dollar.ml, $<) \
 	-pos `grep -o -b \\\\$$ $< | cut -d : -f 1` -printer ocaml-pp >$@
 
 
@@ -74,13 +75,13 @@ expansion_res.ml: $(PE_TESTS)
 	cat $^ >$@
 
 %_peres.ml: %.ml %_pecomp.ml
-	tail -n 1 $< >$@ ; echo "=>" >>$@ ; \
+	tail -n 1 $< >$@ ; /bin/echo "=>" >>$@ ; \
 	head -c `grep -o -b \\\\$$ $< | cut -d : -f 1` $< | tail -n 1 >>$@ ; \
-	cat $(subst .ml,_pecomp.ml, $<) >>$@ ; echo -e EOF\\n >>$@
+	cat $(subst .ml,_pecomp.ml, $<) >>$@ ; /bin/echo -e EOF\\n >>$@
 
 # We use tail to perform +1 and +2 :-(
 %_pecomp.ml: %.ml %_no_dollar.ml $(OWZ)
-	$(OCAMLWIZARD) completion $(subst .ml,_no_dollar.ml, $<) \
+	- $(OCAMLWIZARD) completion $(subst .ml,_no_dollar.ml, $<) \
 	-pos `tail -c +3 $< | grep -o -b '\->' | tail -n 1 | cut -d : -f 1` \
 	-expand `grep -o -b \\\\$$ $< | cut -d : -f 1`-\
 	`tail -c +2 $< | grep -o -b € | cut -d : -f 1` \
@@ -100,13 +101,13 @@ path_res.ml: $(PC_TESTS)
 	cat $^ >$@
 
 %_pcres.ml: %.ml %_pccomp.ml
-	tail -n 1 $< >$@ ; echo "=>" >>$@ ; \
+	tail -n 1 $< >$@ ; /bin/echo "=>" >>$@ ; \
 	head -c `grep -o -b \\\\$$ $< | cut -d : -f 1` $< | tail -n 1 >>$@ ; \
-	cat $(subst .ml,_pccomp.ml, $<) >>$@ ; echo -e EOF\\n >>$@
+	cat $(subst .ml,_pccomp.ml, $<) >>$@ ; /bin/echo -e EOF\\n >>$@
 
 # We use tail to perform +1 and +2 :-(
 %_pccomp.ml: %.ml %_no_dollar.ml $(OWZ)
-	$(OCAMLWIZARD) completion $(subst .ml,_no_dollar.ml, $<) \
+	- $(OCAMLWIZARD) completion $(subst .ml,_no_dollar.ml, $<) \
 	-pos `grep -o -b \\\\$$ $< | cut -d : -f 1` -printer ocaml-pp >$@
 
 
@@ -114,13 +115,13 @@ path_res.ml: $(PC_TESTS)
 ########################
 
 errors_res.ml: errors.ml errors_comp.ml
-	cat $< >$@ ; echo "=>" >>$@ ; \
+	cat $< >$@ ; /bin/echo "=>" >>$@ ; \
 	head -c `grep -o -b \\\\$$ $< | cut -d : -f 1` $< | tail -n 1 >>$@ ; \
-	cat $(subst .ml,_comp.ml, $<) >>$@ ; echo -e EOF\\n >>$@
+	cat $(subst .ml,_comp.ml, $<) >>$@ ; /bin/echo -e EOF\\n >>$@
 
 # We use tail to perform +1 and +2 :-(
 errors_comp.ml: errors.ml errors_no_dollar.ml $(OWZ)
-	$(OCAMLWIZARD) completion $(subst .ml,_no_dollar.ml, $<) \
+	- $(OCAMLWIZARD) completion $(subst .ml,_no_dollar.ml, $<) \
 	-pos `grep -o -b \\\\$$ $< | cut -d : -f 1` -printer ocaml-pp >$@
 
 
@@ -130,10 +131,10 @@ errors_comp.ml: errors.ml errors_no_dollar.ml $(OWZ)
 %_rres.ml: %.ml %_no_dollar.ml %_no_dollar.cmt $(OWZ)
 	mv $(subst .ml,_no_dollar.ml, $<) $@
 	mv $(subst .ml,_no_dollar.cmt, $<) $(subst .ml,.cmt, $@)
-	$(OCAMLWIZARD) refactor -rename \
+	- $(OCAMLWIZARD) refactor -rename \
 	`grep -o -b \\\\$$ $< | cut -d : -f 1`-\
 	`tail -c +2 $< | grep -o -b € | cut -d : -f 1` \
-	x y $@
+	y $@
 
 #	cat ../../.ocamlwizard-stderr >> $@
 

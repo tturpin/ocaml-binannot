@@ -17,8 +17,8 @@
 
 (** Different sort of names, and their bindings. *)
 
-type sort = [ `Modtype | `Module | `Value ]
-(* TODO: 'Type... *)
+type sort = [ `Modtype | `Module | `Value | `Type ]
+(* TODO: everything else... *)
 
 type specifics = {
   sort : sort;
@@ -28,6 +28,7 @@ type specifics = {
 }
 
 val value_ops : specifics
+val type_ops : specifics
 val module_ops : specifics
 val modtype_ops : specifics
 

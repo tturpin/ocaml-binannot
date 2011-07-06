@@ -597,8 +597,10 @@ clean:
 	cd $(PATH_OWZ) ; $(rmcmd)
 	cd $(PATH_COMPLETION) ; $(rmcmd)
 	rm $(GENERATED)
-	rm -f $(BIN).* $(BIN_GUI).* $(BIN_SCAN).* $(BIN_ANNOT).*
-	make -C standard_library clean
+	rm -f $(BIN).byte $(BIN).opt $(BIN_GUI).* $(BIN_SCAN).* $(BIN_ANNOT).*
+	rm -f */*.backup_* */*/*.backup_*
+
+#	make -C standard_library clean
 
 clean_all:clean
 	cd labo/auto-test ; make clean

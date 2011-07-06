@@ -59,12 +59,12 @@ let locate_expression s loc =
     else
       None
   in
-  find_expression expression (`structure s)
+  find_expression `outermost expression (`structure s)
 
 (* Maybe risky, because different sorts of nodes sometimes have the
    same location. *)
 let locate_expression s loc =
-  match TypedtreeOps.locate_innermost (`structure s) (Util.get_c_num loc) with
+  match TypedtreeOps.locate `innermost (Util.get_c_num loc) (`structure s) with
     | `expression e -> e
     | _ -> raise Not_found
 
@@ -97,5 +97,5 @@ let locate_expansion_place s (b, e as loc) =
 	) else
 	  None
   in
-  find_pattern pattern (`structure s)
+  find_pattern `outermost pattern (`structure s)
 

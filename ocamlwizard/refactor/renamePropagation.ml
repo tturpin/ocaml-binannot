@@ -58,6 +58,7 @@ let rec constraint_modtype incs env t t' =
 	| `func (_, arg, res), `func (_, arg', res') ->
 	    constraint_modtype incs env arg arg';
 	    constraint_modtype incs env res res'
+	| _ -> assert false
   with
       Abstract_modtype -> ()
 
@@ -86,60 +87,56 @@ and constraint_signature incs env sg sg' =
 let collect_signature_inclusions s =
   let incs = ref ConstraintSet.empty
   and includes = ref IncludeSet.empty in
-  let module Rename =
-	MakeIterator
-	  (struct
-	    include DefaultIteratorArgument
-
-	    let enter_module_expr m =
-	      match m.mod_desc with
+  let enter = function
+    | `module_expr m  ->
+      (match m.mod_desc with
 
 		(* TODO : fix environments here *)
-		| Tmod_constraint (m, t, cs, co) ->
-		  constraint_modtype incs m.mod_env m.mod_type t
+	| Tmod_constraint (m, t, cs, co) ->
+	  constraint_modtype incs m.mod_env m.mod_type t
 		(* what about cs and co ? *)
 
-		| Tmod_apply (f, m, co) ->
-		  let (_, t, _) = modtype_functor f.mod_env f.mod_type in
-		  constraint_modtype incs f.mod_env m.mod_type t
+	| Tmod_apply (f, m, co) ->
+	  let (_, t, _) = modtype_functor f.mod_env f.mod_type in
+	  constraint_modtype incs f.mod_env m.mod_type t
 		(* what about co ? *)
 
-		| Tmod_unpack _ -> assert false (* TODO *)
+	| Tmod_unpack _ -> assert false (* TODO *)
 
-		| Tmod_ident _
-		| Tmod_structure _
-		| Tmod_functor _ -> ()
+	| Tmod_ident _
+	| Tmod_structure _
+	| Tmod_functor _ -> ())
 
-	    (* To handle include, we need the correspondency between
-	       renamed idents which is currently lost. *)
-	    let enter_structure_item s = match s.str_desc with
-	      | Tstr_include (m, ids) ->
+		(* To handle include, we need the correspondency between
+		   renamed idents which is currently lost. *)
+    | `structure_item s ->
+      (match s.str_desc with
+	| Tstr_include (m, ids) ->
 
 		(* We may have
-  		     module G(X : sig module type T module X : T end) =
-                       struct include X end *)
+  		   module G(X : sig module type T module X : T end) =
+                   struct include X end *)
 
-		(try
-		   let sign = modtype_signature m.mod_env m.mod_type in
-		     includes := IncludeSet.add (sign, ids) !includes
-		 with Abstract_modtype -> ())
+	  (try
+	     let sign = modtype_signature m.mod_env m.mod_type in
+	     includes := IncludeSet.add (sign, ids) !includes
+	   with Abstract_modtype -> ())
 
-	      | Tstr_eval _
-	      | Tstr_value _
-	      | Tstr_primitive _
-	      | Tstr_type _
-	      | Tstr_exception _
-	      | Tstr_exn_rebind _
-	      | Tstr_module _
-	      | Tstr_recmodule _
-	      | Tstr_modtype _
-	      | Tstr_open _
-	      | Tstr_class _
-	      | Tstr_class_type _ -> ()
-
-	   end)
+	| Tstr_eval _
+	| Tstr_value _
+	| Tstr_primitive _
+	| Tstr_type _
+	| Tstr_exception _
+	| Tstr_exn_rebind _
+	| Tstr_module _
+	| Tstr_recmodule _
+	| Tstr_modtype _
+	| Tstr_open _
+	| Tstr_class _
+	| Tstr_class_type _ -> ())
+    | _ -> ()
   in
-  Rename.iter_structure s;
+  TypedtreeOps.iterator ~enter ~leave:ignore s;
   !incs, !includes
 
 (* An equivalence relation is represented by a mapping from elements

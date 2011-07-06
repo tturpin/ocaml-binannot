@@ -24,6 +24,7 @@ type sort = [
   | `Module
   | `Modtype
   | `Value
+  | `Type
 ]
 
 type specifics = {
@@ -46,6 +47,13 @@ let value_ops = {
   summary_item = function Env_value (_, i, _) -> Some i | _ -> None
 }
 
+let type_ops = {
+  sort = `Type;
+  lookup = keep_first "type" Env.lookup_type;
+  sig_item = (function Sig_type (i, _, _) -> Some i | _ -> None);
+  summary_item = function Env_type (_, i, _) -> Some i | _ -> None
+}
+
 let module_ops = {
   sort = `Module;
   lookup = keep_first "module" Env.lookup_module;
@@ -63,7 +71,7 @@ let modtype_ops = {
 let sig_item_ops = function
   | Sig_value _ -> value_ops
   | Sig_module _ -> module_ops
-  | Sig_type _
+  | Sig_type _ -> type_ops
   | Sig_exception _
   | Sig_modtype _
   | Sig_class _
@@ -204,37 +212,3 @@ and check_in_sig kind id name sg =
     check_in (first_of_in_sig kind id name) sg
   with
       Not_found -> invalid_arg "ckeck_in_sig"
-
-(*
-let check kind id name env summary =
-  try
-    ignore (first_of kind id name env summary);
-    assert false
-  with
-    | Ident _ -> ()
-    | Name id -> raise (Masked_by id)
-
-let check_in_sig kind id name sg =
-  try
-    ignore (first_of_in_sig kind id name sg);
-    assert false
-  with
-    | Ident _ -> ()
-    | Name id -> raise (Masked_by id)
-
-let check_other kind id name env summary =
-  try
-    ignore (first_of kind id name env summary);
-    assert false
-  with
-    | Name _ -> ()
-    | Ident id -> raise (Masked_by id)
-
-let check_other_in_sig kind id name sg =
-  try
-    ignore (first_of_in_sig kind id name sg);
-    assert false
-  with
-    | Name _ -> ()
-    | Ident id -> raise (Masked_by id)
-*)
