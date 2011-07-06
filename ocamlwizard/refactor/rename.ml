@@ -183,14 +183,18 @@ let read_cmt file =
     match data.(0) with
       | Saved_implementation str ->
 	  (try
-	     match data.(1) with
-	       | Saved_ident_locations (Some loc) ->
-		   str, loc
+	     match data.(1), data.(2) with
+	       | Saved_ident_locations (Some loc),
+		 Saved_path_environments (Some env) ->
+		   str, loc, env
+(*
 	       | Saved_ident_locations None ->
 		   failwith "ident location table is empty"
+*)
 	       | _ -> raise Not_found
 	   with
-	       _ -> failwith "ident location table not found in cmt")
+	       _ -> failwith
+		 "ident location or path environment table not found in cmt")
       | _ -> failwith "error reading cmt file"
   else
     invalid_arg "read_cmt"
@@ -277,7 +281,7 @@ let rename loc name' file =
       failwith "cmt file is older than source file";
 
     (* Read the typedtree *)
-    let s, idents = read_cmt cmt_file in
+    let s, idents, paths = read_cmt cmt_file in
 
     (* Get the "initial" id to rename and its sort *)
     let renamed_kind, id = locate_renamed_id (`structure s) loc in

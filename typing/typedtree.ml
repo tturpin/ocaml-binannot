@@ -361,6 +361,7 @@ type saved_type =
 | Saved_pattern of pattern
 | Saved_class_expr of class_expr
 | Saved_ident_locations of Location.string_table option
+| Saved_path_environments of Env.path2env option
 
 let saved_types = ref []
 let get_saved_types () = !saved_types

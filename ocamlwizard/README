@@ -106,6 +106,17 @@ Remark: Completion still needs to be improvemed in many respects. See
 the test cases for a detailed overview of the current behavior.
 
 
+Refactoring:
+............
+
+- Renaming (C-c C-o r): rename a value identifier through a single .ml
+  file (other sorts of idents are not yet implemented). The cursor
+  must be placed on the *definition* of the value (typically, a let
+  binding or a pattern). Renaming takes care of necessary propagation
+  (e.g., when distinct values with the same name need to be renamed
+  consistently because this name appears in a common interface), and
+  capture is detected. Backups are made in case anything goes wrong.
+
 
 
 - Command line interface

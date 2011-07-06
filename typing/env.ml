@@ -491,6 +491,40 @@ let lookup_simple proj1 proj2 lid env =
   | Lapply(l1, l2) ->
       raise Not_found
 
+module PathTbl = Hashtbl.Make
+  (struct
+     type t = Path.t
+     let equal = ( == )
+     let hash = Hashtbl.hash
+   end)
+
+type path2env = t PathTbl.t
+
+let path_table = ref None
+
+let record_path_environments () =
+  path_table := Some (PathTbl.create 1000)
+
+let flush_paths () =
+  let paths = !path_table in
+    path_table := None;
+    paths
+
+let record p env =
+  match !path_table with
+    | Some t -> PathTbl.add t p env
+    | None -> ()
+
+let lookup_module lid env =
+  let path, _ as res = lookup_module lid env in
+    record path env;
+    res
+
+let lookup proj1 proj2 lid env =
+  let path, _ as res = lookup proj1 proj2 lid env in
+    record path env;
+    res
+
 let lookup_value =
   lookup (fun env -> env.values) (fun sc -> sc.comp_values)
 let lookup_annot id e =

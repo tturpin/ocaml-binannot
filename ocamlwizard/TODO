@@ -1,9 +1,11 @@
+- Traverse directly the path table to get all occurrences with kind, loc, env
+- Git add renameType.ml
 - Rename: rename in signatures
-- Rename: update documentation
-- Rename: return a list of files that emacs should revert
 - Rename: replace in multiple files
+- Rename: return a list of files that emacs should revert
 - Rename: check that we always lookup in the right environment
 
+- Binannot: only record locs and envs if annot is set
 - Rename: rename everything an not just values
 - Rename: collect all occurrences in a or-pattern
 - Rename: retrieve a definition from an occurrence

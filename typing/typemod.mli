@@ -34,7 +34,8 @@ val check_nongen_schemes:
 val simplify_signature: signature -> signature
 
 val save_signature :
-  Location.string_table option -> Typedtree.signature -> string -> unit
+  Location.string_table option -> Env.path2env option ->
+  Typedtree.signature -> string -> unit
 
 val package_units:
         string list -> string -> string -> Typedtree.module_coercion

@@ -171,3 +171,11 @@ val report_error: formatter -> error -> unit
 (* Forward declaration to break mutual recursion with Includemod. *)
 val check_modtype_inclusion:
       (t -> module_type -> Path.t -> module_type -> unit) ref
+
+module PathTbl : Hashtbl.S with type key = Path.t
+
+type path2env = t PathTbl.t
+
+val record_path_environments : unit -> unit
+
+val flush_paths : unit -> path2env option
