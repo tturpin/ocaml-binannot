@@ -25,6 +25,7 @@ type specifics = {
   lookup : Longident.t -> Env.t -> Path.t;
   sig_item : Types.signature_item -> Ident.t option;
   summary_item : Env.summary -> Ident.t option;
+  parse_lid : string -> Longident.t
 }
 
 val value_ops : specifics

@@ -25,6 +25,7 @@ val get_occurrences :
 *)
 
 val get_lids :
+  Env.t ->
   string ->
   Location.string_table ->
   [ `signature of Typedtree.signature | `structure of Typedtree.structure ]->

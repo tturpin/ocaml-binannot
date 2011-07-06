@@ -219,7 +219,37 @@ let find_expression priority cond =
 module NodeTbl = Hashtbl.Make
   (struct
     type t = node
-    let equal = ( == )
+    let equal x y =
+      match x, y with
+	| `structure x, `structure y -> x == y
+	| `value_description x, `value_description y -> x == y
+	| `type_declaration x, `type_declaration y -> x == y
+	| `exception_declaration x, `exception_declaration y -> x == y
+	| `pattern x, `pattern y -> x == y
+	| `expression x, `expression y -> x == y
+	| `package_type x, `package_type y -> x == y
+	| `signature x, `signature y -> x == y
+	| `signature_item x, `signature_item y -> x == y
+	| `modtype_declaration x, `modtype_declaration y -> x == y
+	| `module_type x, `module_type y -> x == y
+	| `module_expr x, `module_expr y -> x == y
+	| `with_constraint x, `with_constraint y -> x == y
+	| `class_expr x, `class_expr y -> x == y
+	| `class_signature x, `class_signature y -> x == y
+	| `class_description x, `class_description y -> x == y
+	| `class_type_declaration x, `class_type_declaration y -> x == y
+	| `class_infos x, `class_infos y -> x == y
+	| `class_type x, `class_type y -> x == y
+	| `class_type_field x, `class_type_field y -> x == y
+	| `core_type x, `core_type y -> x == y
+	| `core_field_type x, `core_field_type y -> x == y
+	| `class_structure x, `class_structure y -> x == y
+	| `class_field x, `class_field y -> x == y
+	| `structure_item x, `structure_item y -> x == y
+	| `binding x, `binding y -> x == y
+	| `bindings x, `bindings y -> x == y
+	| _ -> false
+
     let hash = Hashtbl.hash
    end)
 
@@ -228,12 +258,18 @@ type father_table = node NodeTbl.t
 let reverse s =
   let t = NodeTbl.create 1000
   and path = ref [] in
-  let enter n =
-    (match !path with
-      | f :: _ -> NodeTbl.add t n f
-      | _ -> ());
-    path := n :: !path
-  and leave _ =
+  let enter = function
+    | `bindings _ -> ()
+    | n ->
+      (match !path with
+	| f :: _ ->
+	  debugln "add %s -> %s" (node_kind n) (node_kind f);
+	  NodeTbl.add t n f
+	| _ -> ());
+      path := n :: !path
+  and leave = function
+    | `bindings _ -> ()
+    | _ ->
     path :=
       match !path with
 	| _ :: p -> p

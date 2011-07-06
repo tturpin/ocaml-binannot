@@ -30,6 +30,8 @@ type occurrence_kind = [
 | `sig_open
 | `mty_with
 | `mty_ident
+| `core_type_type
+| `pat_alias_type
 ]
 
 (* Is that meaningful ? *)
@@ -41,43 +43,64 @@ let rec path2loc idents = function
     {l with Location.loc_end = l'.Location.loc_end}
   | Path.Papply (p, p') -> failwith "not implemented"
 
-let rec env_of_node father_table n =
+(* We need to be complete for all the supported sorts, otherwise we
+   have regression on value renaming, for example. *)
+let rec env_of_node root_env father_table n =
   let up () =
+    debug "father of %s is " (node_kind n);
     match NodeTbl.find_all father_table n with
-      | [father] -> env_of_node father_table father
-      | [] -> failwith "root"
-      | _ -> failwith "ambiguous"
+      | [father] ->
+	debugln "%s" (node_kind father);
+	env_of_node root_env father_table father
+      | [] -> debugln "root" ; root_env
+      | _ -> failwith ("node " ^ node_kind n ^ " has multiple fathers")
   in
   match n with
     | `core_type _
     | `pattern _ -> up ()
-    | `structure_item { str_desc = Tstr_type _ } -> failwith "env"
+    | `type_declaration _ -> up () (* faux a cause de la recursion ! *)
+    | `structure_item { str_desc = Tstr_type _ ; str_env = env } ->
+      debugln "found env in structure_item" ; env
+    | `expression { exp_desc = (*Texp_constraint*) _ ; exp_env = env } -> env
+    | `binding ({ pat_desc = Tpat_alias _}, _) -> up ()
+    | `bindings _ -> assert false
     | _ -> failwith ("env_of_node: unsupported case " ^ node_kind n)
+
+let shift n loc =
+  let start = loc.Location.loc_start in
+  { loc with Location.loc_start =
+      { start with Lexing.pos_cnum = start.Lexing.pos_cnum + n }
+  }
 
 (* This should only be complete w.r.t. values and module paths ! But
    we cannot have safe renaming for modules until we are complete
    w.r.t. paths of all sorts. *)
-let find_all_occurrences idents tree =
+let find_all_occurrences env idents tree : ('a * ('b * occurrence_kind)) list =
   let father_table = reverse tree in
   let found loc env occ = Some (loc, (env, occ))
-  and loc = path2loc idents
-  and env = env_of_node father_table in
+(*
+  and loc n =
+    let loc = path2loc idents n in
+    let b, e = get_c_num loc in
+    debugln "loc = [%d, %d[" b e;
+    loc
+*)
+  and env = env_of_node env father_table in
   find_all_map
     (function n ->
       match n with
 
-(*
       | `pattern p ->
 	(match p.pat_desc with
-	  | Tpat_alias (_, TPat_type p) ->
-	    found (path2loc p) (assert false) `pat_alias_type)
-*)
-(*
+	  | Tpat_alias (_, TPat_type _) ->
+	    found (shift 1 p.pat_loc) (env n) `pat_alias_type
+	  | _ -> None)
+
       | `core_type t ->
 	(match t.ctyp_desc with
-	  | Ttyp_constr (p, _) -> found (loc p) (env n) `core_type_type
+	  | Ttyp_constr (p, _) ->
+	    found t.ctyp_loc (env n) `core_type_type
 	  | _ -> None)
-*)
 
       | `expression e ->
 	(match e.exp_desc with
@@ -145,39 +168,33 @@ let find_all_occurrences idents tree =
       | _ -> None)
     tree
 
-let get_occurrences idents s =
+let get_occurrences env idents s =
   List.sort
     (fun (loc, _) (loc', _) ->
       let open Lexing in
       compare loc.loc_start.pos_cnum loc.loc_end.pos_cnum)
-    (find_all_occurrences idents s)
+    (find_all_occurrences env idents s)
 
 let extract_longident (loc, s, (env, occ)) =
-  let parse parser s =
-    let lexbuf = Lexing.from_string s in
-      parser Lexer.token lexbuf
-  in
-  let parser, kind = match occ with
-    | `exp_ident ->
-	(function s ->
-	   try parse Parser.val_longident s
-	   with _ -> Longident.Lident (parse Parser.operator s)),
-	value_ops
-    | `mod_ident -> parse Parser.mod_longident, module_ops
+  let kind = match occ with
+    | `exp_ident -> value_ops
+    | `mod_ident -> module_ops
+    | `core_type_type -> type_ops
+    | `pat_alias_type -> type_ops
     | _ -> failwith "not implemented"
   in
   let ast =
     try
-      parser s
+      kind.parse_lid s
     with _ ->
       failwith ("error parsing the following ident: " ^ s)
   in
     (loc, ast, (env, kind))
 
-let get_lids file idents ast =
+let get_lids env file idents ast =
   List.map
     extract_longident
-    (source_locations file (get_occurrences idents ast))
+    (source_locations file (get_occurrences env idents ast))
 
 let ident_of_subtree = function
   | `pattern {pat_desc = Tpat_var id}

@@ -31,7 +31,8 @@ type specifics = {
   sort : sort;
   lookup : Longident.t -> Env.t -> Path.t;
   sig_item : Types.signature_item -> Ident.t option;
-  summary_item : Env.summary -> Ident.t option
+  summary_item : Env.summary -> Ident.t option;
+  parse_lid : string -> Longident.t
 }
 
 let wrap_lookup to_string name lookup x e =
@@ -40,32 +41,43 @@ let wrap_lookup to_string name lookup x e =
 
 let keep_first name f lid env = fst (wrap_lookup lid_to_str name f lid env)
 
+let parse parser s =
+  let lexbuf = Lexing.from_string s in
+  parser Lexer.token lexbuf
+
 let value_ops = {
   sort = `Value;
   lookup = keep_first "value" Env.lookup_value;
   sig_item = (function Sig_value (i, _) -> Some i | _ -> None);
-  summary_item = function Env_value (_, i, _) -> Some i | _ -> None
+  summary_item = (function Env_value (_, i, _) -> Some i | _ -> None);
+  parse_lid =
+    function s ->
+      try parse Parser.val_longident s
+      with _ -> Longident.Lident (parse Parser.operator s)
 }
 
 let type_ops = {
   sort = `Type;
   lookup = keep_first "type" Env.lookup_type;
   sig_item = (function Sig_type (i, _, _) -> Some i | _ -> None);
-  summary_item = function Env_type (_, i, _) -> Some i | _ -> None
+  summary_item = (function Env_type (_, i, _) -> Some i | _ -> None);
+  parse_lid = parse Parser.type_longident
 }
 
 let module_ops = {
   sort = `Module;
   lookup = keep_first "module" Env.lookup_module;
   sig_item = (function Sig_module (i, _, _) -> Some i | _ -> None);
-  summary_item = function Env_module (_, i, _) -> Some i | _ -> None
+  summary_item = (function Env_module (_, i, _) -> Some i | _ -> None);
+  parse_lid = parse Parser.mod_longident (* extended ? *)
 }
 
 let modtype_ops = {
   sort = `Modtype;
   lookup = keep_first "module type" Env.lookup_modtype;
   sig_item = (function Sig_modtype (i, _) -> Some i | _ -> None);
-  summary_item = function Env_modtype (_, i, _) -> Some i | _ -> None
+  summary_item = (function Env_modtype (_, i, _) -> Some i | _ -> None);
+  parse_lid = parse Parser.mty_longident
 }
 
 let sig_item_ops = function

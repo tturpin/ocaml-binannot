@@ -226,7 +226,7 @@ let backup file =
       Edit.cp file backup
 
 (* Rename an ident in a structure file, with given ast. *)
-let rename_in_file renamed_kind id name' file (s, idents) =
+let rename_in_file env renamed_kind id name' file (s, idents) =
 
   (* Collect constraints requiring simultaneous renaming *)
   let constraints, includes = collect_signature_inclusions (`structure s) in
@@ -245,7 +245,7 @@ let rename_in_file renamed_kind id name' file (s, idents) =
   check_renamed_implicit_references renamed_kind ids name' implicit_refs;
 
   (* Collect all lids *)
-  let lids = get_lids file idents (`structure s) in
+  let lids = get_lids env file idents (`structure s) in
 
   (* Check that our new name will not capture other occurrences *)
   check_lids renamed_kind ids name' lids;
@@ -264,7 +264,7 @@ let rename loc name' file =
     (* Setup the environment *)
     let dirs = Common_config.search_dirs file in
     Config.load_path := "" :: List.rev_append dirs (Clflags.std_include_dir ());
-    ignore (initial_env ()); (* Make sure that Pervasives is loaded *)
+    let env = initial_env () in (* Make sure that Pervasives is loaded *)
     debugln "load_path:"; List.iter (debugln "  %s") !Config.load_path;
 
     (* Check that everything is up-to-date *)
@@ -292,7 +292,7 @@ let rename loc name' file =
       let name' = fix_case renamed_kind name' in
 
       let def_replaces, occ_replaces =
-	rename_in_file renamed_kind id name' file (s, idents) in
+	rename_in_file env renamed_kind id name' file (s, idents) in
 
       (* We need to sort them again (they may interleave). *)
       let replaces = sort_replaces (def_replaces @ occ_replaces) in
