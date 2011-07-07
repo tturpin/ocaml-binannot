@@ -50,7 +50,9 @@ module LongidentTbl = Hashtbl.Make
     let hash = Hashtbl.hash
    end)
 
-let longident_table : Location.t LongidentTbl.t option ref = ref None
+type lid2loc = Location.t LongidentTbl.t
+
+let longident_table : lid2loc option ref = ref None
 
 let record_longident_locations () =
   longident_table := Some (LongidentTbl.create 1000)
@@ -60,8 +62,12 @@ let flush_longidents () =
     longident_table := None;
     idents
 
-let longident loc i =
-  (match !longident_table with
+let add_longident loc i =
+  match !longident_table with
     | Some t -> LongidentTbl.add t i loc
-    | None -> ());
-  i
+    | None -> ()
+
+let remove_longident i =
+  match !longident_table with
+    | Some t -> LongidentTbl.remove t i
+    | None -> ()

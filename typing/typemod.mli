@@ -25,7 +25,7 @@ val type_structure:
 val type_implementation:
   string -> string -> string -> Env.t ->
   (Parsetree.structure * Location.string_table option
-   * Location.t Longident.LongidentTbl.t option) ->
+   * Longident.lid2loc option) ->
   Typedtree.structure * Typedtree.module_coercion
 val transl_signature:
         Env.t -> Parsetree.signature -> Typedtree.signature
@@ -36,7 +36,7 @@ val simplify_signature: signature -> signature
 
 val save_signature :
   (Typedtree.signature * Location.string_table option
-   *  Location.t Longident.LongidentTbl.t option * Env.path2env option) ->
+   * Longident.lid2loc option * Env.lid2env option) ->
   string -> unit
 
 val package_units:

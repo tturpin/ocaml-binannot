@@ -172,7 +172,8 @@ val report_error: formatter -> error -> unit
 val check_modtype_inclusion:
       (t -> module_type -> Path.t -> module_type -> unit) ref
 
-module PathTbl : Hashtbl.S with type key = Path.t
+(* Duplicated from Longident (linking problem with genannot) *)
+module LongidentTbl : Hashtbl.S with type key = Longident.t
 
 type path_sort =
   | Value
@@ -185,8 +186,8 @@ type path_sort =
   | Class
   | Cltype
 
-type path2env = (path_sort * Longident.t * t) PathTbl.t
+type lid2env = (path_sort * t) LongidentTbl.t
 
 val record_path_environments : unit -> unit
 
-val flush_paths : unit -> path2env option
+val flush_paths : unit -> lid2env option

@@ -491,11 +491,11 @@ let lookup_simple proj1 proj2 lid env =
   | Lapply(l1, l2) ->
       raise Not_found
 
-module PathTbl = Hashtbl.Make
+module LongidentTbl = Hashtbl.Make
   (struct
-     type t = Path.t
-     let equal = ( == )
-     let hash = Hashtbl.hash
+    type t = Longident.t
+    let equal = ( == )
+    let hash = Hashtbl.hash
    end)
 
 type path_sort =
@@ -509,41 +509,39 @@ type path_sort =
   | Class
   | Cltype
 
-type path2env = (path_sort * Longident.t * t) PathTbl.t
+type lid2env = (path_sort * t) LongidentTbl.t
 
-let path_table = ref None
+let lid2env = ref None
 
 let record_path_environments () =
-  path_table := Some (PathTbl.create 1000)
+  lid2env := Some (LongidentTbl.create 1000)
 
 let flush_paths () =
-  let paths = !path_table in
-    path_table := None;
+  let paths = !lid2env in
+    lid2env := None;
     paths
 
-let record p sort lid env =
-  match !path_table with
-    | Some t -> PathTbl.add t p (sort, lid, env)
+let record sort lid env =
+  match !lid2env with
+    | Some t ->
+      if
+	(try
+	   let s, e = LongidentTbl.find t lid in
+	   s != sort || e != env
+	 with Not_found -> true)
+      then
+	LongidentTbl.add t lid (sort, env)
     | None -> ()
 
-(*
-let lookup_module lid env =
-  let path, _ as res = lookup_module lid env in
-    record path env;
-    res
-*)
-
 let recording sort lookup lid env =
-  let path, _ as res = lookup lid env in
-  record path sort lid env;
-  res
+  record sort lid env;
+  lookup lid env
 
 let lookup_module = recording Module lookup_module
 
 let lookup sort proj1 proj2 lid env =
-  let path, _ as res = lookup proj1 proj2 lid env in
-  record path sort lid env;
-  res
+  record sort lid env;
+  lookup proj1 proj2 lid env
 
 let lookup_value =
   lookup Value (fun env -> env.values) (fun sc -> sc.comp_values)

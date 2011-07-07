@@ -378,8 +378,8 @@ type saved_type =
 | Saved_pattern of pattern
 | Saved_class_expr of class_expr
 | Saved_ident_locations of Location.string_table option
-| Saved_longident_locations of Location.t Longident.LongidentTbl.t option
-| Saved_path_environments of Env.path2env option
+| Saved_longident_locations of Longident.lid2loc option
+| Saved_path_environments of Env.lid2env option
 
 val get_saved_types : unit -> saved_type list
 val set_saved_types : saved_type list -> unit

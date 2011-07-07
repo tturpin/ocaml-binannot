@@ -48,19 +48,20 @@ let mkcf d =
 let reloc_pat x = { x with ppat_loc = symbol_rloc () };;
 let reloc_exp x = { x with pexp_loc = symbol_rloc () };;
 
-
-(*
-let ghlongident = longident Location.none
-let ghlident = lident Location.none
-*)
+let longident loc lid = add_longident loc lid ; lid
 
 let mkoperator name pos =
   { pexp_desc = Pexp_ident(longident (rhs_loc pos) (Lident name));
     pexp_loc = rhs_loc pos }
 
 let lident i = longident (symbol_rloc ()) (Lident i)
-let ldot lid i = longident (symbol_rloc ()) (Ldot (lid, i))
-let lapply lid lid' = longident (symbol_rloc ()) (Lapply (lid, lid'))
+let ldot lid i =
+  remove_longident lid;
+  longident (symbol_rloc ()) (Ldot (lid, i))
+let lapply lid lid' =
+  remove_longident lid;
+  remove_longident lid';
+  longident (symbol_rloc ()) (Lapply (lid, lid'))
 
 (*
   Ghost expressions and patterns:

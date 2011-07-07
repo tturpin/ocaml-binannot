@@ -231,7 +231,7 @@ let backup file =
       Edit.cp file backup
 
 (* Rename an ident in a structure file, with given ast. *)
-let rename_in_file env renamed_kind id name' file (s, idents, lidents, paths) =
+let rename_in_file env renamed_kind id name' file (s, idents, lid2loc, paths) =
 
   (* Collect constraints requiring simultaneous renaming *)
   let constraints, includes = collect_signature_inclusions (`structure s) in
@@ -250,7 +250,7 @@ let rename_in_file env renamed_kind id name' file (s, idents, lidents, paths) =
   check_renamed_implicit_references renamed_kind ids name' implicit_refs;
 
   (* Collect all lids *)
-  let lids = get_lids env file idents lidents paths (`structure s) in
+  let lids = get_lids env file lid2loc paths (`structure s) in
 
   (* Check that our new name will not capture other occurrences *)
   check_lids renamed_kind ids name' lids;

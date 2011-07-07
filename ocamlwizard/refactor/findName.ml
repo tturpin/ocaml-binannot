@@ -188,6 +188,7 @@ let get_occurrences env idents lidents paths s =
     (find_all_occurrences env idents paths s)
 *)
 
+(*
 let reverse t =
   let r = Longident.LongidentTbl.create 1000 in
   Env.PathTbl.iter
@@ -196,6 +197,7 @@ let reverse t =
 	Longident.LongidentTbl.add r lid (sort, p, env))
     t;
   r
+*)
     
 let kind2kind = function
   | Env.Value -> value_ops
@@ -222,34 +224,38 @@ let kind2str = function
 
 let rec check_same = function
   | [x] -> x
-  | (kind, p, env) :: ((kind', p', env') :: _ as l) ->
+  | (kind, env) :: ((kind', env') :: _ as l) ->
     if kind <> kind' then
       failwith (kind2str kind ^ " <> " ^ kind2str kind');
-    if p != p' then failwith "different paths";
     if env != env' then failwith "different environments";
     check_same l
   | [] -> invalid_arg "check_same"
 
-let get_occurrences env idents lidents paths s =
-  let lid2path = reverse paths in
+let get_occurrences lid2loc lid2env s =
   (* We should check that keys are bound only once *)
   Longident.LongidentTbl.fold
     (fun lid loc acc ->
-      match Longident.LongidentTbl.find_all lid2path lid with
+      let envs = Env.LongidentTbl.find_all lid2env lid in
+      let envs = List.filter (function kind, _ -> kind <> Env.Annot) envs in
+      match envs with
 	| [] ->
-	  debugln "lident %s has no environment" (lid_to_str lid);
+	  Location.print Format.std_formatter loc;
+	  Printf.printf "Warning: lident %s has no environment\n" (lid_to_str lid);
+(*
+	  failwith ("lident" ^ lid_to_str lid ^ "has no environment");
+*)
 	  acc
 	| l ->
 	  debugln "testing %s" (lid_to_str lid);
-	  let kind, p, env = check_same l in
+	  let kind, env = check_same l in
 	  if kind = Env.Value || kind = Env.Type then
 	    (loc, (env, kind)) :: acc
 	  else
 	    acc)
-    lidents
+    lid2loc
     []
 
-let extract_longident (loc, s, (env, occ)) =
+let extract_longident (loc, text, (env, occ)) =
   let kind = match occ with
     | Env.Value -> value_ops
     | Env.Module -> module_ops
@@ -258,16 +264,16 @@ let extract_longident (loc, s, (env, occ)) =
   in
   let ast =
     try
-      kind.parse_lid s
+      kind.parse_lid text
     with _ ->
-      failwith ("error parsing the following ident: " ^ s)
+      failwith ("error parsing the following ident: " ^ text)
   in
     (loc, ast, (env, kind))
 
-let get_lids env file idents lidents paths ast =
+let get_lids env file lidents paths ast =
   List.map
     extract_longident
-    (source_locations file (get_occurrences env idents lidents paths ast))
+    (source_locations file (get_occurrences lidents paths ast))
 
 let ident_of_subtree = function
   | `pattern {pat_desc = Tpat_var id}

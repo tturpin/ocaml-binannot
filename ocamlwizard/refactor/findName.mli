@@ -27,7 +27,7 @@ val get_occurrences :
 val get_lids :
   Env.t ->
   string ->
-  Location.string_table -> Location.t Longident.LongidentTbl.t -> Env.path2env ->
+  Location.t Longident.LongidentTbl.t -> Env.lid2env ->
   [ `signature of Typedtree.signature | `structure of Typedtree.structure ]->
   (Location.t * Longident.t * (Env.t * Resolve.specifics)) list
 
