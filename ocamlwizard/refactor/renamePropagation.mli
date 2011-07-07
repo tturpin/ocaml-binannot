@@ -36,15 +36,15 @@ val collect_signature_inclusions :
     a given id, as well as the "implicit" bindings of signature
     elements to those idents. *)
 val propagate_renamings :
-  Resolve.specifics -> Ident.t -> ConstraintSet.t -> IncludeSet.t ->
+  Env.path_sort -> Ident.t -> ConstraintSet.t -> IncludeSet.t ->
   Ident.t list
   * ([ `certain | `maybe ] * Types.signature * Ident.t) list
     (* means id is bound to sg.(name id), unless we were wrong about the sort. *)
 
 val check_renamed_implicit_references :
-  Resolve.specifics -> Ident.t list -> string ->
+  Env.path_sort -> Ident.t list -> string ->
   ([ `certain | `maybe ] * Types.signature * Ident.t) list -> unit
 
 val check_other_implicit_references :
-  Resolve.specifics -> Ident.t list -> string ->
+  Env.path_sort -> Ident.t list -> string ->
   ConstraintSet.t -> IncludeSet.t -> unit

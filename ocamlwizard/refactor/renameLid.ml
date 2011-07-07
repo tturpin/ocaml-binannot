@@ -21,17 +21,17 @@ open Util
 
 (* Rename the ident id of type renamed_kind in the longident lid of kind sort *)
 let rec rename_in_lid renamed_kind ids name env kind lid =
-  let rename = rename_in_lid renamed_kind ids name env module_ops in
-  match renamed_kind.sort, lid with
+  let rename = rename_in_lid renamed_kind ids name env Env.Module in
+  match renamed_kind, lid with
     | _, Lident i ->
-      if kind.sort = renamed_kind.sort && resolves_to kind env lid ids then (
+      if kind = renamed_kind && resolves_to kind env lid ids then (
 	check kind ids name env (Env.summary env) ~renamed:true;
 	Some (Lident name)
       ) else
 	None
     | _, Ldot (pref, n) ->
       let n' =
-	if kind.sort = renamed_kind.sort && resolves_to kind env lid ids then (
+	if kind = renamed_kind && resolves_to kind env lid ids then (
 	  let _, t = wrap_lookup lid_to_str "module" Env.lookup_module pref env in
 	  check_in_sig kind ids name (modtype_signature env t) ~renamed:true;
 	  Some name
@@ -43,7 +43,7 @@ let rec rename_in_lid renamed_kind ids name env kind lid =
 	| None, Some n -> Some (Ldot(pref, n))
 	| Some pref, None -> Some (Ldot(pref, n))
 	| Some pref, Some n -> Some (Ldot(pref, n)))
-    | `Module, Lapply (lid, lid') ->
+    | Env.Module, Lapply (lid, lid') ->
       (match rename lid, rename lid' with
 	| None, None -> None
 	| Some lid, None -> Some (Lapply (lid, lid'))
@@ -52,18 +52,18 @@ let rec rename_in_lid renamed_kind ids name env kind lid =
     | _, Lapply _ -> None
 
 let rec check_lid renamed_kind ids name env kind lid =
-  let check_lid = check_lid renamed_kind ids name env module_ops in
+  let check_lid = check_lid renamed_kind ids name env Env.Module in
   match lid with
     | Lident i ->
-      if kind.sort = renamed_kind.sort && i = name then
+      if kind = renamed_kind && i = name then
 	check kind ids name env (Env.summary env) ~renamed:false
     | Ldot (pref, n) ->
       check_lid pref;
-      if kind.sort = renamed_kind.sort && n = name then
+      if kind = renamed_kind && n = name then
 	let _, t = wrap_lookup lid_to_str "module" Env.lookup_module pref env in
 	check_in_sig kind ids name (modtype_signature env t) ~renamed:false
     | Lapply (lid, lid') ->
-      if renamed_kind.sort = `Module then (
+      if renamed_kind = Env.Module then (
 	check_lid lid;
 	check_lid lid'
       )
@@ -113,13 +113,13 @@ let rec rename_in_lid
     (name' : string)
     kind
     (lid : Longident.t) =
-  match renamed_kind.sort with
+  match renamed_kind with
     | `Module -> rename_in_ext_mod_path env id name'
     | _ ->
       match lid with
 	| Lident i ->
       let p, _ = renamed_kind.lookup lid env in
-      if kind.sort = renamed_kind.sort &&
+      if kind = renamed_kind &&
 	resolves_to renamed_kind env id p then (
 	  check_value id name' env (Env.summary env);
 	  Some (Lident name')
@@ -127,7 +127,7 @@ let rec rename_in_lid
   	  None
     | _, Ldot (lid, n) ->
       let p, _ = renamed_kind.lookup lid env in
-      if kind.sort = renamed_kind.sort && field_resolves_to kind env p n id then
+      if kind = renamed_kind && field_resolves_to kind env p n id then
 	Some (Ldot(lid, name'))
       else
 	None

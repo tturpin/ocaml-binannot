@@ -19,21 +19,7 @@ open Path
 open Types
 open Env
 open Util
-
-type sort = [
-  | `Module
-  | `Modtype
-  | `Value
-  | `Type
-]
-
-type specifics = {
-  sort : sort;
-  lookup : Longident.t -> Env.t -> Path.t;
-  sig_item : Types.signature_item -> Ident.t option;
-  summary_item : Env.summary -> Ident.t option;
-  parse_lid : string -> Longident.t
-}
+open Env
 
 let wrap_lookup to_string name lookup x e =
   try lookup x e
@@ -41,45 +27,68 @@ let wrap_lookup to_string name lookup x e =
 
 let keep_first name f lid env = fst (wrap_lookup lid_to_str name f lid env)
 
+let keep_first' f lid env = fst (f lid env)
+
 let parse parser s =
   let lexbuf = Lexing.from_string s in
   parser Lexer.token lexbuf
 
-let value_ops = {
-  sort = `Value;
-  lookup = keep_first "value" Env.lookup_value;
-  sig_item = (function Sig_value (i, _) -> Some i | _ -> None);
-  summary_item = (function Env_value (_, i, _) -> Some i | _ -> None);
-  parse_lid =
-    function s ->
-      try parse Parser.val_longident s
-      with _ -> Longident.Lident (parse Parser.operator s)
-}
+let kind2str = function
+  | Value -> "value"
+  | Type -> "type"
+  | Annot -> "annot"
+  | Constructor -> "constructor"
+  | Label -> "label"
+  | Module -> "module"
+  | Modtype -> "modtype"
+  | Class -> "class"
+  | Cltype -> "cltype"
 
-let type_ops = {
-  sort = `Type;
-  lookup = keep_first "type" Env.lookup_type;
-  sig_item = (function Sig_type (i, _, _) -> Some i | _ -> None);
-  summary_item = (function Env_type (_, i, _) -> Some i | _ -> None);
-  parse_lid = parse Parser.type_longident
-}
+let lookup kind lid e =
+  let lookup =
+    match kind with
+      | Value -> keep_first' lookup_value
+      | Type -> keep_first' lookup_type
+      | Module -> keep_first' lookup_module
+      | Constructor -> keep_first' lookup_constructor
+      | Label -> keep_first' lookup_label
+      | Modtype -> keep_first' lookup_modtype
+      | Class -> keep_first' lookup_class
+      | Cltype -> keep_first' lookup_cltype
+      | Annot -> assert false
+  in
+    wrap_lookup lid_to_str (kind2str kind) lookup lid e
 
-let module_ops = {
-  sort = `Module;
-  lookup = keep_first "module" Env.lookup_module;
-  sig_item = (function Sig_module (i, _, _) -> Some i | _ -> None);
-  summary_item = (function Env_module (_, i, _) -> Some i | _ -> None);
-  parse_lid = parse Parser.mod_longident (* extended ? *)
-}
+let sig_item sort item =
+  match sort, item with
+    | Value, Sig_value (i, _)
+    | Type, Sig_type (i, _, _)
+    | Module, Sig_module (i, _, _)
+    | Modtype, Sig_modtype (i, _) -> Some i
+    (* To be completed *)
+    | _ -> None
 
-let modtype_ops = {
-  sort = `Modtype;
-  lookup = keep_first "module type" Env.lookup_modtype;
-  sig_item = (function Sig_modtype (i, _) -> Some i | _ -> None);
-  summary_item = (function Env_modtype (_, i, _) -> Some i | _ -> None);
-  parse_lid = parse Parser.mty_longident
-}
+let summary_item kind item =
+  match kind, item with
+    | Value, Env_value (_, i, _)
+    | Type, Env_type (_, i, _)
+    | Module, Env_module (_, i, _)
+    | Modtype, Env_modtype (_, i, _) -> Some i
+    (* To be completed *)
+    | _ -> None
 
+let parse_lid kind =
+  match kind with
+    | Value ->
+	(function s ->
+	   try parse Parser.val_longident s
+	   with _ -> Longident.Lident (parse Parser.operator s))
+    | Type -> parse Parser.type_longident
+    | Module -> parse Parser.mod_longident (* extended ? *)
+    | Modtype -> parse Parser.mty_longident
+    | _ -> assert false
+
+(*
 let sig_item_ops = function
   | Sig_value _ -> value_ops
   | Sig_module _ -> module_ops
@@ -89,12 +98,13 @@ let sig_item_ops = function
   | Sig_class _
   | Sig_class_type _ ->
     assert false
+*)
 
 exception Abstract_modtype
 
 (* Return the signature of a given (extended) module type path *)
 let rec resolve_modtype env path =
-  match wrap_lookup Path.name "module type" Env.find_modtype path env with
+  match wrap_lookup Path.name "module type" find_modtype path env with
   | Modtype_abstract -> raise Abstract_modtype
   | Modtype_manifest mt -> modtype env mt
 
@@ -116,12 +126,12 @@ let modtype_functor env m =
 
 (* Return the signature of a given (extended) module path *)
 let resolve_module env path =
-  modtype_signature env (wrap_lookup Path.name "module" Env.find_module path env)
+  modtype_signature env (wrap_lookup Path.name "module" find_module path env)
 
 (* unused *)
 let resolve_module_lid env lid =
   modtype_signature env
-    (snd (wrap_lookup lid_to_str "module" Env.lookup_module lid env))
+    (snd (wrap_lookup lid_to_str "module" lookup_module lid env))
 
 
 let is_one_of id = List.exists (Ident.same id)
@@ -132,7 +142,7 @@ let field_resolves_to kind env path name ids =
   try
     List.exists
       (function s ->
-	match kind.sig_item s with
+	match sig_item kind s with
 	  | Some id -> Ident.name id = name && is_one_of id ids
 	  | None -> false)
       (resolve_module env path)
@@ -142,14 +152,14 @@ let field_resolves_to kind env path name ids =
 (* Test whether a p reffers to id in environment env. This indicates
    that the rightmost name in lid needs renaming. *)
 let resolves_to kind env lid ids =
-  match kind.lookup lid env with
+  match lookup kind lid env with
     | Pident id' -> is_one_of id' ids
     | Pdot (p, n, _) -> field_resolves_to kind env p n ids
     | Papply _ -> invalid_arg "resolves_to"
 
 let lookup_in_signature kind name =
   List.find
-    (function item -> match kind.sig_item item with
+    (function item -> match sig_item kind item with
       | Some id -> Ident.name id = name
       | None -> false)
 
@@ -159,7 +169,7 @@ exception Ident of Ident.t
 let first_of_in_sig kind ids name sg =
   List.iter
     (function item ->
-      (match kind.sig_item item with
+      (match sig_item kind item with
 	| Some id ->
 	  debugln "found %s" (Ident.name id);
 	  if is_one_of id ids then
@@ -180,7 +190,7 @@ let rec first_of kind ids name env = function
 	 Not_found ->
 	   first_of kind ids name env s)
   | summary ->
-    (match kind.summary_item summary with
+    (match summary_item kind summary with
       | Some id ->
 	if is_one_of id ids then
 	  raise (Ident id)

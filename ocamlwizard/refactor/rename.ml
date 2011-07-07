@@ -219,8 +219,8 @@ let find_id_defs ids name s =
 *)
 
 let fix_case kind =
-  match kind.sort with
-    | `Module | `Modtype -> String.capitalize
+  match kind with
+    | Env.Module | Env.Modtype -> String.capitalize
     | _ -> String.uncapitalize
 
 let backup file =

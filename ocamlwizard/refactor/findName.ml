@@ -188,45 +188,11 @@ let get_occurrences env idents lidents paths s =
     (find_all_occurrences env idents paths s)
 *)
 
-(*
-let reverse t =
-  let r = Longident.LongidentTbl.create 1000 in
-  Env.PathTbl.iter
-    (fun p (sort, lid, env) ->
-      if sort <> Env.Annot then
-	Longident.LongidentTbl.add r lid (sort, p, env))
-    t;
-  r
-*)
-    
-let kind2kind = function
-  | Env.Value -> value_ops
-  | Env.Type -> type_ops
-  | Env.Annot
-  | Env.Constructor
-  | Env.Label
-  | Env.Module
-  | Env.Modtype
-  | Env.Class
-  | Env.Cltype
-    -> raise Not_found
-
-let kind2str = function
-  | Env.Value -> "value"
-  | Env.Type -> "type"
-  | Env.Annot -> "annot"
-  | Env.Constructor -> "constructor"
-  | Env.Label -> "label"
-  | Env.Module -> "module"
-  | Env.Modtype -> "modtype"
-  | Env.Class -> "class"
-  | Env.Cltype -> "cltype"
-
 let rec check_same = function
   | [x] -> x
   | (kind, env) :: ((kind', env') :: _ as l) ->
     if kind <> kind' then
-      failwith (kind2str kind ^ " <> " ^ kind2str kind');
+      failwith (Resolve.kind2str kind ^ " <> " ^ kind2str kind');
     if env != env' then failwith "different environments";
     check_same l
   | [] -> invalid_arg "check_same"
@@ -255,16 +221,10 @@ let get_occurrences lid2loc lid2env s =
     lid2loc
     []
 
-let extract_longident (loc, text, (env, occ)) =
-  let kind = match occ with
-    | Env.Value -> value_ops
-    | Env.Module -> module_ops
-    | Env.Type -> type_ops
-    | _ -> failwith "not implemented"
-  in
+let extract_longident (loc, text, (env, kind)) =
   let ast =
     try
-      kind.parse_lid text
+      Resolve.parse_lid kind text
     with _ ->
       failwith ("error parsing the following ident: " ^ text)
   in
@@ -279,14 +239,14 @@ let ident_of_subtree = function
   | `pattern {pat_desc = Tpat_var id}
   | `expression {exp_desc = Texp_for (id, _, _, _, _)}
   | `signature_item {sig_desc = Tsig_value (id, _)}
-    -> value_ops, id
+    -> Env.Value, id
   | `structure_item {str_desc = Tstr_module (id, _)}
-    -> module_ops, id
+    -> Env.Module, id
   | `structure_item {str_desc = Tstr_modtype (id, _)}
-    -> modtype_ops, id
+    -> Env.Modtype, id
   | `structure_item {str_desc = Tstr_type types}
     -> (match types with
-      | [id, _] -> type_ops, id
+      | [id, _] -> Env.Type, id
       | _ -> failwith "multiple type definitions are not yes supported")
   | _ -> raise Not_found
 

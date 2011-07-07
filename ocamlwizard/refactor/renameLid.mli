@@ -23,12 +23,12 @@
     the same thing (i.e., is not subject to masking by other
     equally-named elements). *)
 val rename_in_lid :
-  Resolve.specifics -> Ident.t list -> string ->
-  Env.t -> Resolve.specifics -> Longident.t -> Longident.t option
+  Env.path_sort -> Ident.t list -> string ->
+  Env.t -> Env.path_sort -> Longident.t -> Longident.t option
 
 (** Check that no existing occurrence of the new name appearing in a
     longident would be captured by one of the renamed idents if we
     applied the given renaming. *)
 val check_lid :
-  Resolve.specifics -> Ident.t list -> string ->
-  Env.t -> Resolve.specifics -> Longident.t -> unit
+  Env.path_sort -> Ident.t list -> string ->
+  Env.t -> Env.path_sort -> Longident.t -> unit

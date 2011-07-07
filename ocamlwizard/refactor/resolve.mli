@@ -17,24 +17,18 @@
 
 (** Different sort of names, and their bindings. *)
 
-type sort = [ `Modtype | `Module | `Value | `Type ]
-(* TODO: everything else... *)
+val kind2str : Env.path_sort -> string
+(*
+val lookup : Env.path_sort -> Longident.t -> Env.t -> Path.t
+val sig_item : Env.path_sort -> Types.signature_item -> Ident.t option
+summary_item
+*)
+val parse_lid : Env.path_sort -> string -> Longident.t
 
-type specifics = {
-  sort : sort;
-  lookup : Longident.t -> Env.t -> Path.t;
-  sig_item : Types.signature_item -> Ident.t option;
-  summary_item : Env.summary -> Ident.t option;
-  parse_lid : string -> Longident.t
-}
-
-val value_ops : specifics
-val type_ops : specifics
-val module_ops : specifics
-val modtype_ops : specifics
-
+(*
 (** Return the specific operations associated with a signature item. *)
 val sig_item_ops : Types.signature_item -> specifics
+*)
 
 (* Turns Not_found into a Failure with the unbound name *)
 val wrap_lookup : ('a -> string) -> string -> ('a -> 'b -> 'c) -> 'a -> 'b -> 'c
@@ -75,11 +69,11 @@ val resolve_modtype :
     of ids in environment env, i.e., if the object directly denoted by
     lid is named with one of ids. This indicates that the rightmost
     name in lid needs renaming (assuming we are renaming ids). *)
-val resolves_to : specifics -> Env.t -> Longident.t -> Ident.t list -> bool
+val resolves_to : Env.path_sort -> Env.t -> Longident.t -> Ident.t list -> bool
 
 (** Retrieve an element in a signature from its name *)
 val lookup_in_signature :
-  specifics -> string -> Types.signature -> Types.signature_item
+  Env.path_sort -> string -> Types.signature -> Types.signature_item
 
 (** Raised by check to signal an impossible renaming due to a masking
     of an existing occurrence of the new name, or of a renamed
@@ -101,12 +95,12 @@ exception Masked_by of bool * Ident.t
 
     Raise (Masked_by id) if masking would occur. *)
 val check :
-  specifics -> Ident.t list -> string -> Env.t -> Env.summary ->
+  Env.path_sort -> Ident.t list -> string -> Env.t -> Env.summary ->
   renamed:bool -> unit
 
 (** Similar to check, but for a signature. *)
 val check_in_sig :
-  specifics -> Ident.t list -> string -> Types.signature ->
+  Env.path_sort -> Ident.t list -> string -> Types.signature ->
   renamed:bool -> unit
 
 (** Test if an id belongs to a list of ids *)

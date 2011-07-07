@@ -68,14 +68,14 @@ and constraint_signature incs env sg sg' =
     (function
       | Sig_module (id, t, _) ->
 	(match
-	    lookup_in_signature module_ops (Ident.name id) sg
+	    lookup_in_signature Env.Module (Ident.name id) sg
 	 with
 	   | Sig_module (_, t', _) ->
 	     constraint_modtype incs env t t'
 	   | _ -> assert false)
       | Sig_modtype (id, Modtype_manifest t) ->
 	(match
-	    lookup_in_signature modtype_ops (Ident.name id) sg
+	    lookup_in_signature Env.Modtype (Ident.name id) sg
 	 with
 	   | Sig_modtype (_, Modtype_manifest t') ->
 	     constraint_modtype incs env t t'

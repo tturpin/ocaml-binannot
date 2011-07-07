@@ -29,12 +29,12 @@ val get_lids :
   string ->
   Location.t Longident.LongidentTbl.t -> Env.lid2env ->
   [ `signature of Typedtree.signature | `structure of Typedtree.structure ]->
-  (Location.t * Longident.t * (Env.t * Resolve.specifics)) list
+  (Location.t * Longident.t * (Env.t * Env.path_sort)) list
 
 val locate_renamed_id :
   [ `signature of Typedtree.signature | `structure of Typedtree.structure ] ->
   int * int ->
-  Resolve.specifics * Ident.t
+  Env.path_sort * Ident.t
 
 val find_id_def :
 (*
