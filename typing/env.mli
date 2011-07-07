@@ -174,7 +174,18 @@ val check_modtype_inclusion:
 
 module PathTbl : Hashtbl.S with type key = Path.t
 
-type path2env = t PathTbl.t
+type path_sort =
+  | Value
+  | Annot
+  | Constructor
+  | Label
+  | Type
+  | Module
+  | Modtype
+  | Class
+  | Cltype
+
+type path2env = (path_sort * Longident.t * t) PathTbl.t
 
 val record_path_environments : unit -> unit
 

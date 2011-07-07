@@ -1,4 +1,7 @@
-Tests cases are build from the two files prefix.ml and tests.ml as
-follows: each line of tests.ml which contains a $ is appended to
-prefix.ml to form a test case, with the -pos argument being the
-position of $.
+Tests cases are organised as follows:
+- the files prefix.ml and path.ml, expansion.ml and match_cases.ml are lists
+  of tests cases: each line of these files which contains a $ is appended to
+  prefix.ml to form a test case, with the -pos argument being the position of $
+  (and €, if relevant).
+- errors.ml and errors.ml.last_compiled form a single test (for backtracking)
+- the rename*.ml (without _rres) files are standalone test cases

@@ -20,5 +20,5 @@ val preprocess : string -> string
 val remove_preprocessed : string -> unit
 val remove_preprocessed_if_ast : string -> unit
 val file :
-  formatter -> string -> (Lexing.lexbuf -> 'a * 'b option) -> string ->
-  'a * 'b option
+  formatter -> string -> (Lexing.lexbuf -> 'a * 'b option * 'c option) -> string ->
+  'a * 'b option * 'c option

@@ -1172,17 +1172,19 @@ let type_implementation sourcefile outputprefix modulename initial_env ast =
     end
   end
 
-let save_signature loc env tsg outputprefix =
+let save_signature (tsg, loc, lloc, penv) outputprefix =
   if !Clflags.annotations then
     let oc = open_out (outputprefix ^ ".cmti") in
     output_value oc [|
       Saved_signature tsg;
       Saved_ident_locations loc;
-      Saved_path_environments env
+      Saved_longident_locations lloc;
+      Saved_path_environments penv
     |];
     close_out oc
 
-let type_implementation sourcefile outputprefix modulename initial_env loc ast =
+let type_implementation
+    sourcefile outputprefix modulename initial_env (ast, loc, lloc) =
   try
     Typedtree.set_saved_types [];
     Env.record_path_environments ();
@@ -1193,6 +1195,7 @@ let type_implementation sourcefile outputprefix modulename initial_env loc ast =
         output_value oc [|
 	  Saved_implementation str;
 	  Saved_ident_locations loc;
+	  Saved_longident_locations lloc;
 	  Saved_path_environments (Env.flush_paths ())
 	|];
         close_out oc;

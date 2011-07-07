@@ -7,3 +7,6 @@ end
 open M
 
 let _ = y
+File "renameOpenNewCaptured_no_dollar.ml", line 4, characters 6-7:
+This definition of x that you are trying to rename would capture an occurrence of an existing definition of y
+

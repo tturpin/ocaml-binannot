@@ -183,10 +183,11 @@ let read_cmt file =
     match data.(0) with
       | Saved_implementation str ->
 	  (try
-	     match data.(1), data.(2) with
+	     match data.(1), data.(2), data.(3) with
 	       | Saved_ident_locations (Some loc),
+	         Saved_longident_locations (Some lloc),
 		 Saved_path_environments (Some env) ->
-		   str, loc, env
+		   str, loc, lloc, env
 (*
 	       | Saved_ident_locations None ->
 		   failwith "ident location table is empty"
@@ -230,7 +231,7 @@ let backup file =
       Edit.cp file backup
 
 (* Rename an ident in a structure file, with given ast. *)
-let rename_in_file env renamed_kind id name' file (s, idents) =
+let rename_in_file env renamed_kind id name' file (s, idents, lidents, paths) =
 
   (* Collect constraints requiring simultaneous renaming *)
   let constraints, includes = collect_signature_inclusions (`structure s) in
@@ -249,7 +250,7 @@ let rename_in_file env renamed_kind id name' file (s, idents) =
   check_renamed_implicit_references renamed_kind ids name' implicit_refs;
 
   (* Collect all lids *)
-  let lids = get_lids env file idents (`structure s) in
+  let lids = get_lids env file idents lidents paths (`structure s) in
 
   (* Check that our new name will not capture other occurrences *)
   check_lids renamed_kind ids name' lids;
@@ -281,7 +282,7 @@ let rename loc name' file =
       failwith "cmt file is older than source file";
 
     (* Read the typedtree *)
-    let s, idents, paths = read_cmt cmt_file in
+    let s, idents, lidents, paths = read_cmt cmt_file in
 
     (* Get the "initial" id to rename and its sort *)
     let renamed_kind, id = locate_renamed_id (`structure s) loc in
@@ -296,7 +297,7 @@ let rename loc name' file =
       let name' = fix_case renamed_kind name' in
 
       let def_replaces, occ_replaces =
-	rename_in_file env renamed_kind id name' file (s, idents) in
+	rename_in_file env renamed_kind id name' file (s, idents, lidents, paths) in
 
       (* We need to sort them again (they may interleave). *)
       let replaces = sort_replaces (def_replaces @ occ_replaces) in

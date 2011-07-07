@@ -5,3 +5,5 @@ module M : sig
 end = struct
   let y = ()
 end
+Renamed 2 definition(s) and 0 reference(s)
+

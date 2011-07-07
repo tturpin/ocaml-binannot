@@ -7,8 +7,7 @@ R_CASES=renameSimple.ml renameSigNewCaptured.ml renameSigOldCaptured.ml \
 	renameIncludeNewCaptured.ml renameIncludeOldCaptured.ml \
 	renameOpenNewCaptured.ml renameOpenOldCaptured.ml \
 	renameMultiple.ml renameProp.ml renamePropFunctor.ml \
-	renamePropFunctorNoApp.ml
-# renameType.ml
+	renamePropFunctorNoApp.ml renameType.ml
 # renameModtype.ml
 R_TESTS=$(subst .ml,_rres.ml, $(R_CASES))
 
@@ -136,9 +135,8 @@ errors_comp.ml: errors.ml errors_no_dollar.ml $(OWZ)
 	`grep -o -b \\\\$$ $< | cut -d : -f 1`-\
 	`tail -c +2 $< | grep -o -b € | cut -d : -f 1` \
 	y $@
-
-#	cat ../../.ocamlwizard-stderr >> $@
-
+	cat ../../.ocamlwizard-stdout >>$@
+	/bin/echo -e \\n >>$@
 
 
 # Old

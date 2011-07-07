@@ -7,3 +7,6 @@ end
 open M
 
 let _ = x
+File "renameOpenOldCaptured_no_dollar.ml", line 4, characters 6-7:
+This existing definition of y would capture an occurrence of x
+

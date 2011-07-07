@@ -498,7 +498,18 @@ module PathTbl = Hashtbl.Make
      let hash = Hashtbl.hash
    end)
 
-type path2env = t PathTbl.t
+type path_sort =
+  | Value
+  | Annot
+  | Constructor
+  | Label
+  | Type
+  | Module
+  | Modtype
+  | Class
+  | Cltype
+
+type path2env = (path_sort * Longident.t * t) PathTbl.t
 
 let path_table = ref None
 
@@ -510,37 +521,46 @@ let flush_paths () =
     path_table := None;
     paths
 
-let record p env =
+let record p sort lid env =
   match !path_table with
-    | Some t -> PathTbl.add t p env
+    | Some t -> PathTbl.add t p (sort, lid, env)
     | None -> ()
 
+(*
 let lookup_module lid env =
   let path, _ as res = lookup_module lid env in
     record path env;
     res
+*)
 
-let lookup proj1 proj2 lid env =
+let recording sort lookup lid env =
+  let path, _ as res = lookup lid env in
+  record path sort lid env;
+  res
+
+let lookup_module = recording Module lookup_module
+
+let lookup sort proj1 proj2 lid env =
   let path, _ as res = lookup proj1 proj2 lid env in
-    record path env;
-    res
+  record path sort lid env;
+  res
 
 let lookup_value =
-  lookup (fun env -> env.values) (fun sc -> sc.comp_values)
+  lookup Value (fun env -> env.values) (fun sc -> sc.comp_values)
 let lookup_annot id e =
-  lookup (fun env -> env.annotations) (fun sc -> sc.comp_annotations) id e
+  lookup Annot (fun env -> env.annotations) (fun sc -> sc.comp_annotations) id e
 and lookup_constructor =
-  lookup (fun env -> env.constrs) (fun sc -> sc.comp_constrs)
+  lookup Constructor (fun env -> env.constrs) (fun sc -> sc.comp_constrs)
 and lookup_label =
-  lookup (fun env -> env.labels) (fun sc -> sc.comp_labels)
+  lookup Label (fun env -> env.labels) (fun sc -> sc.comp_labels)
 and lookup_type =
-  lookup (fun env -> env.types) (fun sc -> sc.comp_types)
+  lookup Type (fun env -> env.types) (fun sc -> sc.comp_types)
 and lookup_modtype =
-  lookup (fun env -> env.modtypes) (fun sc -> sc.comp_modtypes)
+  lookup Modtype (fun env -> env.modtypes) (fun sc -> sc.comp_modtypes)
 and lookup_class =
-  lookup (fun env -> env.classes) (fun sc -> sc.comp_classes)
+  lookup Class (fun env -> env.classes) (fun sc -> sc.comp_classes)
 and lookup_cltype =
-  lookup (fun env -> env.cltypes) (fun sc -> sc.comp_cltypes)
+  lookup Cltype (fun env -> env.cltypes) (fun sc -> sc.comp_cltypes)
 
 let ident_tbl_fold f t acc =
   List.fold_right

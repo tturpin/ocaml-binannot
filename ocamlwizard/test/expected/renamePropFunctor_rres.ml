@@ -9,3 +9,5 @@ module N = F(struct let y = 2 let tot = () end)
 module O = F(M)
 
 let _ = M.y
+Renamed 3 definition(s) and 2 reference(s)
+

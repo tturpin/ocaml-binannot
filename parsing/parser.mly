@@ -48,8 +48,19 @@ let mkcf d =
 let reloc_pat x = { x with ppat_loc = symbol_rloc () };;
 let reloc_exp x = { x with pexp_loc = symbol_rloc () };;
 
+
+(*
+let ghlongident = longident Location.none
+let ghlident = lident Location.none
+*)
+
 let mkoperator name pos =
-  { pexp_desc = Pexp_ident(Lident name); pexp_loc = rhs_loc pos }
+  { pexp_desc = Pexp_ident(longident (rhs_loc pos) (Lident name));
+    pexp_loc = rhs_loc pos }
+
+let lident i = longident (symbol_rloc ()) (Lident i)
+let ldot lid i = longident (symbol_rloc ()) (Ldot (lid, i))
+let lapply lid lid' = longident (symbol_rloc ()) (Lapply (lid, lid'))
 
 (*
   Ghost expressions and patterns:
@@ -203,7 +214,7 @@ let bigarray_set arr arg newval =
 
 let lapply p1 p2 =
   if !Clflags.applicative_functors
-  then Lapply(p1, p2)
+  then lapply p1 p2
   else raise (Syntaxerr.Error(Syntaxerr.Applicative_path (symbol_rloc())))
 
 let exp_of_label lbl =
@@ -1113,7 +1124,7 @@ label_expr:
       { ("?" ^ $1, $2) }
 ;
 label_ident:
-    LIDENT   { ($1, mkexp(Pexp_ident(Lident $1))) }
+    LIDENT   { ($1, mkexp(Pexp_ident(lident $1))) }
 ;
 let_bindings:
     let_binding                                 { [$1] }
@@ -1625,44 +1636,44 @@ constr_ident:
 ;
 
 val_longident:
-    val_ident                                   { Lident $1 }
-  | mod_longident DOT val_ident                 { Ldot($1, $3) }
+    val_ident                                   { lident $1 }
+  | mod_longident DOT val_ident                 { ldot $1 $3 }
 ;
 constr_longident:
     mod_longident       %prec below_DOT         { $1 }
-  | LBRACKET RBRACKET                           { Lident "[]" }
-  | LPAREN RPAREN                               { Lident "()" }
-  | FALSE                                       { Lident "false" }
-  | TRUE                                        { Lident "true" }
+  | LBRACKET RBRACKET                           { lident "[]" }
+  | LPAREN RPAREN                               { lident "()" }
+  | FALSE                                       { lident "false" }
+  | TRUE                                        { lident "true" }
 ;
 label_longident:
-    LIDENT                                      { Lident $1 }
-  | mod_longident DOT LIDENT                    { Ldot($1, $3) }
+    LIDENT                                      { lident $1 }
+  | mod_longident DOT LIDENT                    { ldot $1 $3 }
 ;
 type_longident:
-    LIDENT                                      { Lident $1 }
-  | mod_ext_longident DOT LIDENT                { Ldot($1, $3) }
+    LIDENT                                      { lident $1 }
+  | mod_ext_longident DOT LIDENT                { ldot $1 $3 }
 ;
 mod_longident:
-    UIDENT                                      { Lident $1 }
-  | mod_longident DOT UIDENT                    { Ldot($1, $3) }
+    UIDENT                                      { lident $1 }
+  | mod_longident DOT UIDENT                    { ldot $1 $3 }
 ;
 mod_ext_longident:
-    UIDENT                                      { Lident $1 }
-  | mod_ext_longident DOT UIDENT                { Ldot($1, $3) }
+    UIDENT                                      { lident $1 }
+  | mod_ext_longident DOT UIDENT                { ldot $1 $3 }
   | mod_ext_longident LPAREN mod_ext_longident RPAREN { lapply $1 $3 }
 ;
 mty_longident:
-    ident                                       { Lident $1 }
-  | mod_ext_longident DOT ident                 { Ldot($1, $3) }
+    ident                                       { lident $1 }
+  | mod_ext_longident DOT ident                 { ldot $1 $3 }
 ;
 clty_longident:
-    LIDENT                                      { Lident $1 }
-  | mod_ext_longident DOT LIDENT                { Ldot($1, $3) }
+    LIDENT                                      { lident $1 }
+  | mod_ext_longident DOT LIDENT                { ldot $1 $3 }
 ;
 class_longident:
-    LIDENT                                      { Lident $1 }
-  | mod_longident DOT LIDENT                    { Ldot($1, $3) }
+    LIDENT                                      { lident $1 }
+  | mod_longident DOT LIDENT                    { ldot $1 $3 }
 ;
 
 /* Toplevel directives */

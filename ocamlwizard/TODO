@@ -1,5 +1,4 @@
 - Traverse directly the path table to get all occurrences with kind, loc, env
-- Git add renameType.ml
 - Rename: rename in signatures
 - Rename: replace in multiple files
 - Rename: return a list of files that emacs should revert

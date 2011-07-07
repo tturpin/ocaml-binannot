@@ -22,18 +22,8 @@ open Typedtree
 open TypedtreeOps
 open Resolve
 
-type occurrence_kind = [
-  `exp_ident
-| `mod_ident
-| `exp_open
-| `str_open
-| `sig_open
-| `mty_with
-| `mty_ident
-| `core_type_type
-| `pat_alias_type
-]
-
+(* An alternative technique for collecting occurrences. *)
+(*
 (* Is that meaningful ? *)
 let rec path2loc idents = function
   | Path.Pident s -> Location.StringTbl.find idents (Ident.name s)
@@ -66,6 +56,19 @@ let rec env_of_node root_env father_table n =
     | `bindings _ -> assert false
     | _ -> failwith ("env_of_node: unsupported case " ^ node_kind n)
 
+let rec check_same = function
+  | [x] -> x
+  | (_, lid, env) :: ((_, lid', env') :: _ as l) ->
+    if lid != lid' then failwith "different longidents";
+    if env != env' then failwith "different environments";
+    check_same l
+  | [] -> invalid_arg "check_same"
+
+let lookup_path path_table p =
+  match Env.PathTbl.find_all path_table p with
+    | [] -> failwith ("path " ^ Path.name p ^ " not found")
+    | l -> debugln "checking path %s" (Path.name p) ; check_same l
+
 let shift n loc =
   let start = loc.Location.loc_start in
   { loc with Location.loc_start =
@@ -75,7 +78,7 @@ let shift n loc =
 (* This should only be complete w.r.t. values and module paths ! But
    we cannot have safe renaming for modules until we are complete
    w.r.t. paths of all sorts. *)
-let find_all_occurrences env idents tree : ('a * ('b * occurrence_kind)) list =
+let find_all_occurrences env idents paths tree =
   let father_table = reverse tree in
   let found loc env occ = Some (loc, (env, occ))
 (*
@@ -85,26 +88,35 @@ let find_all_occurrences env idents tree : ('a * ('b * occurrence_kind)) list =
     debugln "loc = [%d, %d[" b e;
     loc
 *)
+(*
   and env = env_of_node env father_table in
+*)
+  and env p =
+    let sort, lid, env = lookup_path paths p in
+(*
+    let loc = lid2loc
+*)
+    env
+  in
   find_all_map
     (function n ->
       match n with
 
       | `pattern p ->
 	(match p.pat_desc with
-	  | Tpat_alias (_, TPat_type _) ->
-	    found (shift 1 p.pat_loc) (env n) `pat_alias_type
+	  | Tpat_alias (_, TPat_type path) ->
+	    found (shift 1 p.pat_loc) (env path) Env.Type
 	  | _ -> None)
 
       | `core_type t ->
 	(match t.ctyp_desc with
 	  | Ttyp_constr (p, _) ->
-	    found t.ctyp_loc (env n) `core_type_type
+	    found t.ctyp_loc (env p) Env.Type
 	  | _ -> None)
 
       | `expression e ->
 	(match e.exp_desc with
-	  | Texp_ident _ -> found e.exp_loc e.exp_env `exp_ident
+	  | Texp_ident _ -> found e.exp_loc e.exp_env Env.Value
 	  (* If the renamed ident is not a module or modtype,
 	     then we could filter according to the right_most
 	     ident. Otherwise, there is no way to know if we
@@ -122,7 +134,7 @@ let find_all_occurrences env idents tree : ('a * ('b * occurrence_kind)) list =
 
       | `module_expr m ->
 	(match m.mod_desc with
-	  | Tmod_ident _ -> found m.mod_loc m.mod_env `mod_ident
+	  | Tmod_ident _ -> found m.mod_loc m.mod_env Env.Module
 	  | _ -> None)
 
       | `module_type t ->
@@ -149,7 +161,7 @@ let find_all_occurrences env idents tree : ('a * ('b * occurrence_kind)) list =
 
       | `structure_item i ->
 	(match i.str_desc with
-	  | Tstr_open _ -> found i.str_loc i.str_env `str_open
+	  | Tstr_open _ -> found (shift 4 i.str_loc) i.str_env Env.Module
 	  | _ -> None)
 
 	  (* needed for modules
@@ -168,19 +180,80 @@ let find_all_occurrences env idents tree : ('a * ('b * occurrence_kind)) list =
       | _ -> None)
     tree
 
-let get_occurrences env idents s =
+let get_occurrences env idents lidents paths s =
   List.sort
     (fun (loc, _) (loc', _) ->
       let open Lexing in
       compare loc.loc_start.pos_cnum loc.loc_end.pos_cnum)
-    (find_all_occurrences env idents s)
+    (find_all_occurrences env idents paths s)
+*)
+
+let reverse t =
+  let r = Longident.LongidentTbl.create 1000 in
+  Env.PathTbl.iter
+    (fun p (sort, lid, env) ->
+      if sort <> Env.Annot then
+	Longident.LongidentTbl.add r lid (sort, p, env))
+    t;
+  r
+    
+let kind2kind = function
+  | Env.Value -> value_ops
+  | Env.Type -> type_ops
+  | Env.Annot
+  | Env.Constructor
+  | Env.Label
+  | Env.Module
+  | Env.Modtype
+  | Env.Class
+  | Env.Cltype
+    -> raise Not_found
+
+let kind2str = function
+  | Env.Value -> "value"
+  | Env.Type -> "type"
+  | Env.Annot -> "annot"
+  | Env.Constructor -> "constructor"
+  | Env.Label -> "label"
+  | Env.Module -> "module"
+  | Env.Modtype -> "modtype"
+  | Env.Class -> "class"
+  | Env.Cltype -> "cltype"
+
+let rec check_same = function
+  | [x] -> x
+  | (kind, p, env) :: ((kind', p', env') :: _ as l) ->
+    if kind <> kind' then
+      failwith (kind2str kind ^ " <> " ^ kind2str kind');
+    if p != p' then failwith "different paths";
+    if env != env' then failwith "different environments";
+    check_same l
+  | [] -> invalid_arg "check_same"
+
+let get_occurrences env idents lidents paths s =
+  let lid2path = reverse paths in
+  (* We should check that keys are bound only once *)
+  Longident.LongidentTbl.fold
+    (fun lid loc acc ->
+      match Longident.LongidentTbl.find_all lid2path lid with
+	| [] ->
+	  debugln "lident %s has no environment" (lid_to_str lid);
+	  acc
+	| l ->
+	  debugln "testing %s" (lid_to_str lid);
+	  let kind, p, env = check_same l in
+	  if kind = Env.Value || kind = Env.Type then
+	    (loc, (env, kind)) :: acc
+	  else
+	    acc)
+    lidents
+    []
 
 let extract_longident (loc, s, (env, occ)) =
   let kind = match occ with
-    | `exp_ident -> value_ops
-    | `mod_ident -> module_ops
-    | `core_type_type -> type_ops
-    | `pat_alias_type -> type_ops
+    | Env.Value -> value_ops
+    | Env.Module -> module_ops
+    | Env.Type -> type_ops
     | _ -> failwith "not implemented"
   in
   let ast =
@@ -191,10 +264,10 @@ let extract_longident (loc, s, (env, occ)) =
   in
     (loc, ast, (env, kind))
 
-let get_lids env file idents ast =
+let get_lids env file idents lidents paths ast =
   List.map
     extract_longident
-    (source_locations file (get_occurrences env idents ast))
+    (source_locations file (get_occurrences env idents lidents paths ast))
 
 let ident_of_subtree = function
   | `pattern {pat_desc = Tpat_var id}
