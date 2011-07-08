@@ -50,3 +50,10 @@ val source_locations :
   string -> (Location.t * 'a) list -> (Location.t * string * 'a) list
 
 val initial_env : unit -> Env.t
+
+(** Indicates that the query cannot be processed, for some legitimate
+    reason. The message will be printed on stdout (prefixed with
+    "Error:" before exiting with signal 1). *)
+exception OwzFailure of string
+
+val fail_owz : ('a, unit, string, 'b) format4 -> 'a

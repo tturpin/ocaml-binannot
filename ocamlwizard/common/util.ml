@@ -296,3 +296,9 @@ let initial_env () =
     else Env.open_pers_signature "Pervasives" Env.initial
   with Not_found ->
     Misc.fatal_error "cannot open pervasives.cmi"
+
+exception OwzFailure of string
+
+let fail_owz s = raise (OwzFailure s)
+
+let fail_owz s = Printf.ksprintf fail_owz s

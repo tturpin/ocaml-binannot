@@ -57,14 +57,7 @@ let lookup kind lid e =
   in
     wrap_lookup lid_to_str (kind2str kind) lookup lid e
 
-(*
-let find_in_tdecl kind tdecl =
-  match kind, tdecl.type_kind with
-    | Constructor, Type_variant cs ->
-      (try find_map (function c, _ -> ic) cs)
-*)
-let find_in_tdecl kind tdecl = None
-
+(* Get the ident of a signature item, if it has one, and matches the kind. *)
 let sig_item sort item =
   match sort, item with
     | Value, Sig_value (i, _)
@@ -75,10 +68,6 @@ let sig_item sort item =
     | Cltype, Sig_class_type (i, _, _)
     | Constructor, Sig_exception (i, _)
       -> Some i
-    | Constructor, Sig_type (_, _, tdecl)
-    | Label, Sig_type (_, _, tdecl)
-      -> find_in_tdecl sort tdecl
-    (* To be completed with constructors and fields *)
     | _ -> None
 
 (* Get the ident of a summary item, if it has one, and matches the kind. *)
@@ -108,18 +97,6 @@ let parse_lid kind =
     | Class -> parse Parser.class_longident
     | Cltype -> parse Parser.clty_longident
     | Annot -> assert false
-
-(*
-let sig_item_ops = function
-  | Sig_value _ -> value_ops
-  | Sig_module _ -> module_ops
-  | Sig_type _ -> type_ops
-  | Sig_exception _
-  | Sig_modtype _
-  | Sig_class _
-  | Sig_class_type _ ->
-    assert false
-*)
 
 exception Abstract_modtype
 
@@ -156,14 +133,14 @@ let resolve_module_lid env lid =
 
 let is_one_of id = List.exists (Ident.same id)
 
-exception Name of Ident.t
-exception Ident of Ident.t
+exception FoundName of Ident.t
+exception FoundIdent of Ident.t
 
 let first_of_in_id ids name id =
   if is_one_of id ids then
-    raise (Ident id)
+    raise (FoundIdent id)
   else if Ident.name id = name then
-    raise (Name id)
+    raise (FoundName id)
 
 (* The type itself is excluded *)
 let first_of_in_type_decl kind ids name tdecl =
@@ -249,8 +226,8 @@ let find_in_signature kind name sg =
   try
     first_of_in_sig kind [] name sg
   with
-    | Name id -> id
-    | Ident _ -> assert false
+    | FoundName id -> id
+    | FoundIdent _ -> assert false
 
 (* True if p.name means id *)
 let member_resolves_to kind env path name ids =
@@ -278,10 +255,10 @@ let check_in ~renamed first_of arg =
     ignore (first_of arg);
     assert false
   with
-      (Ident _ | Name _) as e ->
+      (FoundIdent _ | FoundName _) as e ->
 	match renamed, e with
-	  | (true, Ident _ | false, Name _) -> ()
-	  | (true, Name id | false, Ident id) -> raise (Masked_by (renamed, id))
+	  | (true, FoundIdent _ | false, FoundName _) -> ()
+	  | (true, FoundName id | false, FoundIdent id) -> raise (Masked_by (renamed, id))
 	  | _ -> assert false
 
 let check kind id name env summary =

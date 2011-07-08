@@ -57,6 +57,21 @@ let mk_info rg =
     c_printer = !printer;
   }
    
+let catch_owz f =
+  try f ()
+  with
+    | OwzFailure s ->
+	print_string s;
+	exit 1
+    | Failure s ->
+	Printf.printf "Error: %s\n" s;
+	Printexc.print_backtrace stdout;
+	exit 2
+    | e ->
+	Printf.printf "Error: %s\n" (Printexc.to_string e);
+	Printexc.print_backtrace stdout;
+	exit 2
+
 (** Main for external completion calls *)
 let main () = 
   Arg.parse options anonymous usage;
@@ -76,7 +91,8 @@ let main () =
 
     | Refactor r ->
       (match r with
-	| Rename (loc, name', file) -> Rename.rename loc name' file
+	| Rename (loc, name', file) ->
+	    catch_owz (function () -> Rename.rename loc name' file ; exit 0)
 	| Depend | Qualif -> failwith "not yet")
 
     | Locate -> failwith "not yet"

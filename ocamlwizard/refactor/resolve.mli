@@ -18,16 +18,13 @@
 (** Different sort of names, and their bindings. *)
 
 val kind2str : Env.path_sort -> string
-(*
-val lookup : Env.path_sort -> Longident.t -> Env.t -> Path.t
-val sig_item : Env.path_sort -> Types.signature_item -> Ident.t option
-summary_item
-*)
+
 val parse_lid : Env.path_sort -> string -> Longident.t
 
-(*
-(** Return the specific operations associated with a signature item. *)
-val sig_item_ops : Types.signature_item -> specifics
+(* not used outside Resolve
+val lookup : Env.path_sort -> Longident.t -> Env.t -> Path.t
+val sig_item : Env.path_sort -> Types.signature_item -> Ident.t option
+val summary_item : ...
 *)
 
 (* Turns Not_found into a Failure with the unbound name *)

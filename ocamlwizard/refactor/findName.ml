@@ -280,6 +280,9 @@ let locate_renamed_id s loc =
 		    (function id, _, _ -> id) (function _, _, _, loc -> loc) fs tfs
 		| Type_abstract, Ttype_abstract -> raise Not_found
 		| _ -> assert false)
+	    | `structure_item {str_desc = Tstr_exception (id, _)}
+	    | `signature_item {sig_desc = Tsig_exception (id, _)} ->
+		Constructor, id
 	    | _ -> raise Not_found)
 	  with Not_found -> None)
 	loc s
