@@ -237,29 +237,52 @@ let get_lids env file lidents paths ast =
     extract_longident
     (source_locations file (get_occurrences lidents paths ast))
 
+let locate_field loc pid ploc fs tfs =
+  let f, _ =
+    List.find
+      (function _, tf -> contains (ploc tf) loc)
+      (List.combine fs tfs)
+  in
+  pid f
+
 (* Should be almost complete for expressions, but this is not a safety
    requirement anyway. *)
 let locate_renamed_id s loc =
   let open Env in
-  match locate `innermost loc s with
-    | `pattern {pat_desc = Tpat_var id}
-    | `expression {exp_desc = Texp_for (id, _, _, _, _)}
-    | `signature_item {sig_desc = Tsig_value (id, _)}
-      -> Value, id
-    | `structure_item {str_desc = Tstr_module (id, _)}
-    | `signature_item {sig_desc = Tsig_module (id, _)}
-    | `module_expr {mod_desc = Tmod_functor (id, _, _)}
-    | `module_type {mty_desc = Tmty_functor (id, _, _)}
-      -> Module, id
-    | `structure_item {str_desc = Tstr_modtype (id, _)}
-    | `signature_item {sig_desc = Tsig_modtype (id, _)}
-      -> Modtype, id
-    | `structure_item {str_desc = Tstr_type types}
-    | `signature_item {sig_desc = Tsig_type types}
-      -> (match types with
-	| [id, _] -> Type, id
-	| _ -> failwith "multiple type definitions are not yet supported")
-    | _ -> invalid_arg "rename"
+      locate_map `innermost
+	(function n ->
+	  try Some (match n with
+	    | `pattern {pat_desc = Tpat_var id}
+	    | `expression {exp_desc = Texp_for (id, _, _, _, _)}
+	    | `signature_item {sig_desc = Tsig_value (id, _)}
+	      -> Value, id
+	    | `structure_item {str_desc = Tstr_module (id, _)}
+	    | `signature_item {sig_desc = Tsig_module (id, _)}
+	    | `module_expr {mod_desc = Tmod_functor (id, _, _)}
+	    | `module_type {mty_desc = Tmty_functor (id, _, _)}
+	      -> Module, id
+	    | `structure_item {str_desc = Tstr_modtype (id, _)}
+	    | `signature_item {sig_desc = Tsig_modtype (id, _)}
+	      -> Modtype, id
+	    | `structure_item {str_desc = Tstr_type types}
+	    | `signature_item {sig_desc = Tsig_type types}
+	      -> (match types with
+		| [id, _] -> Type, id
+		| _ -> failwith "multiple type definitions are not yet supported")
+	    | `type_declaration d ->
+	      (match d.typ_type.type_kind, d.typ_kind with
+		| Type_variant cs, Ttype_variant tcs ->
+		  Constructor,
+		  locate_field loc fst (function _, _, loc -> loc) cs tcs
+		| Type_record (fs, _), Ttype_record tfs ->
+		  Label,
+		  locate_field loc
+		    (function id, _, _ -> id) (function _, _, _, loc -> loc) fs tfs
+		| Type_abstract, Ttype_abstract -> raise Not_found
+		| _ -> assert false)
+	    | _ -> raise Not_found)
+	  with Not_found -> None)
+	loc s
 
 let find_id_def table id =
   StringTbl.find table (Ident.name id)

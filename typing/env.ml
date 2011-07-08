@@ -714,11 +714,13 @@ match scrape_modtype mty env with
               Tbl.add (Ident.name id) (decl', nopos) c.comp_types;
             List.iter
               (fun (name, descr) ->
-                c.comp_constrs <- Tbl.add name (descr, nopos) c.comp_constrs)
+                c.comp_constrs <-
+		  Tbl.add (Ident.name name) (descr, nopos) c.comp_constrs)
               (constructors_of_type path decl');
             List.iter
               (fun (name, descr) ->
-                c.comp_labels <- Tbl.add name (descr, nopos) c.comp_labels)
+                c.comp_labels <-
+		  Tbl.add (Ident.name name) (descr, nopos) c.comp_labels)
               (labels_of_type path decl');
             env := store_type_infos id path decl !env
         | Sig_exception(id, decl) ->
@@ -790,15 +792,13 @@ and store_type id path info env =
   { env with
     constrs =
       List.fold_right
-      (fun (name, descr) constrs ->
-        let id = Ident.create name in
+      (fun (id, descr) constrs ->
         Ident.add id (path_subst_last path id, descr) constrs)
         (constructors_of_type path info)
         env.constrs;
     labels =
       List.fold_right
-      (fun (name, descr) labels ->
-        let id = Ident.create name in
+      (fun (id, descr) labels ->
         Ident.add id (path_subst_last path id, descr) labels)
         (labels_of_type path info)
         env.labels;

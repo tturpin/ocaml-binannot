@@ -48,6 +48,7 @@ let expansion_type = function
 	  env,
 	  Types.Ttuple desc.Types.cstr_args
       | _, Types.Type_variant cs ->
+	let cs = List.map (function id, x -> Ident.name id, x) cs in
 	  env,
 	  Types.Ttuple (List.assoc c cs)
       | _ -> invalid_arg "expansion_type"

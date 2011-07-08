@@ -1,4 +1,4 @@
-- Traverse directly the path table to get all occurrences with kind, loc, env
+- Rename: rename type variables, argument labels, polymorphic variants, methods
 - Rename: rename in signatures
 - Rename: replace in multiple files
 - Rename: return a list of files that emacs should revert

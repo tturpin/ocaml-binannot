@@ -220,7 +220,7 @@ let find_id_defs ids name s =
 
 let fix_case kind =
   match kind with
-    | Env.Module | Env.Modtype -> String.capitalize
+    | Env.Module | Env.Modtype | Env.Constructor -> String.capitalize
     | _ -> String.uncapitalize
 
 let backup file =

@@ -191,7 +191,7 @@ let mk_values ce se (env, _) m i =
 let mk_record_info lv acc (rc_name,lbls)=
   let mk_label_info = List.fold_left (
       fun acc (s,b,otl) ->
-	{ l_name   = s;
+	{ l_name   = Ident.name s;
 	  l_mut    = b = Asttypes.Mutable;
 	  l_miss   = "";
 	  l_type   = Otyp_abstract; (*otl;*)

@@ -71,9 +71,13 @@ val resolve_modtype :
     name in lid needs renaming (assuming we are renaming ids). *)
 val resolves_to : Env.path_sort -> Env.t -> Longident.t -> Ident.t list -> bool
 
-(** Retrieve an element in a signature from its name *)
+(** Retrieve a module or modtype in a signature from its name *)
 val lookup_in_signature :
   Env.path_sort -> string -> Types.signature -> Types.signature_item
+
+(** Retrieve an element in a signature from its name *)
+val find_in_signature :
+  Env.path_sort -> string -> Types.signature -> Ident.t
 
 (** Raised by check to signal an impossible renaming due to a masking
     of an existing occurrence of the new name, or of a renamed

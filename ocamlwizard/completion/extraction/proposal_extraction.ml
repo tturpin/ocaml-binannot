@@ -208,6 +208,7 @@ let tuple_pattern ts =
 let variant_patterns env tcstr cstrs =
   List.map
     (function cstr, ts ->
+      let cstr = Ident.name cstr in
       let arg =
 	match ts with
 	  | [] -> None
@@ -230,7 +231,7 @@ let record_pattern env tcstr fields =
     (Ppat_record
        (List.map
 	  (function field, _, t ->
-	    (rev_lookup_field env tcstr field,
+	    (rev_lookup_field env tcstr (Ident.name field),
 	     mk_pattern Ppat_any))
 	  fields,
 	Asttypes.Closed))

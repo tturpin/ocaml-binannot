@@ -77,12 +77,25 @@ val find_map : [`outermost | `innermost] -> (node -> 'a option) -> 'a sfun
 (** Find all nodes satisfying some condition. *)
 val find_all_map : (node -> 'a option) -> 'a list sfun
 
+val contains : Location.t -> int * int -> bool
+
 (** Return the innermost subtree whose locations contains a given
     character number interval [a, b[.
 
     Warning: most node kinds are missing ! *)
 val locate : [`outermost | `innermost] -> int * int -> node sfun
 
+(** Simliar to locate, but we return the first node along a path (in
+    the sense of the given priority) for which the parameter function
+    returns some result. *)
+val locate_map : [`outermost | `innermost] -> (node -> 'a option) ->
+  int * int -> 'a sfun
+
+(*
+(** The same as locate, but with *)
+val locate_map_exn : [`outermost | `innermost] -> (node -> 'a) ->
+  int * int -> 'a sfun
+*)
 
 (** Finding only one sort of nodes: *)
 

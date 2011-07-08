@@ -179,10 +179,13 @@
       ; Thank you stackoverflow:
       (progn
 	(save-excursion
+;	  (setq scroll (window-vscroll))
+;	  (setq auto-window-vscroll nil)
 	  (clear-visited-file-modtime)
 	  (widen)
 	  (delete-region (point-min) (point-max))
 	  (insert-file-contents (buffer-file-name)))
+;	(set-window-vscroll nil scroll)
        ; Problem: if we undo and then redo, emacs forgets the goto.
 	(goto-char pos)
 	(set-buffer-modified-p nil)

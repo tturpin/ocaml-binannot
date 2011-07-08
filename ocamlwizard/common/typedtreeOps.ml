@@ -196,7 +196,7 @@ let contains loc (b', e') =
   let b, e = Util.get_c_num loc in
   b <= b' && e' <= e
 
-let locate priority loc =
+let locate_map priority f loc =
   find_map priority
     (function t ->
       if
@@ -207,10 +207,13 @@ let locate priority loc =
 	  | `expression e -> contains e.exp_loc
 	  | `structure_item i -> contains i.str_loc
 	  | `signature_item i -> contains i.sig_loc
+	  | `type_declaration d -> contains d.typ_loc
 	  | _ -> function _ -> false)
 	  loc
-      then Some t
+      then f t
       else None)
+
+let locate priority = locate_map priority (function x -> Some x)
 
 let find_pattern priority cond =
   find_map priority (function `pattern p -> cond p | _ -> None)

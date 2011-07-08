@@ -175,8 +175,7 @@ let propagate_renamings kind id incs includes =
     and ambiguous = ref [] in
     let copy flag sg id' =
       try 
-	let item = lookup_in_signature kind name sg in
-	let id = sig_item_id item in
+	let id = find_in_signature kind name sg in
 	  implicit_refs := (flag, sg, id') :: !implicit_refs;
 	  add_relation eq id id'
       with Not_found -> assert false
@@ -184,8 +183,7 @@ let propagate_renamings kind id incs includes =
       ConstraintSet.iter
 	(function sg, sg' ->
 	   try
-	     let item' = lookup_in_signature kind name sg' in
-	     let id' = sig_item_id item' in
+	     let id' = find_in_signature kind name sg' in
 	       copy `certain sg id'
 	   with
 	       Not_found -> ())
@@ -201,12 +199,11 @@ let propagate_renamings kind id incs includes =
 			 environment to check ids w.r.t. kind. *)
 		 List.iter (copy `maybe sg) ids;
 		 (* because we still need to check them for capture *)
-		 ambiguous := (lookup_in_signature kind name sg) :: !ambiguous)
+		 ambiguous := (find_in_signature kind name sg) :: !ambiguous)
       includes;
       let ids = !(Hashtbl.find eq id) in
 	List.iter
-	  (function item ->
-	     let id = sig_item_id item in
+	  (function id ->
 	       if is_one_of id ids then
 		 failwith
 		   "Cannot perform renaming because of an ambiguous include")
@@ -234,7 +231,7 @@ let check_other_implicit_references renamed_kind ids name' incs includes =
   ConstraintSet.iter
     (function sg, sg' ->
        try
-	 let _ = lookup_in_signature renamed_kind name' sg' in
+	 let _ = find_in_signature renamed_kind name' sg' in
 	   check_in_sig renamed_kind ids name' sg ~renamed:false
        with
 	   Not_found -> ())

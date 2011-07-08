@@ -38,9 +38,9 @@ let kind2str = function
   | Constructor -> "constructor"
   | Label -> "label"
   | Module -> "module"
-  | Modtype -> "modtype"
+  | Modtype -> "module type"
   | Class -> "class"
-  | Cltype -> "cltype"
+  | Cltype -> "class type"
 
 let lookup kind lid e =
   let lookup =
@@ -57,22 +57,41 @@ let lookup kind lid e =
   in
     wrap_lookup lid_to_str (kind2str kind) lookup lid e
 
+(*
+let find_in_tdecl kind tdecl =
+  match kind, tdecl.type_kind with
+    | Constructor, Type_variant cs ->
+      (try find_map (function c, _ -> ic) cs)
+*)
+let find_in_tdecl kind tdecl = None
+
 let sig_item sort item =
   match sort, item with
     | Value, Sig_value (i, _)
     | Type, Sig_type (i, _, _)
     | Module, Sig_module (i, _, _)
-    | Modtype, Sig_modtype (i, _) -> Some i
-    (* To be completed *)
+    | Modtype, Sig_modtype (i, _)
+    | Class, Sig_class (i, _, _)
+    | Cltype, Sig_class_type (i, _, _)
+    | Constructor, Sig_exception (i, _)
+      -> Some i
+    | Constructor, Sig_type (_, _, tdecl)
+    | Label, Sig_type (_, _, tdecl)
+      -> find_in_tdecl sort tdecl
+    (* To be completed with constructors and fields *)
     | _ -> None
 
+(* Get the ident of a summary item, if it has one, and matches the kind. *)
 let summary_item kind item =
   match kind, item with
     | Value, Env_value (_, i, _)
     | Type, Env_type (_, i, _)
     | Module, Env_module (_, i, _)
-    | Modtype, Env_modtype (_, i, _) -> Some i
-    (* To be completed *)
+    | Modtype, Env_modtype (_, i, _)
+    | Class, Env_class (_, i, _)
+    | Cltype, Env_cltype (_, i, _)
+    | Constructor, Env_exception (_, i, _)
+      -> Some i
     | _ -> None
 
 let parse_lid kind =
@@ -115,7 +134,6 @@ and modtype env = function
   | Mty_signature s -> `sign s
   | Mty_functor (id, t, t') -> `func (id, t, t')
 
-
 let modtype_signature env m =
   match modtype env m with
   | `sign s -> s
@@ -138,47 +156,39 @@ let resolve_module_lid env lid =
 
 let is_one_of id = List.exists (Ident.same id)
 
-(* True if p.name means id *)
-let field_resolves_to kind env path name ids =
-  name = Ident.name (List.hd ids) && (* only an optimisation *)
-  try
-    List.exists
-      (function s ->
-	match sig_item kind s with
-	  | Some id -> Ident.name id = name && is_one_of id ids
-	  | None -> false)
-      (resolve_module env path)
-  with
-      Abstract_modtype -> assert false
-
-(* Test whether a p reffers to id in environment env. This indicates
-   that the rightmost name in lid needs renaming. *)
-let resolves_to kind env lid ids =
-  match lookup kind lid env with
-    | Pident id' -> is_one_of id' ids
-    | Pdot (p, n, _) -> field_resolves_to kind env p n ids
-    | Papply _ -> invalid_arg "resolves_to"
-
-let lookup_in_signature kind name =
-  List.find
-    (function item -> match sig_item kind item with
-      | Some id -> Ident.name id = name
-      | None -> false)
-
 exception Name of Ident.t
 exception Ident of Ident.t
+
+let first_of_in_id ids name id =
+  if is_one_of id ids then
+    raise (Ident id)
+  else if Ident.name id = name then
+    raise (Name id)
+
+(* The type itself is excluded *)
+let first_of_in_type_decl kind ids name tdecl =
+  match kind, tdecl.type_kind with
+    | Constructor, Type_variant constrs ->
+      List.iter
+	(function id, _ -> first_of_in_id ids name id)
+	constrs
+    | Label, Type_record (fields, _) ->
+      List.iter
+	(function id, _, _ -> first_of_in_id ids name id)
+	fields
+    | _ -> ()
 
 let first_of_in_sig kind ids name sg =
   List.iter
     (function item ->
       (match sig_item kind item with
 	| Some id ->
-	  debugln "found %s" (Ident.name id);
-	  if is_one_of id ids then
-	    raise (Ident id)
-	  else if Ident.name id = name then
-	    raise (Name id)
-	| None -> ()))
+	  first_of_in_id ids name id
+	| None -> ());
+      (match item with
+	| Sig_type (s, tdecl, _) ->
+	  first_of_in_type_decl kind ids name tdecl
+	| _ -> ()))
     (List.rev sg);
   raise Not_found
 
@@ -194,11 +204,12 @@ let rec first_of kind ids name env = function
   | summary ->
     (match summary_item kind summary with
       | Some id ->
-	if is_one_of id ids then
-	  raise (Ident id)
-	else if Ident.name id = name then
-	  raise (Name id)
+	  first_of_in_id ids name id
       | None -> ());
+    (match summary with
+      | Env_type (s, _, tdecl) ->
+	first_of_in_type_decl kind ids name tdecl
+      | _ -> ());
     match summary with
       | Env_value (s, _, _)
       | Env_type (s, _, _)
@@ -209,6 +220,54 @@ let rec first_of kind ids name env = function
       | Env_cltype (s, _, _)
 	-> first_of kind ids name env s
       | Env_open _ | Env_empty _ -> assert false
+
+(* Old implementation ; does not work for fields and constructors
+let field_resolves_to kind env path name ids =
+  name = Ident.name (List.hd ids) && (* only an optimisation *)
+  try
+    List.exists
+      (function s ->
+	match sig_item kind s with
+	  | Some id -> Ident.name id = name && is_one_of id ids
+	  | None -> false)
+      (resolve_module env path)
+  with
+      Abstract_modtype -> assert false
+*)
+
+let lookup_in_signature kind name sg =
+  if kind = Constructor || kind = Label then
+    List.find
+      (function item -> match sig_item kind item with
+	| Some id -> Ident.name id = name
+	| None -> false)
+      sg
+  else
+    invalid_arg "lookup_in_signature"
+
+let find_in_signature kind name sg =
+  try
+    first_of_in_sig kind [] name sg
+  with
+    | Name id -> id
+    | Ident _ -> assert false
+
+(* True if p.name means id *)
+let member_resolves_to kind env path name ids =
+  try
+    is_one_of
+      (find_in_signature kind name (resolve_module env path))
+      ids
+  with
+    | Not_found -> false
+
+(* Test whether a p reffers to id in environment env. This indicates
+   that the rightmost name in lid needs renaming. *)
+let resolves_to kind env lid ids =
+  match lookup kind lid env with
+    | Pident id' -> is_one_of id' ids
+    | Pdot (p, n, _) -> member_resolves_to kind env p n ids
+    | Papply _ -> invalid_arg "resolves_to"
 
 exception Masked_by of bool * Ident.t
 
