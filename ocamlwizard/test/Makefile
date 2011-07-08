@@ -7,8 +7,11 @@ R_CASES=renameSimple.ml renameSigNewCaptured.ml renameSigOldCaptured.ml \
 	renameIncludeNewCaptured.ml renameIncludeOldCaptured.ml \
 	renameOpenNewCaptured.ml renameOpenOldCaptured.ml \
 	renameMultiple.ml renameProp.ml renamePropFunctor.ml \
-	renamePropFunctorNoApp.ml renameType.ml
-# renameModtype.ml
+	renamePropFunctorNoApp.ml renameFor.ml renameVal.ml \
+	renameType.ml renameTypeInSig.ml \
+	renameModtype.ml renameModtypeInSig.ml \
+	renameModule.ml renameModuleInSig.ml renameModuleInFunctor.ml \
+	renameModuleInFunctorType.ml
 R_TESTS=$(subst .ml,_rres.ml, $(R_CASES))
 
 RES=match_cases_res.ml expansion_res.ml path_res.ml errors_res.ml \
@@ -16,7 +19,7 @@ RES=match_cases_res.ml expansion_res.ml path_res.ml errors_res.ml \
 
 all: $(RES)
 	for i in $(RES); do \
-	  diff expected/$$i $$i || exit 1; \
+	  diff expected/$$i $$i || (echo $$i failed ; exit 1); \
 	done
 
 #Generic rules and functions

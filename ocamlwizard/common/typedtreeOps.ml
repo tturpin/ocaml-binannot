@@ -201,6 +201,8 @@ let locate priority loc =
     (function t ->
       if
 	(match t with
+	  | `module_expr e -> contains e.mod_loc
+	  | `module_type t -> contains t.mty_loc
 	  | `pattern p -> contains p.pat_loc
 	  | `expression e -> contains e.exp_loc
 	  | `structure_item i -> contains i.str_loc

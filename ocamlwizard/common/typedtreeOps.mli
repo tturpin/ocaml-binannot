@@ -78,7 +78,9 @@ val find_map : [`outermost | `innermost] -> (node -> 'a option) -> 'a sfun
 val find_all_map : (node -> 'a option) -> 'a list sfun
 
 (** Return the innermost subtree whose locations contains a given
-    character number interval [a, b[. *)
+    character number interval [a, b[.
+
+    Warning: most node kinds are missing ! *)
 val locate : [`outermost | `innermost] -> int * int -> node sfun
 
 

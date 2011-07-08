@@ -25,9 +25,7 @@ let wrap_lookup to_string name lookup x e =
   try lookup x e
   with Not_found -> failwith ("unbound " ^ name ^ " " ^ to_string x)
 
-let keep_first name f lid env = fst (wrap_lookup lid_to_str name f lid env)
-
-let keep_first' f lid env = fst (f lid env)
+let keep_first f lid env = fst (f lid env)
 
 let parse parser s =
   let lexbuf = Lexing.from_string s in
@@ -47,14 +45,14 @@ let kind2str = function
 let lookup kind lid e =
   let lookup =
     match kind with
-      | Value -> keep_first' lookup_value
-      | Type -> keep_first' lookup_type
-      | Module -> keep_first' lookup_module
-      | Constructor -> keep_first' lookup_constructor
-      | Label -> keep_first' lookup_label
-      | Modtype -> keep_first' lookup_modtype
-      | Class -> keep_first' lookup_class
-      | Cltype -> keep_first' lookup_cltype
+      | Value -> keep_first lookup_value
+      | Type -> keep_first lookup_type
+      | Module -> keep_first lookup_module
+      | Constructor -> keep_first lookup_constructor
+      | Label -> keep_first lookup_label
+      | Modtype -> keep_first lookup_modtype
+      | Class -> keep_first lookup_class
+      | Cltype -> keep_first lookup_cltype
       | Annot -> assert false
   in
     wrap_lookup lid_to_str (kind2str kind) lookup lid e
@@ -84,9 +82,13 @@ let parse_lid kind =
 	   try parse Parser.val_longident s
 	   with _ -> Longident.Lident (parse Parser.operator s))
     | Type -> parse Parser.type_longident
-    | Module -> parse Parser.mod_longident (* extended ? *)
+    | Module -> parse Parser.mod_ext_longident
     | Modtype -> parse Parser.mty_longident
-    | _ -> assert false
+    | Constructor -> parse Parser.constr_longident
+    | Label -> parse Parser.label_longident
+    | Class -> parse Parser.class_longident
+    | Cltype -> parse Parser.clty_longident
+    | Annot -> assert false
 
 (*
 let sig_item_ops = function

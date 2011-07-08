@@ -201,23 +201,25 @@ let get_occurrences lid2loc lid2env s =
   (* We should check that keys are bound only once *)
   Longident.LongidentTbl.fold
     (fun lid loc acc ->
-      let envs = Env.LongidentTbl.find_all lid2env lid in
-      let envs = List.filter (function kind, _ -> kind <> Env.Annot) envs in
-      match envs with
-	| [] ->
-	  Location.print Format.std_formatter loc;
-	  Printf.printf "Warning: lident %s has no environment\n" (lid_to_str lid);
-(*
-	  failwith ("lident" ^ lid_to_str lid ^ "has no environment");
-*)
-	  acc
-	| l ->
-	  debugln "testing %s" (lid_to_str lid);
-	  let kind, env = check_same l in
-	  if kind = Env.Value || kind = Env.Type then
-	    (loc, (env, kind)) :: acc
-	  else
-	    acc)
+      if not (List.mem (lid_to_str lid) ["false" ; "()"]) then
+	let envs = Env.LongidentTbl.find_all lid2env lid in
+	let envs = List.filter (function kind, _ -> kind <> Env.Annot) envs in
+	match envs with
+	  | [] ->
+	    Location.print Format.std_formatter loc;
+	    Printf.printf "Warning: lident %s has no environment\n" (lid_to_str lid);
+	  (*
+	    failwith ("lident" ^ lid_to_str lid ^ "has no environment");
+	  *)
+	    acc
+	  | l ->
+	    debugln "testing %s" (lid_to_str lid);
+	    let kind, env = check_same l in
+	    if kind <> Env.Annot then
+	      (loc, (env, kind)) :: acc
+	    else
+	      acc
+      else acc)
     lid2loc
     []
 
@@ -235,28 +237,29 @@ let get_lids env file lidents paths ast =
     extract_longident
     (source_locations file (get_occurrences lidents paths ast))
 
-let ident_of_subtree = function
-  | `pattern {pat_desc = Tpat_var id}
-  | `expression {exp_desc = Texp_for (id, _, _, _, _)}
-  | `signature_item {sig_desc = Tsig_value (id, _)}
-    -> Env.Value, id
-  | `structure_item {str_desc = Tstr_module (id, _)}
-    -> Env.Module, id
-  | `structure_item {str_desc = Tstr_modtype (id, _)}
-    -> Env.Modtype, id
-  | `structure_item {str_desc = Tstr_type types}
-    -> (match types with
-      | [id, _] -> Env.Type, id
-      | _ -> failwith "multiple type definitions are not yes supported")
-  | _ -> raise Not_found
-
 (* Should be almost complete for expressions, but this is not a safety
    requirement anyway. *)
 let locate_renamed_id s loc =
-  try
-    let kind, id = ident_of_subtree (locate `innermost loc s) in kind, id
-  with Not_found ->
-    invalid_arg "rename"
+  let open Env in
+  match locate `innermost loc s with
+    | `pattern {pat_desc = Tpat_var id}
+    | `expression {exp_desc = Texp_for (id, _, _, _, _)}
+    | `signature_item {sig_desc = Tsig_value (id, _)}
+      -> Value, id
+    | `structure_item {str_desc = Tstr_module (id, _)}
+    | `signature_item {sig_desc = Tsig_module (id, _)}
+    | `module_expr {mod_desc = Tmod_functor (id, _, _)}
+    | `module_type {mty_desc = Tmty_functor (id, _, _)}
+      -> Module, id
+    | `structure_item {str_desc = Tstr_modtype (id, _)}
+    | `signature_item {sig_desc = Tsig_modtype (id, _)}
+      -> Modtype, id
+    | `structure_item {str_desc = Tstr_type types}
+    | `signature_item {sig_desc = Tsig_type types}
+      -> (match types with
+	| [id, _] -> Type, id
+	| _ -> failwith "multiple type definitions are not yet supported")
+    | _ -> invalid_arg "rename"
 
 let find_id_def table id =
   StringTbl.find table (Ident.name id)
