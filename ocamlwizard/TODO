@@ -2,6 +2,7 @@
 
 - Rename: return a list of files that emacs should revert
 - Rename: check that we always lookup in the right environment
+- Rename: check that all Ident.t s in typedtree are processed
 - Rename: rename type variables, argument labels, polymorphic variants, methods
 - Rename: propagate more constraints (constrs, fields, exceptions)
 - Rename: collect all occurrences in a or-pattern

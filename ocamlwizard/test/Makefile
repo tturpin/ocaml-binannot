@@ -8,7 +8,7 @@ R_CASES=renameSimple.ml renameSigNewCaptured.ml renameSigOldCaptured.ml \
 	renameOpenNewCaptured.ml renameOpenOldCaptured.ml \
 	renameMultiple.ml renameProp.ml renamePropFunctor.ml \
 	renamePropFunctorNoApp.ml renameFor.ml renameVal.ml \
-	renameType.ml renameTypeInSig.ml \
+	renameType.ml renameTypeInSig.ml renameTypes.ml\
 	renameModtype.ml renameModtypeInSig.ml \
 	renameModule.ml renameModuleInSig.ml renameModuleInFunctor.ml \
 	renameModuleInFunctorType.ml \

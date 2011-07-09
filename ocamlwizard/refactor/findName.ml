@@ -266,9 +266,13 @@ let locate_renamed_id s loc =
 	      -> Modtype, id
 	    | `structure_item {str_desc = Tstr_type types}
 	    | `signature_item {sig_desc = Tsig_type types}
-	      -> (match types with
-		| [id, _] -> Type, id
-		| _ -> failwith "multiple type definitions are not yet supported")
+	      ->
+		let id, _ =
+		  List.find
+		    (function id, d -> contains d.typ_loc loc)
+		    types
+		in
+		  Type, id
 	    | `type_declaration d ->
 	      (match d.typ_type.type_kind, d.typ_kind with
 		| Type_variant cs, Ttype_variant tcs ->
@@ -277,7 +281,8 @@ let locate_renamed_id s loc =
 		| Type_record (fs, _), Ttype_record tfs ->
 		  Label,
 		  locate_field loc
-		    (function id, _, _ -> id) (function _, _, _, loc -> loc) fs tfs
+		    (function id, _, _ -> id) (function _, _, _, loc -> loc)
+		    fs tfs
 		| Type_abstract, Ttype_abstract -> raise Not_found
 		| _ -> assert false)
 	    | `structure_item {str_desc = Tstr_exception (id, _)}

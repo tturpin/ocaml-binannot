@@ -198,7 +198,7 @@ let read_typedtree _ file =
       match data.(0) with
 	| Saved_implementation str -> `structure str
 	| Saved_signature sg -> `signature sg
-	| _ -> failwith "error reading cmt(i) file"
+	| _ -> fail_owz "error reading cmt(i) file"
     in
       try
 	match data.(1), data.(2), data.(3) with
@@ -208,7 +208,7 @@ let read_typedtree _ file =
 	      tree, loc, lloc, env
 	  | _ -> raise Not_found
       with
-	  _ -> failwith
+	  _ -> fail_owz
 	    "ident location or path environment table not found in cmt(i)"
 
 let sort_replaces =
@@ -285,13 +285,13 @@ let rename loc name' file =
 
   (* Check that everything is up-to-date *)
   if Common_config.has_auto_save file then
-    failwith "buffer must be saved before renaming";
+    fail_owz "buffer must be saved before renaming";
   let source_kind = classify_source file in
   let typedtree_file = typedtree_file source_kind file in
   if not (Sys.file_exists typedtree_file) then
-    failwith ("no cmt(i) file for " ^ file);
+    fail_owz "no cmt(i) file for %s" file;
   if Unix.((stat file).st_mtime > (stat typedtree_file).st_mtime) then
-    failwith "cmt(i) file is older than source file";
+    fail_owz "cmt(i) file is older than source file";
 
   (* Read the typedtree *)
   let s, idents, lidents, paths = read_typedtree source_kind typedtree_file in
