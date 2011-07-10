@@ -25,14 +25,6 @@ type 'a sfun =
   [ `structure of Typedtree.structure | `signature of Typedtree.signature]
     -> 'a
 
-(*
-(** The same, but as a record of two functions. *)
-type 'a funs = {
-  structure : Typedtree.structure -> 'a;
-  signature : Typedtree.signature -> 'a
-}
-*)
-
 (** The common type for all typedtree nodes. *)
 type node = [
   `structure of structure
@@ -92,7 +84,7 @@ val locate_map : [`outermost | `innermost] -> (node -> 'a option) ->
   int * int -> 'a sfun
 
 (*
-(** The same as locate, but with *)
+(** The same as locate, but with exceptions *)
 val locate_map_exn : [`outermost | `innermost] -> (node -> 'a) ->
   int * int -> 'a sfun
 *)
@@ -104,8 +96,10 @@ val find_pattern :
 val find_expression :
   [`outermost | `innermost] -> (Typedtree.expression -> 'a option) -> 'a sfun
 
+(* Not used anymore
 module NodeTbl : Hashtbl.S with type key = node
 
 type father_table = node NodeTbl.t
 
 val reverse : father_table sfun
+*)

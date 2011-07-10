@@ -167,7 +167,4 @@ let main ce =
   (* 5 - Printing the result in a formatter *)
   step "Proposal printing";
   Proposal_printing.main ~miss:Parsing_env.parser_state.miss std_formatter ty_lis c_res ce.c_printer;
-  
-  (* Exiting with the error code (for auto-test) *)
-  Debug.exit_with_code (!Common_config.dot_test) se.comp
-    
+

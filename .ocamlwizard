@@ -2,9 +2,11 @@ utils
 parsing
 typing
 ocamlwizard/common
+ocamlwizard/main
 ocamlwizard/completion
 ocamlwizard/completion/syntactic
 ocamlwizard/completion/typing
 ocamlwizard/completion/extraction
 ocamlwizard/completion/filtering
 ocamlwizard/completion/printing
+ocamlwizard/refactor

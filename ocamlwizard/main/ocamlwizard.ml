@@ -81,6 +81,9 @@ let main () =
 	()
 
     | Completion ->
+(* need to correct all functions in .el first
+	catch_owz (function () ->
+*)
 	List.iter (fun s -> 
 	  Clflags.include_dirs := s :: !Clflags.include_dirs)
 	  (List.rev (i_dirs ()));
@@ -88,7 +91,9 @@ let main () =
 	let ci = mk_info rg in
 	let c_info = Completion.main ci in
 	c_info
-
+(*
+)
+*)
     | Refactor r ->
       (match r with
 	| Rename (loc, name', file) ->

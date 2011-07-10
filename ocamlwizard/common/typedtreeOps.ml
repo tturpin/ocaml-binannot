@@ -22,11 +22,6 @@ type 'a sfun =
   [ `structure of Typedtree.structure | `signature of Typedtree.signature]
     -> 'a
 
-type 'a funs = {
-  structure : structure -> 'a;
-  signature : signature -> 'a
-}
-
 module MakeIterator
   (Arg : IteratorArgument) = struct
 
@@ -35,11 +30,6 @@ module MakeIterator
     let process = function
       | `structure s -> iter_structure s
       | `signature s -> iter_signature s
-
-    let process' = {
-      structure = iter_structure;
-      signature = iter_signature
-    }
 
 end
 

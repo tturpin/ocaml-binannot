@@ -130,24 +130,33 @@
     (setq arrow (point)))
   (setq file (buffer-name))
   (setq buffer (get-buffer-create "*ocamlwizard*"))
+  (do-auto-save)
   (save-excursion
     (set-buffer buffer)
     (compilation-minor-mode 1)
-    (erase-buffer)
-    (insert "\n\n"))
-  (do-auto-save)
-  (goto-char start)
-  (delete-char (- end start))
+    (erase-buffer))
+  ; don't put this inside save-excursion, or pwd will be incorrect
   (setq exit-status 
 	(call-process 
-	 "ocamlwizard" nil (list t nil) nil
+	 "ocamlwizard" nil buffer nil
 	 "completion" "-printer" "ocaml-pp" "-pos"  (int-to-string (- arrow 1))
-	 "-expand" (concat (int-to-string (- start 1)) "-" (int-to-string (- end 1)))
+	 "-expand" (concat (int-to-string (- start 1)) "-"
+			   (int-to-string (- end 1)))
 	 file))
-  (if (not (eq exit-status 10))
-      (message "ocamlwizard: no completion"))
-  (search-backward "$")
-  (delete-char 1)
+  (save-excursion
+    (set-buffer buffer)
+    (setq output (buffer-string)))
+  (if (eq exit-status 0)
+      (progn
+	(goto-char start)
+	(delete-char (- end start))
+	(insert output)
+	(search-backward "$")
+	(delete-char 1)
+	(message "Expanded"))
+    (display-message-or-buffer buffer))
+;  (if (not (eq exit-status 10))
+;      (message "ocamlwizard: no completion"))
 )
 
 (defun ocamlwizard-rename (name)
@@ -168,7 +177,7 @@
     (compilation-minor-mode 1)
     (erase-buffer))
   (do-auto-save)
-  (setq exit-status 
+  (setq exit-status
 	(call-process 
 	 "ocamlwizard" nil buffer nil
 	 "completion" "refactor" "-rename"

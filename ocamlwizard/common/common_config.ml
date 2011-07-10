@@ -100,7 +100,7 @@ let project_file_name = ".ocamlwizard"
 let rec find_project_file d =
   let pf = Filename.concat d project_file_name in
   if Sys.file_exists pf then (
-    if !debug then Printf.eprintf "Found project file in directory %s" d;
+    if !debug then Printf.eprintf "Found project file in directory %s\n" d;
     d, pf
   ) else if d = "/" then
     raise Not_found
@@ -140,7 +140,8 @@ let search_dirs source =
     try
       let d, pf = find_project_file dir in
       if !find_project_dir then (
-	print_endline d ; exit 0
+	let d = if d = "" then "" else d ^ "/" in
+	  print_endline d ; exit 0
       );
       project_directories d pf @ dirs
     with
@@ -265,17 +266,6 @@ let anonymous = function
     begin
     match !command with  
     
-    | Refactor Rename ->
-      if Array.length Sys.argv -i <> 7 then 
-	raise (Arg.Bad "refactor: too few arguments");
-      let old_id = Sys.argv.(i + 3)
-      and new_id = Sys.argv.(i + 4)
-      and file = Sys.argv.(i + 5) in
-      compile_index := i + 5;
-      Rename.rename loc old_id new_id file
-(*
-    Arg.current := Array.length Sys.argv;
-*)
 
     | _ -> failwith "not yet"    
   (*
