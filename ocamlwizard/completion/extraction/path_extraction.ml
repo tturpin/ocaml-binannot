@@ -114,9 +114,6 @@ let build_arborescence filter_fun out_mod_ty =
 let module_tree = apply_filter select_none
   
 (**  *)
-let values_tree = apply_filter select_values
-  
-(**  *)
 let types_tree  = apply_filter select_types
   
 (*---------------------------------------------------------------------*)
@@ -136,7 +133,7 @@ let mk_modules  ce =
     in List.sort (fun a b -> compare a.m_name b.m_name) mods_inf in 
   modules_info (module_tree ce)
 
-let remove ~prefix s =
+let remove_prefix ~prefix s =
   let l = String.length prefix
   and l' = String.length s in
   if l' >= l && String.sub s 0 l = prefix then
@@ -144,24 +141,32 @@ let remove ~prefix s =
   else
     raise Not_found
 
-let value_type v = Printtyp.tree_of_typexp false v.Types.val_type
+let value_infos typ ~name ~miss d = {
+  vl_name     = name;
+  vl_miss     = miss;
+  vl_level    = 1;
+  vl_type     = Printtyp.tree_of_typexp false (typ d);
+  vl_affect   = Tnone;
+  vl_fpat     = true;
+  vl_ftype    = true;
+  vl_kind     = V_all
+}
 
-let complete_ident m x e =
+let module_infos ~name ~miss _ = {
+  m_name  = name ; 
+  m_miss  = miss ; 
+  m_level = 1
+}
+
+let complete_ident m ~remove ~add e fold infos =
   debugln "folding environment";
-  Env.fold_values
-    (fun n p v l ->
-      debug "  found %s" n;
-      (try let miss = remove ~prefix:x n in
+  fold
+    (fun name _p d l ->
+      let name = add ^ name in
+      debug "  found %s" name;
+      (try let miss = remove_prefix ~prefix:remove name in
 	   debugln " OK";
-	   { vl_name     = n;
-	     vl_miss     = miss;
-	     vl_level    = 1;
-	     vl_type     = value_type v;
-	     vl_affect   = Tnone;
-	     vl_fpat     = true;
-	     vl_ftype    = true;
-	     vl_kind     = V_all
-	   } :: l
+	   infos ~name ~miss d :: l
        with Not_found ->
 	 debugln " NOT OK";
 	 l))
@@ -169,23 +174,56 @@ let complete_ident m x e =
     e
     []
 
-let mk_values ce se (env, _) m i =
-  let m =
-    match m with
-      | [] -> None
-      | t :: q ->
-	let lid =
-	  List.fold_left
-	    (fun i n -> Longident.Ldot (i, n))
-	    (Longident.Lident t)
-	    q
-	in
-	debugln "prefix = %s" (lid_to_str lid);
-	let mo = Env.lookup_module lid env in
-	debugln " OK";
-	Some lid
-  in
-  complete_ident m i env
+(* Return the value idents and constructors which can complete a given prefix. *)
+let rec complete_rec complete m ~remove ~add e =
+  debugln "complete_ident remove:%s add:%s m:%s" remove add
+    (match m with Some m -> lid_to_str m | None -> "None");
+  Env.fold_modules
+    (fun n p v l ->
+      let m = match m with
+	| Some m -> Longident.Ldot (m, n)
+	| None -> Longident.Lident n
+      and add = add ^ n ^  "." in
+      let res = complete_rec complete (Some m) ~remove ~add e in
+      res @ l
+    )
+    m
+    e
+    (complete m ~remove ~add e)
+
+
+let complete_value =
+  complete_rec
+    (fun m ~remove ~add e ->
+      complete_ident m ~remove ~add e
+	Env.fold_values (value_infos (function d -> d.Types.val_type))
+      @ complete_ident m ~remove ~add e
+	Env.fold_constructors (value_infos (function d -> d.Types.cstr_res)))
+
+let complete_module =
+  complete_rec
+    (fun m ~remove ~add e ->
+      complete_ident m ~remove ~add e
+	Env.fold_modules module_infos)
+
+let enclosing_module = function
+  | [] -> None
+  | t :: q ->
+    let lid =
+      List.fold_left
+	(fun i n -> Longident.Ldot (i, n))
+	(Longident.Lident t)
+	q
+    in
+    Some lid
+
+let mk_values (env, _) m i =
+  complete_value (enclosing_module m) ~remove:i ~add:"" env
+
+(*
+let mk_modules (env, _) m i =
+  complete_module (enclosing_module m) ~remove:i ~add:"" env
+*)
 
 (** *)
 let mk_record_info lv acc (rc_name,lbls)=

@@ -63,9 +63,12 @@ val fold_constructors:
 val fold_labels:
   (string -> Path.t -> label_description -> 'a -> 'a) ->
   Longident.t option -> t -> 'a -> 'a
-(*
-val fold_modules: Path.t -> t -> module_type
-*)
+
+(* Persistent structures are only traversed if they are already loaded. *)
+val fold_modules:
+  (string -> Path.t -> module_type -> 'a -> 'a) ->
+  Longident.t option -> t -> 'a -> 'a
+
 val fold_modtypes:
   (string -> Path.t -> modtype_declaration -> 'a -> 'a) ->
   Longident.t option -> t -> 'a -> 'a

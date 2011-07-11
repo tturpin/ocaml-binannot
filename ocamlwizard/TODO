@@ -1,4 +1,3 @@
-- Git add renameLetModule/ModuleRec.ml
 - Rename: replace in multiple files
 - Grep: should be easy to implement using rename
 - Rename: return a list of files that emacs should revert
@@ -10,7 +9,6 @@
 - Rename: warn about potential future captures
 - Binannot: only record locs and envs if annot is set
 - Completion: Use a best qualification for labels
-- Errors: do not output anything, and stop everything in the emacs mode
 - Match_cases completion: indent the cases correctly
 - Match_cases completion: allow an optional |
 - Incremental parsing: recover from errors in the unmodified part

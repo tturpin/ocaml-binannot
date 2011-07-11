@@ -583,6 +583,34 @@ let find_all proj1 proj2 f lid env =
           raise Not_found
       end
 
+
+let fold_modules f lid env acc =
+  match lid with
+    | None ->
+      let acc =
+	ident_tbl_fold
+	  (fun id (p, data) -> f (Ident.name id) p data)
+	  env.modules
+	  acc
+      in
+      Hashtbl.fold
+	(fun name ps ->
+	  f name (Pident(Ident.create_persistent name)) (Mty_signature ps.ps_sig))
+	persistent_structures
+	acc
+    | Some l ->
+      let p, desc = lookup_module_descr l env in
+      begin match Lazy.force desc with
+          Structure_comps c ->
+            Tbl.fold
+	      (fun s (data, pos) -> f s (Pdot (p, s, pos)) (Lazy.force data))
+	      c.comp_modules
+	      acc
+	| Functor_comps _ ->
+          raise Not_found
+      end
+
+
 let fold_values f =
   find_all (fun env -> env.values) (fun sc -> sc.comp_values) f
 and fold_constructors f =

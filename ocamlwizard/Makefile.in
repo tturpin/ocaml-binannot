@@ -144,6 +144,7 @@ CMO_SYNTACTIC = \
 	$(PATH_COMMON)incLexer.cmo       	\
 	$(PATH_COMMON)incParser.cmo       	\
 	$(PATH_COMMON)typedtreeOps.cmo       	\
+	$(PATH_COMMON)locate.cmo       	\
 	$(PATH_SYNTACTIC)syntax_completion.cmo
 
 

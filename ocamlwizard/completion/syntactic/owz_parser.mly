@@ -27,6 +27,17 @@ open Parsetree
 open Interface
 open Parsing_env
 
+let longident loc lid = add_longident loc lid ; lid
+
+let lident i = longident (symbol_rloc ()) (Lident i)
+let ldot lid i =
+  remove_longident lid;
+  longident (symbol_rloc ()) (Ldot (lid, i))
+let lapply lid lid' =
+  remove_longident lid;
+  remove_longident lid';
+  longident (symbol_rloc ()) (Lapply (lid, lid'))
+
 (* _begin patch_0 
  *====================*)
 
@@ -75,8 +86,9 @@ let mkcf d =
  let reloc_pat x = { x with ppat_loc = symbol_rloc () };;
  let reloc_exp x = { x with pexp_loc = symbol_rloc () };;
 
- let mkoperator name pos =
-   { pexp_desc = Pexp_ident(Lident name); pexp_loc = rhs_loc pos }
+let mkoperator name pos =
+  { pexp_desc = Pexp_ident(longident (rhs_loc pos) (Lident name));
+    pexp_loc = rhs_loc pos }
 
  (*
    Ghost expressions and patterns:
@@ -1818,7 +1830,7 @@ class_sig_field:
        { ("?" ^ $1, $2) }
  ;
  label_ident:
-     LIDENT   { ($1, mkexp(Pexp_ident(Lident $1))) }
+     LIDENT   { ($1, mkexp(Pexp_ident(lident $1))) }
  ;
  let_bindings:
    let_binding                                 { [$1] }
@@ -2652,18 +2664,18 @@ constr_ident:
 /* _begin patch_39
 *====================*/
 val_longident:
-  | val_ident                                   { mkexp(Pexp_ident (Lident $1)) }
+  | val_ident                                   { mkexp(Pexp_ident (lident $1)) }
 
   | LIDENT EOF {
 	if rhs_end 1 >= parser_state.eof_pos then (
 	  update_value exp_af [] $1 (symbol_start()) (symbol_end()) V_all;
 	  exp_af
 	) else
-	  mkexp(Pexp_ident (Lident $1))
+	  mkexp(Pexp_ident (lident $1))
   }
     
     /*     idents whith use "_"
-  | UNDERSCORE EOF                              { mkexp(Pexp_ident (Lident "_")) }
+  | UNDERSCORE EOF                              { mkexp(Pexp_ident (lident "_")) }
     */
 
   | mod_longident DOT val_ident { (* EOF if end_of_file() = true *)
@@ -2705,10 +2717,10 @@ constr_longident:
 	  *)
       }
       
-  | LBRACKET RBRACKET                           { Lident "[]" }
-  | LPAREN RPAREN                               { Lident "()" }
-  | FALSE                                       { Lident "false" }
-  | TRUE                                        { Lident "true" }
+  | LBRACKET RBRACKET                           { lident "[]" }
+  | LPAREN RPAREN                               { lident "()" }
+  | FALSE                                       { lident "false" }
+  | TRUE                                        { lident "true" }
 ;
 /* _end patch_40
 *====================*/
@@ -2721,7 +2733,7 @@ label_longident:
   | LIDENT {
 	let id = $1 in
 	update_lbl_longid [] id (symbol_start()) (symbol_end());
-	Lident id
+	lident id
       }
   /* _correct_2 */
   | mod_longident DOT LIDENT { 
@@ -2739,7 +2751,7 @@ label_longident:
       }
 
     /* idents whith use "_"
-  | UNDERSCORE EOF                              { Lident "_" }
+  | UNDERSCORE EOF                              { lident "_" }
     */ 
 ;
 /* _end patch_42
@@ -2747,7 +2759,7 @@ label_longident:
 
 
 type_longident:
-    LIDENT                                      { Lident $1 }
+    LIDENT                                      { lident $1 }
   | mod_ext_longident DOT LIDENT                { Ldot($1, $3) }
 ;
 
@@ -2758,7 +2770,7 @@ mod_longident:
   | UIDENT {  (* EOF if enf_of_file () = true *)
 	let uid = $1 in
 	update_module [] uid (symbol_start()) (symbol_end());
-	Lident uid
+	lident uid
       }
       
   | mod_longident DOT UIDENT { (* EOF if enf_of_file () = true *)
@@ -2779,29 +2791,29 @@ mod_longident:
 
 
 mod_ext_longident:
-    UIDENT                                      { Lident $1 }
+    UIDENT                                      { lident $1 }
   | mod_ext_longident DOT UIDENT                { Ldot($1, $3) }
   | mod_ext_longident LPAREN mod_ext_longident RPAREN { lapply $1 $3 }
 ;
 
 mty_longident:
-    ident                                       { Lident $1 }
+    ident                                       { lident $1 }
   | mod_ext_longident DOT ident                 { Ldot($1, $3) }
 ;
 
 clty_longident:
-    LIDENT                                      { Lident $1 }
+    LIDENT                                      { lident $1 }
   | mod_ext_longident DOT LIDENT                { Ldot($1, $3) }
 ;
 
 /* _begin patch_38
 *====================*/
 class_longident:
-  | LIDENT                                      { Lident $1 }
+  | LIDENT                                      { lident $1 }
   
     /*idents whith use "_"*/
  /* 
-  | UNDERSCORE EOF                              { Lident "_" }
+  | UNDERSCORE EOF                              { lident "_" }
 */
   | mod_longident DOT LIDENT /*maybe EOF*/{
 	Ldot($1, $3) (*

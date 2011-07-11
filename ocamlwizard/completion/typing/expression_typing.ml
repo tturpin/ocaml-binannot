@@ -65,7 +65,7 @@ let locate_expression s loc =
 (* Maybe risky, because different sorts of nodes sometimes have the
    same location. *)
 let locate_expression s loc =
-  match TypedtreeOps.locate `innermost (Util.get_c_num loc) (`structure s) with
+  match Locate.locate `innermost (Util.get_c_num loc) (`structure s) with
     | `expression e -> e
     | _ -> raise Not_found
 

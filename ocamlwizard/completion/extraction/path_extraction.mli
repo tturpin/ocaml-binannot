@@ -18,12 +18,16 @@
 (** This module extracts the propositions from the cmi files for 
     path and record completion *)
 
-
 val mk_modules : Types.signature -> Interface.module_info list
+(*
+val mk_modules :
+  Env.t * Types.type_expr -> string list -> string ->
+  Interface.module_info list
+*)
 (** Extracts and makes a list of modules which can complete the module 
     path *)  
   
-val mk_values : Types.signature -> Interface.syntax_env ->
+val mk_values :
   Env.t * Types.type_expr -> string list -> string ->
   Interface.value_info list
 (** Extracts and makes a list of modules which can complete 

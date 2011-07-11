@@ -30,17 +30,22 @@ open Path
 
 (** *)
 let complete_path sg ce se pi ty_check = 
+  let pat = List.fold_right (fun m id -> m ^ "." ^ id) pi.p_md pi.p_id in
   match pi.p_kd with
-    | Module        -> C_module ( mk_modules sg ,pi.p_id )
-    | Value vk    ->
-      let pat = List.fold_right (fun m id -> m ^ "." ^ id) pi.p_md pi.p_id in
+    | Module ->
+      C_module (
+(*
+	mk_modules ty_check pi.p_md pi.p_id,
+*)
+	mk_modules sg,
+	pi.p_id )
+    | Value vk ->
       C_value (
-	mk_values sg se ty_check pi.p_md pi.p_id,
+	mk_values ty_check pi.p_md pi.p_id,
 	vk,
 	pat
       )
     | Record kd  -> C_record ( mk_records ce se pi ty_check kd, kd,pi.p_id)
-    | _                   -> unreachable "Proposal_extraction" 2
 
 
 (** *)

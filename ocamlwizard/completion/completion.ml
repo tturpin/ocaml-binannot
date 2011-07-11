@@ -36,6 +36,7 @@ let compile_file ast c_env =
   Config.load_path := "" :: List.rev_append exp_dirs (Clflags.std_include_dir ());
   Clflags.compile_only := true;
   let env = initial_env () in
+  Env.record_path_environments ();
   (* This is probably not needed *)
   Typecore.reset_delayed_checks ();
   let str, sg, _ =
@@ -61,7 +62,7 @@ let compile_file ast c_env =
       Format.pp_print_flush err_formatter ();
       failwith "Error while typing"
   in
-  str, sg, c_env
+  str, sg, c_env, Env.flush_paths ()
 
 (** *)
 let step msg = 
@@ -79,9 +80,10 @@ let main ce =
 
   (* Typing the completed file *)
   step "Typing the the completed parsetree";
-  let structure, sg, ce = compile_file se.ast ce in
+  let structure, sg, ce, lidents = compile_file se.ast ce in
   Util.debugln "OK";
-  
+
+  (* Get the type of the thing to complete *)
   let pattern_env, pattern_type =
     match se.comp with
       | Match (AllCs | MissCs _) -> (* We should rather look at the pattern. *)
@@ -97,16 +99,10 @@ let main ce =
 	let place =
 	  Expression_typing.locate_expansion_place structure
 	    ! Common_config.expand_loc
-(*
- p.Parsetree.ppat_loc
-*)
 	in
-	let env, desc =
-	  Expression_typing.expansion_type place in
+	let env, desc = Expression_typing.expansion_type place in
 	env,
-	{Types.desc = desc;
-	 level = 0; (* Meaningless ! *)
-	 id = 0}
+	{Types.desc = desc; level = 0; (* Meaningless ! *) id = 0}
       | Try _ -> assert false
       | Path {p_kd = Record (Faccess e)} ->
 	let match_exp =

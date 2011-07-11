@@ -219,7 +219,7 @@ let find_id_defs ids name s =
   List.fold_right
     (fun id acc ->
       try
-	let loc = find_id_def s id in
+	let loc = Locate.ident_def s id in
 	(loc.loc_start.pos_cnum, loc.loc_end.pos_cnum, name) :: acc
       with
 	  Not_found -> acc)
@@ -298,7 +298,7 @@ let rename loc name' file =
 
   (* Get the "initial" id to rename and its sort *)
   let renamed_kind, id =
-    try locate_renamed_id idents loc s
+    try Locate.longident idents loc s
     with Not_found -> fail_owz "Cannot rename anything here"
   in
   let name = Ident.name id in
@@ -320,7 +320,7 @@ let rename loc name' file =
       (List.length def_replaces) (List.length occ_replaces)
   with
       Masked_by (renamed, id) ->
-	let loc = find_id_def idents id in
+	let loc = Locate.ident_def idents id in
 	  Location.print Format.std_formatter loc;
 	  if renamed then
 	    fail_owz
