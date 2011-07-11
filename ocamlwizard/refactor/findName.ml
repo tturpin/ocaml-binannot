@@ -245,34 +245,60 @@ let locate_field loc pid ploc fs tfs =
   in
   pid f
 
-(* Should be almost complete for expressions, but this is not a safety
-   requirement anyway. *)
-let locate_renamed_id s loc =
+let locate_id loc pid ploc decls =
+  pid
+    (List.find
+       (function d -> contains (ploc d) loc)
+       decls)
+
+let find_id_def table id =
+  StringTbl.find table (Ident.name id)
+
+(* Missing: Tstr_class_type, class_infos, Tmeth_val, cstr_meths,
+   Tcf_inher, Tcf_val, Tcf_let *)
+let locate_renamed_id table loc =
   let open Env in
       locate_map `innermost
 	(function n ->
 	  try Some (match n with
+
+	    (* Values *)
 	    | `pattern {pat_desc = Tpat_var id}
+	    | `pattern {pat_desc = Tpat_alias (_, TPat_alias id)}
 	    | `expression {exp_desc = Texp_for (id, _, _, _, _)}
-	    | `signature_item {sig_desc = Tsig_value (id, _)}
-	      -> Value, id
+	    | `structure_item {str_desc = Tstr_primitive (id, _)}
+	    | `signature_item {sig_desc = Tsig_value (id, _)} -> Value, id
+
+	    | `class_expr {cl_desc =
+		Tcl_fun (_, _, bs, _, _) | Tcl_let (_, _, bs, _)} ->
+	      Value, locate_id loc fst (function id, _ -> find_id_def table id) bs
+
+	    (* Modules *)
 	    | `structure_item {str_desc = Tstr_module (id, _)}
 	    | `signature_item {sig_desc = Tsig_module (id, _)}
 	    | `module_expr {mod_desc = Tmod_functor (id, _, _)}
 	    | `module_type {mty_desc = Tmty_functor (id, _, _)}
-	      -> Module, id
+	    | `expression {exp_desc = Texp_letmodule (id, _, _)} -> Module, id
+
+	    | `structure_item {str_desc = Tstr_recmodule mods} ->
+	      Module,
+	      locate_id loc (function id, _, _ -> id)
+		(function id, _, _ -> find_id_def table id) mods
+
+	    | `signature_item {sig_desc = Tsig_recmodule mods} ->
+	      Module,
+	      locate_id loc fst (function id, _ -> find_id_def table id) mods
+
+	    (* Module types *)
 	    | `structure_item {str_desc = Tstr_modtype (id, _)}
-	    | `signature_item {sig_desc = Tsig_modtype (id, _)}
-	      -> Modtype, id
+	    | `signature_item {sig_desc = Tsig_modtype (id, _)} -> Modtype, id
+
+	    (* Types *)
 	    | `structure_item {str_desc = Tstr_type types}
-	    | `signature_item {sig_desc = Tsig_type types}
-	      ->
-		let id, _ =
-		  List.find
-		    (function id, d -> contains d.typ_loc loc)
-		    types
-		in
-		  Type, id
+	    | `signature_item {sig_desc = Tsig_type types} ->
+	      Type, locate_id loc fst (function _, d -> d.typ_loc) types
+
+	    (* Constructors, fields, and exceptions *)
 	    | `type_declaration d ->
 	      (match d.typ_type.type_kind, d.typ_kind with
 		| Type_variant cs, Ttype_variant tcs ->
@@ -285,12 +311,11 @@ let locate_renamed_id s loc =
 		    fs tfs
 		| Type_abstract, Ttype_abstract -> raise Not_found
 		| _ -> assert false)
+
 	    | `structure_item {str_desc = Tstr_exception (id, _)}
-	    | `signature_item {sig_desc = Tsig_exception (id, _)} ->
-		Constructor, id
+	    | `structure_item {str_desc = Tstr_exn_rebind (id, _)}
+	    | `signature_item {sig_desc = Tsig_exception (id, _)} -> Constructor, id
+
 	    | _ -> raise Not_found)
 	  with Not_found -> None)
-	loc s
-
-let find_id_def table id =
-  StringTbl.find table (Ident.name id)
+	loc

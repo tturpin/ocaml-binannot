@@ -48,7 +48,8 @@ containing <file.ml>, or its parent directories, back to the root.
 This file must contain exactly one directory name per line, and
 compiled interface will be searched in this directories. Relative
 directory names are interpreted with respect to the directory
-containing the project file .ocamlwizard.
+containing the project file .ocamlwizard. See ../.ocamlwizard for an
+example.
 
 
 
@@ -109,20 +110,38 @@ the test cases for a detailed overview of the current behavior.
 Refactoring:
 ............
 
-- Renaming (C-c C-o r): rename a value identifier through a single .ml
-  file (other sorts of idents are not yet implemented). The cursor
-  must be placed on the *definition* of the value (typically, a let
-  binding or a pattern). Renaming takes care of necessary propagation
-  (e.g., when distinct values with the same name need to be renamed
-  consistently because this name appears in a common interface), and
-  capture is detected. Backups are made in case anything goes wrong.
+- Renaming (C-c C-o r): rename an identifier through a single .ml or
+  .mli file. The cursor must be placed on the *definition* of the
+  value (for example, a let binding or a pattern). Renaming takes care
+  of necessary propagation (e.g., when distinct values with the same
+  name need to be renamed consistently because this name appears in a
+  common interface), and capture is detected. Undoing works in emacs.
+  Backups are made in case anything goes wrong.
 
+  Renaming is implemented for: values, types, modules (non-recursive),
+  module types, fields, constructors, and exceptions. Objects are not
+  supported. Type variables, argument labels, and polymorphic variants
+  are not supported either.
+
+  The replacement is intended to be complete in the current file, up
+  to the following known limitations:
+  - labels, e.g. let x = .. in f ~x
+  - fields, e.g. let x = .. in {x}	or match .. with {x} -> ..
+  - or-patterns, e.g. match .. with [], x | x, [] -> ..
 
 
 - Command line interface
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Needs to be redefined.
+The following conventions are common to all queries:
+- stdin is ignored,
+- stderr is used for debug purpose and should be discarded by editors.
+- possible exit codes are:
+  - 0: normal completion, with result is written on stdout
+  - 1: "controlled" failure, with an explanation message on stdout
+  - 2: unexpected error, with an exception backtrace printed on stdout.
+
+Command line arguments needs to be redesigned.
 
 
 - Internal working overview

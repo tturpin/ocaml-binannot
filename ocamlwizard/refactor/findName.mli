@@ -32,8 +32,8 @@ val get_lids :
   (Location.t * Longident.t * (Env.t * Env.path_sort)) list
 
 val locate_renamed_id :
+  Location.string_table -> int * int ->
   [ `signature of Typedtree.signature | `structure of Typedtree.structure ] ->
-  int * int ->
   Env.path_sort * Ident.t
 
 val find_id_def :

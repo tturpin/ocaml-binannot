@@ -297,7 +297,10 @@ let rename loc name' file =
   let s, idents, lidents, paths = read_typedtree source_kind typedtree_file in
 
   (* Get the "initial" id to rename and its sort *)
-  let renamed_kind, id = locate_renamed_id s loc in
+  let renamed_kind, id =
+    try locate_renamed_id idents loc s
+    with Not_found -> fail_owz "Cannot rename anything here"
+  in
   let name = Ident.name id in
 
   let name' = fix_case renamed_kind name' in
