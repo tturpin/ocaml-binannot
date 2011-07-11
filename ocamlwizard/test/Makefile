@@ -12,8 +12,7 @@ R_CASES=renameSimple.ml renameSigNewCaptured.ml renameSigOldCaptured.ml \
 	renameModtype.ml renameModtypeInSig.ml \
 	renameModule.ml renameModuleInSig.ml renameModuleInFunctor.ml \
 	renameModuleInFunctorType.ml \
-	renameConstructor.ml renameField.ml
-# renameException.ml
+	renameConstructor.ml renameException.ml renameField.ml
 R_TESTS=$(subst .ml,_rres.ml, $(R_CASES))
 
 RES=match_cases_res.ml expansion_res.ml path_res.ml errors_res.ml \

@@ -1,4 +1,4 @@
-- Git add renameException.ml
+- Git add renameLetModule/ModuleRec.ml
 - Rename: replace in multiple files
 - Grep: should be easy to implement using rename
 - Rename: return a list of files that emacs should revert
