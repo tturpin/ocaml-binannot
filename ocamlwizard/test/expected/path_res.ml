@@ -109,7 +109,13 @@ EOF
 
 let () = so $ (* this does not work, purposely *)
 =>
-let () = so EOF
+let () = so Error: Error while typing
+Raised at file "pervasives.ml", line 22, characters 22-33
+Called from file "completion/completion.ml", line 62, characters 6-35
+Called from file "completion/completion.ml", line 100, characters 26-48
+Called from file "main/ocamlwizard.ml", line 90, characters 14-32
+Called from file "main/ocamlwizard.ml", line 61, characters 6-10
+EOF
 
 let () = comp$
 =>
@@ -137,13 +143,22 @@ EOF
 
 let _ = {a = () $
 =>
-let _ = {a = () EOF
+let _ = {a = () Error: File "completion/completion.ml", line 149, characters 17-23: Assertion failed
+Called from file "main/ocamlwizard.ml", line 90, characters 14-32
+Called from file "main/ocamlwizard.ml", line 61, characters 6-10
+EOF
 
 let _ = {a = () ; M$
 =>
-let _ = {a = () ; MEOF
+let _ = {a = () ; MError: File "completion/completion.ml", line 150, characters 19-25: Assertion failed
+Called from file "main/ocamlwizard.ml", line 90, characters 14-32
+Called from file "main/ocamlwizard.ml", line 61, characters 6-10
+EOF
 
 let _ = {r $
 =>
-let _ = {r EOF
+let _ = {r Error: File "completion/completion.ml", line 149, characters 17-23: Assertion failed
+Called from file "main/ocamlwizard.ml", line 90, characters 14-32
+Called from file "main/ocamlwizard.ml", line 61, characters 6-10
+EOF
 

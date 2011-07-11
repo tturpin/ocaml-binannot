@@ -67,24 +67,6 @@ let compile_file ast c_env =
 let step msg = 
   Util.debugln "\n <+> Step : %s \n-----------------" msg
 
-(*
-let out_types_from ty_lis = 
-  if !Common_config.debug then (
-      Format.eprintf "> Types: [";
-      match ty_lis with
-	| []   -> 
-	    Format.eprintf "empty]@."; 
-	| [a]  ->        
-	    !Oprint.out_type Format.err_formatter a;
-	    Format.eprintf "]@."
-	| [a;b]->      
-	    !Oprint.out_type Format.err_formatter a;
-	    Format.eprintf "]@."
-	| _   -> 
-	    Debug.unreachable "Comletion" 7
-    )
-*)
-
 (** *)
 let main ce = 
   (* 1 - parsing the file *)
@@ -99,10 +81,6 @@ let main ce =
   step "Typing the the completed parsetree";
   let structure, sg, ce = compile_file se.ast ce in
   Util.debugln "OK";
-  
-  (* Exiting with the error code (for auto-test) *)
-  if !Common_config.compile_only then
-    Debug.exit_with_code (!Common_config.dot_test) se.comp;
   
   let pattern_env, pattern_type =
     match se.comp with

@@ -44,6 +44,10 @@
 (defun ocamlwizard-match-with-completion ()
   "complete an Ocaml match construct using Ocamlwizard"
   (interactive)
+  (setq buffer (get-buffer-create "*ocamlwizard*"))
+  (save-excursion
+    (set-buffer buffer)
+    (erase-buffer))
 ;  (save-excursion
     (setq end (point))
     (re-search-backward "[^ \t\n]")
@@ -53,12 +57,18 @@
 ;)
   (do-auto-save)
   (setq exit-status 
-	(call-process "ocamlwizard" nil (list t nil) nil "completion" "-printer" "ocaml-pp" "-pos"  
-		      (int-to-string (- (point) 1)) (buffer-name)))
-  (if (not (eq exit-status 10))
-      (message "ocamlwizard: no completion"))
-  (search-backward "$")
-  (delete-char 1)
+	(call-process "ocamlwizard" nil (list buffer nil) nil
+		      "completion" "-printer" "ocaml-pp"
+		      "-pos" (int-to-string (- (point) 1)) (buffer-name)))
+  (save-excursion
+    (set-buffer buffer)
+    (setq output (buffer-string)))
+  (if (eq exit-status 0)
+      (progn
+	(insert output)
+	(search-backward "$")
+	(delete-char 1))
+    (display-message-or-buffer buffer))
 )
 
 
@@ -71,48 +81,20 @@
     (erase-buffer))
   (do-auto-save)
   (setq exit-status 
-	(call-process "ocamlwizard" nil buffer nil "completion" "-printer" "ocaml-pp" "-pos"  
-		      (int-to-string (- (point) 1)) (buffer-name)))
-  (message (concat "ocamlwizard: exit-status=" (int-to-string exit-status)))
-  (save-excursion
-    (set-buffer buffer)
-    (let* ((text (buffer-string))
-	  (list (split-string text "[\n]+")))
-      ;(message (int-to-string (length list)))
-      (setq alist (mapcar (function (lambda (x) (list x x))) list))
-      ;(message (int-to-string (length alist)))
-      ))
-  (setq choice 
-	(completing-read "possible completion: " alist nil t))
-;  (backward-kill-word 1)
-  (insert choice)
-)
-
-
-(defun ocamlwizard-expand-patvar ()
-  "expands a pattern-matching variable using Ocamlwizard"
-  (interactive)
-  (save-excursion
-    (search-backward-regexp "[^a-zA-Z._0-9]")
-    (forward-char 1)
-    (setq start (point))
-    (search-forward-regexp "[^a-zA-Z._0-9]")
-    (setq end (- (point) 1))
-    (setq word (buffer-substring start end))
-    (search-forward "->")
-    (setq arrow (point)))
-  (setq file (buffer-name))
-  (setq buffer (get-buffer-create "*ocamlwizard*"))
-  (save-excursion
-    (set-buffer buffer)
-    (compilation-minor-mode 1)
-    (erase-buffer)
-    (insert "\n\n"))
-  (call-process 
-   "ocamlwizard" nil buffer nil
-   "completion" "-printer" "ocaml-pp" "-pos"  (int-to-string (- arrow 1))
-   "-expand" (concat (int-to-string (- start 1)) "-" (int-to-string (- end 1)))
-   file)
+	(call-process "ocamlwizard" nil buffer nil "completion" "-printer" "ocaml-pp"
+		      "-pos" (int-to-string (- (point) 1)) (buffer-name)))
+  (if (eq exit-status 0)
+      (progn
+	(save-excursion
+	  (set-buffer buffer)
+	  (let* ((text (buffer-string))
+		 (list (split-string text "[\n]+")))
+	    (setq alist (mapcar (function (lambda (x) (list x x))) list))
+	    ))
+	(setq choice 
+	      (completing-read "possible completion: " alist nil t))
+	(insert choice))
+    (display-message-or-buffer buffer))
 )
 
 
@@ -155,21 +137,13 @@
 	(delete-char 1)
 	(message "Expanded"))
     (display-message-or-buffer buffer))
-;  (if (not (eq exit-status 10))
-;      (message "ocamlwizard: no completion"))
 )
+
 
 (defun ocamlwizard-rename (name)
   "rename a value using Ocamlwizard"
   (interactive "sRename with: ")
   (setq pos (point))
-;  (save-excursion
-;    (search-backward-regexp "[^a-zA-Z._0-9]")
-;    (forward-char 1)
-;    (setq start (point))
-;    (search-forward-regexp "[^a-zA-Z._0-9]")
-;    (setq end (- (point) 1))
-;    (setq word (buffer-substring start end)))
   (setq file (buffer-name))
   (setq buffer (get-buffer-create "*ocamlwizard*"))
   (save-excursion
@@ -193,6 +167,7 @@
 	  (clear-visited-file-modtime)
 	  (widen)
 	  (delete-region (point-min) (point-max))
+;	  (erase-buffer)
 	  (insert-file-contents (buffer-file-name)))
 ;	(set-window-vscroll nil scroll)
        ; Problem: if we undo and then redo, emacs forgets the goto.

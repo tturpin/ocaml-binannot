@@ -12,5 +12,8 @@ let r = {a = () ; b = ()}
 
 let () = match [] with$
 =>
-let () = match [] withEOF
+let () = match [] withError: File "completion/completion.ml", line 150, characters 19-25: Assertion failed
+Called from file "main/ocamlwizard.ml", line 90, characters 14-32
+Called from file "main/ocamlwizard.ml", line 61, characters 6-10
+EOF
 
