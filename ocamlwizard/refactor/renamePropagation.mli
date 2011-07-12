@@ -37,7 +37,8 @@ val collect_signature_inclusions :
     elements to those idents. *)
 val propagate_renamings :
   Env.path_sort -> Ident.t -> ConstraintSet.t -> IncludeSet.t ->
-  Ident.t list
+  Location.string_table ->
+  Ident.t list * Location.t list
   * ([ `certain | `maybe ] * Types.signature * Ident.t) list
     (* means id is bound to sg.(name id), unless we were wrong about the sort. *)
 

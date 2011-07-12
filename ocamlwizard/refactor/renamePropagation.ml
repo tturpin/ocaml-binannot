@@ -83,7 +83,9 @@ and constraint_signature incs env sg sg' =
       | _ -> ())
     sg'
 
-(* Collect the set of signature inclusion constraints implied by a structure. *)
+(* Collect the set of signature inclusion constraints implied by a structure.
+
+   signature constraints are missing ! *)
 let collect_signature_inclusions s =
   let incs = ref ConstraintSet.empty
   and includes = ref IncludeSet.empty in
@@ -167,7 +169,7 @@ let add_relation eq x y =
 (* Return the set of ids that would need to be renamed simultaneously
    with id, and the list of "implicit" references which cause this
    need (so that we can check them for masking). *)
-let propagate_renamings kind id incs includes =
+let propagate_renamings kind id incs includes idents =
   let name = Ident.name id in
   let eq = Hashtbl.create 10 in
     Hashtbl.add eq id (ref [id]);
@@ -202,13 +204,22 @@ let propagate_renamings kind id incs includes =
 		 ambiguous := (find_in_signature kind name sg) :: !ambiguous)
       includes;
       let ids = !(Hashtbl.find eq id) in
+      let locs = List.map
+	(function id ->
+	  try
+	    Locate.ident_def idents id
+	  with Not_found ->
+	    fail_owz "Cannot perform renaming because a member of a persistent \
+                      structure would be impacted")
+	ids
+      in
 	List.iter
 	  (function id ->
-	       if is_one_of id ids then
-		 failwith
-		   "Cannot perform renaming because of an ambiguous include")
+	    if is_one_of id ids then
+	      failwith
+		"Cannot perform renaming because of an ambiguous include")
 	  !ambiguous;
-	ids, !implicit_refs
+      ids, locs, !implicit_refs
 
 (* Check that the implicit ident references which are concerned by
    renaming will not be masked (i.e., that the bound signature items

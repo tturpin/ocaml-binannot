@@ -36,12 +36,22 @@ type renaming_context =
   | Local of Ident.t (* A "local" ident *)
 *)
 
-type toplevel_item =
-  | Ml of structure
-  | Mli of signature
+(* A filename (without extension), and its source file sort. *)
+type toplevel_item = string * [ `ml | `mli ]
 
 (* Identifiers for a set of compilation units. *)
-type absolute_id = toplevel_item * Ident.t (* non-persistent Id *)
+type absolute_id =
+  | Persistent of Ident.t
+  | NonPersistent of toplevel_item * Ident.t (* non-persistent Id *)
+
+(*
+let absolute path item id =
+  if Ident.persistent id then
+    
+  else
+    NonPersistent (item, id)
+*)
+
 type absolute_path = toplevel_item * Path.t (* maybe persistent root Id *)
 
 (*
@@ -213,21 +223,27 @@ let read_typedtree _ file =
 
 let sort_replaces =
   List.sort
+    (* This comparison is total because def locations are either
+       disjoint or identical *)
     (fun (x, _, _) (y, _, _) -> compare  x y)
 
-let find_id_defs ids name s =
-  List.fold_right
-    (fun id acc ->
-      try
-	let loc = Locate.ident_def s id in
-	(loc.loc_start.pos_cnum, loc.loc_end.pos_cnum, name) :: acc
-      with
-	  Not_found -> acc)
-    ids
-    []
-(*
- [fst loc, snd loc, name']
-*)
+let rec remove_duplicates = function
+  | x :: (y :: _ as l) ->
+    if x = y then
+      remove_duplicates l
+    else
+      x :: remove_duplicates l
+  | l -> l
+
+let find_id_defs ids locs name s =
+  let defs =
+    List.map2
+      (fun id loc ->
+	loc.loc_start.pos_cnum, loc.loc_end.pos_cnum, name)
+      ids
+      locs
+  in
+  remove_duplicates (sort_replaces defs)
 
 let fix_case kind =
   match kind with
@@ -236,10 +252,10 @@ let fix_case kind =
 
 let backup file =
   let backup = file ^ ".backup_" ^ string_of_int (int_of_float (Unix.time ())) in
-    if Sys.file_exists backup then
-      failwith "bad luck"
-    else
-      Edit.cp file backup
+  if Sys.file_exists backup then
+    failwith "bad luck"
+  else
+    Edit.cp file backup
 
 (* Rename an ident in a structure file, with given ast. *)
 let rename_in_file
@@ -249,11 +265,11 @@ let rename_in_file
   let constraints, includes = collect_signature_inclusions typedtree in
 
   (* Deduce the minimal set of ids to rename *)
-  let ids, implicit_refs =
-    propagate_renamings renamed_kind id constraints includes in
+  let ids, locs, implicit_refs =
+    propagate_renamings renamed_kind id constraints includes idents in
 
   (* Compute the replacements for the *definitions* of the rename ids *)
-  let def_replaces = find_id_defs ids name' idents in
+  let def_replaces = find_id_defs ids locs name' idents in
 
   (* Check that our new name will not capture useful signature members *)
   check_other_implicit_references renamed_kind ids name' constraints includes;

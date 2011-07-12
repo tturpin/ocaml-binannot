@@ -18,9 +18,9 @@
 open Typedtree
 open Util
 
-type 'a sfun =
-  [ `structure of Typedtree.structure | `signature of Typedtree.signature]
-    -> 'a
+type typedtree = [ `structure of structure | `signature of signature]
+
+type 'a sfun = typedtree -> 'a
 
 module MakeIterator
   (Arg : IteratorArgument) = struct

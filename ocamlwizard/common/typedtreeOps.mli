@@ -21,9 +21,9 @@ open Typedtree
 
 (** The type of functions that can apply either to a structure or a
     signature. *)
-type 'a sfun =
-  [ `structure of Typedtree.structure | `signature of Typedtree.signature]
-    -> 'a
+type typedtree = [ `structure of structure | `signature of signature]
+
+type 'a sfun = typedtree -> 'a
 
 (** The common type for all typedtree nodes. *)
 type node = [
