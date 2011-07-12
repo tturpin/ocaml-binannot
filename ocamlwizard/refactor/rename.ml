@@ -200,7 +200,7 @@ let typedtree_file source_kind f =
       | `ml -> ".cmt"
       | `mli -> ".cmti"
 
-let read_typedtree _ file =
+let read_typedtree sort file =
   let c = open_in file in
   let data = input_value c in
     close_in c;
@@ -215,11 +215,39 @@ let read_typedtree _ file =
 	  | Saved_ident_locations (Some loc),
 	    Saved_longident_locations (Some lloc),
 	    Saved_path_environments (Some env) ->
-	      tree, loc, lloc, env
+	    (sort tree), loc, lloc, env
 	  | _ -> raise Not_found
       with
 	  _ -> fail_owz
 	    "ident location or path environment table not found in cmt(i)"
+
+let read_cmi file =
+  (* Copied from env.ml *)
+  let ic = open_in_bin file in
+  let buffer = String.create (String.length Config.cmi_magic_number) in
+  really_input ic buffer 0 (String.length Config.cmi_magic_number);
+  if buffer <> Config.cmi_magic_number then begin
+    close_in ic;
+    fail_owz "error reading cmi file"
+  end;
+  let (_name, (sign : signature)) = input_value ic in
+  let _crcs = input_value ic in
+  let _flags = input_value ic in
+  close_in ic;
+  sign
+
+(* Read the cmt (if any), cmti (if any), and cmi. *)
+let read_all_files f =
+  let f = Filename.chop_extension f in
+  let cmt = f ^ ".cmt"
+  and cmti = f ^ ".cmti"
+  and cmi = f ^ ".cmi" in
+  (* we should check ml and mli first. *)
+  let parse sort f =
+    if Sys.file_exists f then Some (read_typedtree sort f) else None in
+  parse (function `structure s -> s | _ -> assert false) cmt,
+  parse (function `signature s -> s | _ -> assert false) cmti,
+  read_cmi cmi
 
 let sort_replaces =
   List.sort
@@ -310,7 +338,7 @@ let rename loc name' file =
     fail_owz "cmt(i) file is older than source file";
 
   (* Read the typedtree *)
-  let s, idents, lidents, paths = read_typedtree source_kind typedtree_file in
+  let s, idents, lidents, paths = read_typedtree (function s -> s) typedtree_file in
 
   (* Get the "initial" id to rename and its sort *)
   let renamed_kind, id =
