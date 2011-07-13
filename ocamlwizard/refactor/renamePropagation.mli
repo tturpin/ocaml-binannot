@@ -35,12 +35,24 @@ val collect_signature_inclusions :
 (** Return the minimal set of idents which may be renamed and contains
     a given id, as well as the "implicit" bindings of signature
     elements to those idents. *)
-val propagate_renamings :
+(*
+  val propagate_renamings :
   Env.path_sort -> Ident.t -> ConstraintSet.t -> IncludeSet.t ->
   Location.string_table ->
   Ident.t list * Location.t list
   * ([ `certain | `maybe ] * Types.signature * Ident.t) list
-    (* means id is bound to sg.(name id), unless we were wrong about the sort. *)
+(* means id is bound to sg.(name id), unless we were wrong about the sort. *)
+*)
+val propagate_all_files :
+  Env.t ->
+  Location.t ->
+  Env.path_sort ->
+  Ident.t ->
+  ((TypedtreeOps.typedtree * Location.string_table * Longident.lid2loc
+    * Env.lid2env)
+   * Typedtree.signature) list ->
+  (([> `cmi | `none | `source of Location.t ] as 'a) * Ident.t) list *
+    ([> `certain | `maybe ] * Types.signature * ('a * Ident.t)) list
 
 val check_renamed_implicit_references :
   Env.path_sort -> Ident.t list -> string ->

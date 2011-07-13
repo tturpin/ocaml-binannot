@@ -243,11 +243,16 @@ let read_all_files f =
   and cmti = f ^ ".cmti"
   and cmi = f ^ ".cmi" in
   (* we should check ml and mli first. *)
-  let parse sort f =
-    if Sys.file_exists f then Some (read_typedtree sort f) else None in
-  parse (function `structure s -> s | _ -> assert false) cmt,
-  parse (function `signature s -> s | _ -> assert false) cmti,
-  read_cmi cmi
+  let cmi = read_cmi cmi in
+  let sort x = x in
+  let parse f l =
+    if Sys.file_exists f then
+      let ast = read_typedtree sort f in
+      (ast, cmi) :: l
+    else
+      l
+  in
+  parse cmt (parse cmti [])
 
 let sort_replaces =
   List.sort
@@ -263,15 +268,36 @@ let rec remove_duplicates = function
       x :: remove_duplicates l
   | l -> l
 
-let find_id_defs ids locs name s =
-  let defs =
-    List.map2
-      (fun id loc ->
-	loc.loc_start.pos_cnum, loc.loc_end.pos_cnum, name)
-      ids
-      locs
-  in
-  remove_duplicates (sort_replaces defs)
+let hashtbl_keys t =
+  Hashtbl.fold
+    (fun k _ l ->
+      match l with
+	| k' :: _ as l when k = k' -> l
+	| l -> k :: l)
+    t
+    []
+
+let sort_replaces replaces =
+  let t = Hashtbl.create 2 in
+  List.iter
+    (function loc, rep ->
+      Hashtbl.add t loc.loc_start.pos_fname
+	(loc.loc_start.pos_cnum, loc.loc_end.pos_cnum, rep))
+    replaces;
+  List.map
+    (function f ->
+      f, remove_duplicates (sort_replaces (Hashtbl.find_all t f)))
+    (hashtbl_keys t)
+
+let find_id_defs ids name =
+  List.fold_right
+    (fun (loc, _) l ->
+      match loc with
+	| `cmi -> l
+	| `source loc -> (loc, name) :: l
+	| `none -> invalid_arg "find_id_defs")
+    ids
+    []
 
 let fix_case kind =
   match kind with
@@ -285,20 +311,18 @@ let backup file =
   else
     Edit.cp file backup
 
-(* Rename an ident in a structure file, with given ast. *)
-let rename_in_file
-    env renamed_kind id name' file (typedtree, idents, lid2loc, paths) =
+(* Rename an ident in a list of source files. *)
+let rename_in_files
+    env renamed_kind id loc name' files =
 
-  (* Collect constraints requiring simultaneous renaming *)
-  let constraints, includes = collect_signature_inclusions typedtree in
-
-  (* Deduce the minimal set of ids to rename *)
-  let ids, locs, implicit_refs =
-    propagate_renamings renamed_kind id constraints includes idents in
+  (* Collect constraints requiring simultaneous renaming and deduce
+     the minimal set of ids to rename *)
+  let ids, implicit_refs = propagate_all_files env loc renamed_kind id files in
 
   (* Compute the replacements for the *definitions* of the rename ids *)
-  let def_replaces = find_id_defs ids locs name' idents in
+  let def_replaces = find_id_defs ids name' in
 
+(*
   (* Check that our new name will not capture useful signature members *)
   check_other_implicit_references renamed_kind ids name' constraints includes;
 
@@ -313,8 +337,8 @@ let rename_in_file
 
   (* Compute renamed lids, checking that they are not captured *)
   let occ_replaces = rename_lids renamed_kind ids name' lids in
-
-  def_replaces, occ_replaces 
+*)
+  def_replaces(*, occ_replaces *)
 
 (* Renaming entry point: user interface... *)
 let rename loc name' file =
@@ -340,38 +364,40 @@ let rename loc name' file =
   (* Read the typedtree *)
   let s, idents, lidents, paths = read_typedtree (function s -> s) typedtree_file in
 
-  (* Get the "initial" id to rename and its sort *)
+  (* Get the "initial" id to rename and its sort and location *)
   let renamed_kind, id =
     try Locate.longident idents loc s
     with Not_found -> fail_owz "Cannot rename anything here"
   in
+  let loc = Locate.ident_def idents id in
+
   let name = Ident.name id in
 
   let name' = fix_case renamed_kind name' in
 
-  try
-    let def_replaces, occ_replaces =
-      rename_in_file env renamed_kind id name' file (s, idents, lidents, paths)
-    in
+  let files = read_all_files file in
 
-    (* We need to sort them again (they may interleave). *)
-    let replaces = sort_replaces (def_replaces @ occ_replaces) in
+  try
+    let replaces = rename_in_files env renamed_kind id loc name' files in
+    let replaces = sort_replaces replaces in
 
     (* Replace lids in the source file *)
-    Edit.edit replaces file;
-
+    List.iter
+      (function file, replaces -> Edit.edit replaces (Filename.basename file))
+      replaces;
+(*
     Printf.printf "Renamed %d definition(s) and %d reference(s)"
       (List.length def_replaces) (List.length occ_replaces)
+*)
   with
       Masked_by (renamed, id) ->
-	let loc = Locate.ident_def idents id in
-	  Location.print Format.std_formatter loc;
-	  if renamed then
-	    fail_owz
-	      "This existing definition of %s would capture an occurrence of %s"
-	      name' name
-	  else
-	    fail_owz
-	      "This definition of %s that you are trying to rename would \
+	Location.print Format.std_formatter loc;
+	if renamed then
+	  fail_owz
+	    "This existing definition of %s would capture an occurrence of %s"
+	    name' name
+	else
+	  fail_owz
+	    "This definition of %s that you are trying to rename would \
                  capture an occurrence of an existing definition of %s"
-	      name name'
+	    name name'

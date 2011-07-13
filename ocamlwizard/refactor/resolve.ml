@@ -213,7 +213,7 @@ let field_resolves_to kind env path name ids =
 *)
 
 let lookup_in_signature kind name sg =
-  if kind = Constructor || kind = Label then
+  if kind = Module || kind = Modtype then
     List.find
       (function item -> match sig_item kind item with
 	| Some id -> Ident.name id = name

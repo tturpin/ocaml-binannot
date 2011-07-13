@@ -83,9 +83,11 @@ and constraint_signature incs env sg sg' =
       | _ -> ())
     sg'
 
-let constraint_with_cmi incs env (typedtree : TypedtreeOps.typedtree) cmi =
+let constraint_with_cmi env (typedtree : TypedtreeOps.typedtree) cmi =
   let `structure {str_type = sg} | `signature {sig_type = sg} = typedtree in
-  constraint_signature incs env sg cmi
+  let incs = ref ConstraintSet.empty in
+  constraint_signature incs env sg cmi;
+  !incs
 
 (* Collect the set of signature inclusion constraints implied by a structure.
 
@@ -145,6 +147,13 @@ let collect_signature_inclusions s =
   TypedtreeOps.iterator ~enter ~leave:ignore s;
   !incs, !includes
 
+let string_table_union t t' =
+  let open Location.StringTbl in
+      let t = copy t in
+      iter
+	(fun x l -> add t x l)
+	t';
+      t
 
 module Eq : sig
 
@@ -192,6 +201,7 @@ end = struct
     eq'
 
   let union eq eq' =
+    (* Copy is not enough *)
     let eq = map (function x -> x) eq in
     Hashtbl.iter
       (fun x l -> List.iter (add eq x) !l)
@@ -204,53 +214,47 @@ end = struct
 
 end
 
+let propagate_constraints bind_id_to_member kind name incs =
+  ConstraintSet.iter
+    (function sg, sg' ->
+      try
+	let id' = find_in_signature kind name sg' in
+	bind_id_to_member `certain sg id'
+      with
+	  Not_found -> ())
+    incs
 
-(* Return the set of ids that would need to be renamed simultaneously
-   with id, and the list of "implicit" references which cause this
-   need (so that we can check them for masking). *)
-let propagate_renamings kind name incs includes =
-  let eq = Hashtbl.create 10 in
-    let implicit_refs = ref []
-    and ambiguous = ref [] in
-    let copy flag sg id' =
-      try 
-	let id = find_in_signature kind name sg in
-	  implicit_refs := (flag, sg, id') :: !implicit_refs;
-	  Eq.add eq id id'
-      with Not_found -> assert false
-    in
-      ConstraintSet.iter
-	(function sg, sg' ->
-	   try
-	     let id' = find_in_signature kind name sg' in
-	       copy `certain sg id'
-	   with
-	       Not_found -> ())
-      incs;
-      IncludeSet.iter
-	(function sg, ids ->
-	   match List.filter (function id -> Ident.name id = name) ids with
-	     | [] -> ()
-		 (* WARNING ! We should check if the name id define
-		    with the right kind in sg ! *)
-	     | [id] -> copy `maybe sg id
-	     | ids -> (* correct choice would require access to the resulting
-			 environment to check ids w.r.t. kind. *)
-		 List.iter (copy `maybe sg) ids;
-		 (* because we still need to check them for capture *)
-		 ambiguous := (find_in_signature kind name sg) :: !ambiguous)
-      includes;
-      eq, !ambiguous, !implicit_refs
+let propagate_includes bind_id_to_member tag ambiguous kind name includes =
+  IncludeSet.iter
+    (function sg, ids ->
+      match List.filter (function id -> Ident.name id = name) ids with
+	| [] -> ()
+	  (* WARNING ! We should check if the name id define
+	     with the right kind in sg ! *)
+	| [id] -> bind_id_to_member `maybe sg id
+	| ids -> (* correct choice would require access to the resulting
+		    environment to check ids w.r.t. kind. *)
+	  List.iter (bind_id_to_member `maybe sg) ids;
+	    (* because we still need to check them for capture *)
+	  ambiguous := tag (find_in_signature kind name sg) :: !ambiguous)
+    includes
 
-let propagate_one_file kind name file_kind s =
+let propagate_one_file eq implicit_refs ambiguous env kind name tag cmi_tag s cmi =
+  let bind_id_to_member tag tag' flag sg id' =
+    try
+      let id = find_in_signature kind name sg in
+      let id = tag id and id' = tag' id' in
+      implicit_refs := (flag, sg, id') :: !implicit_refs;
+      Eq.add eq id id'
+    with Not_found -> invalid_arg "bind_id_to_member"
+  in
   let incs, includes = collect_signature_inclusions s in
-  let eq, ambiguous, implicit_refs =
-    propagate_renamings kind name incs includes in
-  let tag id = file_kind, id in
-  let eq = Eq.map tag eq
-  and ambiguous = List.map tag ambiguous in
-  eq, ambiguous, implicit_refs
+  let cmi_incs = constraint_with_cmi env s cmi in
+  propagate_constraints (bind_id_to_member tag tag) kind name incs;
+  propagate_includes (bind_id_to_member tag tag) tag ambiguous kind name includes;
+  propagate_constraints (bind_id_to_member tag cmi_tag) kind name cmi_incs
 
+(*
 let propagate_renamings kind id incs includes idents =
   let name = Ident.name id in
   let eq, ambiguous, implicit_refs =
@@ -273,15 +277,32 @@ let propagate_renamings kind id incs includes idents =
 	  "Cannot perform renaming because of an ambiguous include")
     ambiguous;
   ids, locs, implicit_refs
+*)
 
-let propagate_all_files file_kind kind id (ml, ml_ids) (mli, mli_ids) cmi =
+let propagate_all_files env loc kind id files =
+  let eq = Hashtbl.create 10 in
+  let implicit_refs = ref []
+  and ambiguous = ref [] in
   let name = Ident.name id in
-  let ml_eq, ml_ambiguous, ml_implicit_refs = propagate_one_file kind name `ml ml
-  and mli_eq, mli_ambiguous, mli_implicit_refs = propagate_one_file kind name `mli mli in
-  let eq = Eq.union ml_eq mli_eq
-  and ambiguous = ml_ambiguous @ mli_ambiguous
-  and implicit_refs = ml_implicit_refs @ mli_implicit_refs in
-  let ids = Eq.find eq (file_kind, id) in
+  let idents =
+    List.fold_left
+      (fun idents ((_, ids, _, _), _) -> string_table_union idents ids)
+      (Location.StringTbl.create 10)
+      files in
+(*
+  let tag file_kind id = file_kind, id in
+*)
+  let tag id =
+    (try `source (Locate.ident_def idents id) with Not_found -> `none),
+    id
+  and cmi_tag id = `cmi, id in
+  List.iter
+    (function (source, _, _, _), cmi ->
+      let propagate = propagate_one_file eq implicit_refs ambiguous env kind name in
+      propagate tag cmi_tag source cmi.sig_type)
+    files;
+  let ids = Eq.find eq (`source loc, id) in
+(*
   let locs = List.map
     (function file_kind, id ->
       let idents = match file_kind with `ml -> ml_ids | `mli -> mli_ids in
@@ -292,13 +313,22 @@ let propagate_all_files file_kind kind id (ml, ml_ids) (mli, mli_ids) cmi =
                       structure would be impacted")
     ids
   in
+*)
+  (* Check if propagation reached an unlocalised id *)
+  List.iter
+    (function loc, id ->
+      if loc = `none then	
+	fail_owz "Cannot perform renaming because a member of a persistent \
+                  structure would be impacted")
+    ids;
+  (* Check if ids intersect ambiguous *)
   List.iter
     (function id ->
       if List.mem id ids then
 	failwith
 	  "Cannot perform renaming because of an ambiguous include")
-    ambiguous;
-  ids, locs, implicit_refs
+    !ambiguous;
+  ids, (*locs,*) !implicit_refs
 
 (* Check that the implicit ident references which are concerned by
    renaming will not be masked (i.e., that the bound signature items
