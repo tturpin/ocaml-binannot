@@ -40,6 +40,14 @@ val modtype :
   [ `func of Ident.t * Types.module_type * Types.module_type
   | `sign of Types.signature ]
 
+(** Same thing, but we keep track of the top-level module in which the
+    paths should be interpreted. *)
+val modtype' :
+  ([> `pers of string ] as 'a) -> Env.t -> Types.module_type ->
+  'a *
+    [ `func of Ident.t * Types.module_type * Types.module_type
+    | `sign of Types.signature ]
+
 (** Same as modtype, but the result must be a signature. *)
 val modtype_signature : Env.t -> Types.module_type -> Types.signature
 

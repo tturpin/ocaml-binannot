@@ -59,7 +59,7 @@ let locate_id loc pid ploc decls =
        (function d -> contains (ploc d) loc)
        decls)
 
-let ident_def   table id = StringTbl.find table (Ident.name id)
+let ident_def table id = StringTbl.find table (Ident.name id)
 
 (* Missing: Tstr_class_type, class_infos, Tmeth_val, cstr_meths,
    Tcf_inher, Tcf_val, Tcf_let *)

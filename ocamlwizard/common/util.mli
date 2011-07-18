@@ -57,3 +57,4 @@ val initial_env : unit -> Env.t
 exception OwzFailure of string
 
 val fail_owz : ('a, unit, string, 'b) format4 -> 'a
+val fail : ('a, unit, string, 'b) format4 -> 'a

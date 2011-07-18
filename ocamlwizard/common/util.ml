@@ -302,3 +302,4 @@ exception OwzFailure of string
 let fail_owz s = raise (OwzFailure s)
 
 let fail_owz s = Printf.ksprintf fail_owz s
+let fail s = Printf.ksprintf failwith s

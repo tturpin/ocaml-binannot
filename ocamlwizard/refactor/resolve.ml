@@ -111,6 +111,21 @@ and modtype env = function
   | Mty_signature s -> `sign s
   | Mty_functor (id, t, t') -> `func (id, t, t')
 
+(* Return the signature of a given (extended) module type path *)
+let rec resolve_modtype' modname env path =
+  let modname =
+    let m = Path.head path in
+    if Ident.persistent m then `pers (Ident.name m) else modname
+  in
+  match wrap_lookup Path.name "module type" find_modtype path env with
+    | Modtype_abstract -> raise Abstract_modtype
+    | Modtype_manifest mt -> modtype' modname env mt
+
+and modtype' modname env = function
+  | Mty_ident p -> resolve_modtype' modname env p
+  | Mty_signature s -> modname, `sign s
+  | Mty_functor (id, t, t') -> modname, `func (id, t, t')
+
 let modtype_signature env m =
   match modtype env m with
   | `sign s -> s

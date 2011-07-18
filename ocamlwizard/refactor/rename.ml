@@ -230,7 +230,7 @@ let read_cmi file =
     close_in ic;
     fail_owz "error reading cmi file"
   end;
-  let (_name, (sign : signature)) = input_value ic in
+  let (_name, (sign : Typedtree.signature)) = input_value ic in
   let _crcs = input_value ic in
   let _flags = input_value ic in
   close_in ic;
@@ -238,21 +238,22 @@ let read_cmi file =
 
 (* Read the cmt (if any), cmti (if any), and cmi. *)
 let read_all_files f =
-  let f = Filename.chop_extension f in
-  let cmt = f ^ ".cmt"
-  and cmti = f ^ ".cmti"
-  and cmi = f ^ ".cmi" in
-  (* we should check ml and mli first. *)
-  let cmi = read_cmi cmi in
+  let prefix = Filename.chop_extension f in
+  let cmi = read_cmi (prefix ^ ".cmi") in
   let sort x = x in
-  let parse f l =
-    if Sys.file_exists f then
-      let ast = read_typedtree sort f in
-      (ast, cmi) :: l
-    else
+  let parse kind source parsetree l =
+    let source = prefix ^ source
+    and parsetree = prefix ^ parsetree in
+    if Sys.file_exists source then (
+      if not (Sys.file_exists parsetree) then
+	fail_owz "error reading cmt(i) file";
+      (* We should also check the modification times *)
+      let ast, loc, lloc, env = read_typedtree sort parsetree in
+      ((prefix, kind), (ast, loc, lloc, env, cmi)) :: l
+    ) else
       l
   in
-  parse cmt (parse cmti [])
+  parse `ml ".ml" ".cmt" (parse `mli ".mli" ".cmti" [])
 
 let sort_replaces =
   List.sort
@@ -289,13 +290,30 @@ let sort_replaces replaces =
       f, remove_duplicates (sort_replaces (Hashtbl.find_all t f)))
     (hashtbl_keys t)
 
-let find_id_defs ids name =
+let string_table_union t t' =
+  let open Location.StringTbl in
+      let t = copy t in
+      iter
+	(fun x l -> add t x l)
+	t';
+      t
+
+let find_id_defs files ids name =
   List.fold_right
-    (fun (loc, _) l ->
+    (fun (loc, id) l ->
       match loc with
-	| `cmi -> l
-	| `source loc -> (loc, name) :: l
-	| `none -> invalid_arg "find_id_defs")
+	| `pers _ -> l
+	| `source f ->
+(*
+	  debugln "Rename %s in %s"(Ident.name id) f;
+*)
+	  let _, idents, _, _, _ = List.assoc f files in
+	  let loc =
+	    try Locate.ident_def idents id
+	    with Not_found -> fail "ident %s not found" (Ident.name id)
+	  in
+	  (loc, name) :: l
+	| _ -> invalid_arg "find_id_defs")
     ids
     []
 
@@ -312,23 +330,24 @@ let backup file =
     Edit.cp file backup
 
 (* Rename an ident in a list of source files. *)
-let rename_in_files
-    env renamed_kind id loc name' files =
+let rename_in_files env renamed_kind id loc name' files =
 
   (* Collect constraints requiring simultaneous renaming and deduce
      the minimal set of ids to rename *)
-  let ids, implicit_refs = propagate_all_files env loc renamed_kind id files in
+  let constraints, includes = propagate_all_files env renamed_kind id files in
+  let ids, implicit_refs = propagate loc renamed_kind id files constraints includes in
+
+  debugln "found %d idents to rename" (List.length ids);
 
   (* Compute the replacements for the *definitions* of the rename ids *)
-  let def_replaces = find_id_defs ids name' in
+  let def_replaces = find_id_defs files ids name' in
 
-(*
   (* Check that our new name will not capture useful signature members *)
   check_other_implicit_references renamed_kind ids name' constraints includes;
 
   (* Check that useful renamed signature members are not masked. *)
   check_renamed_implicit_references renamed_kind ids name' implicit_refs;
-
+(*
   (* Collect all lids *)
   let lids = get_lids env file lid2loc paths typedtree in
 
@@ -355,14 +374,19 @@ let rename loc name' file =
   if Common_config.has_auto_save file then
     fail_owz "buffer must be saved before renaming";
   let source_kind = classify_source file in
+  let prefix = Filename.chop_extension file in
   let typedtree_file = typedtree_file source_kind file in
   if not (Sys.file_exists typedtree_file) then
     fail_owz "no cmt(i) file for %s" file;
   if Unix.((stat file).st_mtime > (stat typedtree_file).st_mtime) then
     fail_owz "cmt(i) file is older than source file";
 
-  (* Read the typedtree *)
+  (* Read the typedtrees *)
+  let files = read_all_files file in
+(*
   let s, idents, lidents, paths = read_typedtree (function s -> s) typedtree_file in
+*)
+  let s, idents, lidents, paths, _ = List.assoc (prefix, source_kind) files in
 
   (* Get the "initial" id to rename and its sort and location *)
   let renamed_kind, id =
@@ -375,10 +399,8 @@ let rename loc name' file =
 
   let name' = fix_case renamed_kind name' in
 
-  let files = read_all_files file in
-
   try
-    let replaces = rename_in_files env renamed_kind id loc name' files in
+    let replaces = rename_in_files env renamed_kind id (prefix, source_kind) name' files in
     let replaces = sort_replaces replaces in
 
     (* Replace lids in the source file *)
