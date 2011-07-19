@@ -39,7 +39,7 @@ module IncludeSet : Set.S
 (** Return the minimal set of idents which may be renamed and contains
     a given id, as well as the "implicit" bindings of signature
     elements to those idents. *)
-val propagate_all_files :
+val constraints_all_files :
   Env.t -> Env.path_sort -> Ident.t ->
   (Resolve.source_file *
      (TypedtreeOps.typedtree * 'a * 'b * 'c * Types.signature))

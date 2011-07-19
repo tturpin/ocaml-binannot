@@ -103,7 +103,7 @@ val lookup_in_signature :
 val add_environments :
   Env.t -> Types.signature -> (Env.t * Types.signature_item) list
 
-val lookup_in_signature' :
+val lookup_in_signature_with_envs :
   Env.path_sort -> string -> (Env.t * Types.signature_item) list -> Env.t * Types.signature_item
 
 (** Retrieve an element in a signature from its name *)

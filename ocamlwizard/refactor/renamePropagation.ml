@@ -107,7 +107,7 @@ and constraint_signature incs env f sg env' f' sg' =
       | Sig_module (id, t', _) ->
 	debugln "constraint Sig_module %s" (Ident.name id);
 	(match
-	    lookup_in_signature' Env.Module (Ident.name id) sg
+	    lookup_in_signature_with_envs Env.Module (Ident.name id) sg
 	 with
 	   | env, Sig_module (_, t, _) ->
 	     constraint_modtype incs env f t env' f' t'
@@ -115,7 +115,7 @@ and constraint_signature incs env f sg env' f' sg' =
       | Sig_modtype (id, Modtype_manifest t') ->
 	debugln "constraint Sig_modtype %s" (Ident.name id);
 	(match
-	    lookup_in_signature' Env.Modtype (Ident.name id) sg
+	    lookup_in_signature_with_envs Env.Modtype (Ident.name id) sg
 	 with
 	   | env, Sig_modtype (_, Modtype_manifest t) ->
 	     constraint_modtype incs env f t env' f' t'
@@ -123,28 +123,29 @@ and constraint_signature incs env f sg env' f' sg' =
       | _ -> ())
     sg'
 
+let module_of_prefix f = String.capitalize (Filename.basename f)
+
 let constraint_with_cmi incs env (prefix, _ as file) typedtree cmi =
   let `structure {str_type = sg} | `signature {sig_type = sg} = typedtree in
-  constraint_signature incs env (`source file) sg env (`pers (String.capitalize prefix)) cmi
+  constraint_signature incs
+    env (`source file) sg env (`pers (module_of_prefix prefix)) cmi
 
-(* Collect the set of signature inclusion constraints implied by a typedtree.
-
-   signature constraints are missing ! *)
+(* Collect the set of signature inclusion constraints implied by a typedtree. *)
 let collect_signature_inclusions incs includes file s =
   let filename = `source file in
   let enter = function
     | `module_expr m  ->
       (match m.mod_desc with
 
-		(* TODO : fix environments here *)
+	(* TODO : fix environments here *)
 	| Tmod_constraint (m, t, cs, co) ->
 	  constraint_modtype incs m.mod_env filename m.mod_type m.mod_env filename t
-		(* what about cs and co ? *)
+	(* what about cs and co ? *)
 
 	| Tmod_apply (f, m, co) ->
 	  let (_, t, _) = modtype_functor f.mod_env f.mod_type in
 	  constraint_modtype incs f.mod_env filename m.mod_type m.mod_env filename t
-		(* what about co ? *)
+	(* what about co ? *)
 
 	| Tmod_unpack _ -> assert false (* TODO *)
 
@@ -152,21 +153,20 @@ let collect_signature_inclusions incs includes file s =
 	| Tmod_structure _
 	| Tmod_functor _ -> ())
 
-		(* To handle include, we need the correspondency between
-		   renamed idents which is currently lost. *)
     | `structure_item s ->
       (match s.str_desc with
 	| Tstr_include (m, ids) ->
 
-		(* We may have
-  		   module G(X : sig module type T module X : T end) =
-                   struct include X end *)
+	  (* We may have
+  	     module G(X : sig module type T module X : T end) =
+             struct include X end *)
 
 	  (try
 	     let sign = modtype_signature m.mod_env m.mod_type in
 	     includes := IncludeSet.add ((filename, sign), ids) !includes
 	   with Abstract_modtype -> ())
 
+	(* TODO : exn_rebind, type... *)
 	| Tstr_eval _
 	| Tstr_value _
 	| Tstr_primitive _
@@ -183,18 +183,18 @@ let collect_signature_inclusions incs includes file s =
   in
   TypedtreeOps.iterator ~enter ~leave:ignore s
 
-let propagate_one_file incs includes env kind name (file, (ast, _, _, _, cmi)) =
+let constraints_one_file incs includes env kind name (file, (ast, _, _, _, cmi)) =
   debug "collect signatures inclusions\n  in source file ";
   collect_signature_inclusions incs includes file ast;
   debug "OK\n  between source file and cmi ";
   constraint_with_cmi incs env file ast cmi;
   debugln "OK"
 
-let propagate_all_files env kind id files =
+let constraints_all_files env kind id files =
   let incs = ref ConstraintSet.empty
   and includes = ref IncludeSet.empty in
   let name = Ident.name id in
-  List.iter (propagate_one_file incs includes env kind name) files;
+  List.iter (constraints_one_file incs includes env kind name) files;
   !incs, !includes
 
 module Eq : sig
@@ -309,7 +309,7 @@ let propagate loc kind id files incs includes =
 	| `pers m ->
 	  if not
 	    (List.exists
-	       (function (prefix, _), _ -> String.capitalize prefix = m) files)
+	       (function (prefix, _), _ -> module_of_prefix prefix = m) files)
 	  then
 	    fail_owz "Cannot perform renaming because a member of a persistent \
                       structure would be impacted"
@@ -346,8 +346,7 @@ let check_renamed_implicit_references renamed_kind ids name' implicit_refs =
 (* Check that the implicit ident references which are concerned by
    renaming will not be masked (i.e., that the bound signature items
    remain the same). *)
-(* This is totally wrong ! *)
-let check_other_implicit_references renamed_kind ids name' incs includes =
+let check_other_implicit_references renamed_kind ids name' constraints includes =
   let old = Ident.name (snd (List.hd ids)) in
   ConstraintSet.iter
     (function (_, sg), (_, sg') ->
@@ -356,7 +355,7 @@ let check_other_implicit_references renamed_kind ids name' incs includes =
 	check_in_sig renamed_kind ~fst:old ~snd:name' sg ~renamed:false
       with
 	  Not_found -> ())
-    incs;
+    constraints;
   IncludeSet.iter
     (function (_, sg), ids' ->
        match List.filter (function id -> Ident.name id = name') ids' with

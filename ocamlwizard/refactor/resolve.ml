@@ -275,7 +275,7 @@ let lookup_in_signature kind name sg =
   else
     invalid_arg "lookup_in_signature"
 
-let lookup_in_signature' kind name sg =
+let lookup_in_signature_with_envs kind name sg =
   if kind = Module || kind = Modtype then
     List.find
       (function _, item -> match sig_item kind item with

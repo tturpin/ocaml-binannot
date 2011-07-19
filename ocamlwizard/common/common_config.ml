@@ -101,11 +101,15 @@ let rec find_project_file d =
   let pf = Filename.concat d project_file_name in
   if Sys.file_exists pf then (
     if !debug then Printf.eprintf "Found project file in directory %s\n" d;
-    d, pf
+    d, pf, Filename.current_dir_name
   ) else if d = "/" then
     raise Not_found
   else
-    find_project_file (Filename.dirname d)
+      let d', pf, suffix = find_project_file (Filename.dirname d) in
+      d', pf, Filename.concat suffix (Filename.basename d)
+(*
+      let suffix = if suffix = Filename.current_dir_name then
+*)
 
 (* Reads a project file, which is a list of directories (one by line),
    possibly relative to the directory containing the file. *)
@@ -128,27 +132,31 @@ let directory_of source =
     Filename.dirname source
 
 (* Very approximative ! *)
-let search_dirs source =
-  let dirs =
-    List.map
-      (Misc.expand_directory Config.standard_library)
-      !include_dirs
-    @ [Config.standard_library]
-  in
+let project_dirs source =
   let dir = directory_of source in
-  let dirs =
+  let dirs, suffix =
     try
-      let d, pf = find_project_file dir in
+      let d, pf, suffix = find_project_file dir in
       if !find_project_dir then (
 	let d = if d = "" then "" else d ^ "/" in
 	  print_endline d ; exit 0
       );
-      project_directories d pf @ dirs
+      Printf.eprintf "current dir w.r.t. project dirname: %s\n" suffix;
+      project_directories d pf, Filename.concat d suffix
     with
-	Not_found -> dir :: dirs
+	Not_found -> [dir], Filename.current_dir_name
   in
-  List.iter prerr_endline dirs;
-  dirs
+  prerr_endline "project directories:\n";
+  List.iter (Printf.eprintf "  %s\n") dirs;
+  Printf.eprintf "absolute current dir: %s\n" suffix;
+  dirs, suffix
+
+let search_dirs source =
+  List.map
+    (Misc.expand_directory Config.standard_library)
+    !include_dirs
+  @ [Config.standard_library]
+  @ fst (project_dirs source)
 	
 let i_dirs () = 
   add_include_dirs Config.standard_library;
