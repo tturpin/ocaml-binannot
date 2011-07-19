@@ -281,11 +281,19 @@ let hashtbl_keys t =
     t
     []
 
-let sort_replaces replaces =
+let sort_replaces files replaces =
   let t = Hashtbl.create 2 in
   List.iter
     (function loc, rep ->
-      Hashtbl.add t loc.loc_start.pos_fname
+      let basename = Filename.basename loc.loc_start.pos_fname in
+      let (prefix, _), _ =
+	List.find
+	  (function (prefix, _ ), _ ->
+	    Filename.basename prefix = Filename.chop_extension basename)
+	  files
+      in
+      let fname = Filename.concat (Filename.dirname prefix) basename in
+      Hashtbl.add t fname
 	(loc.loc_start.pos_cnum, loc.loc_end.pos_cnum, rep))
     replaces;
   List.map
@@ -393,8 +401,10 @@ let rename loc new_name file =
   let typedtree_file = typedtree_file source_kind file in
   if not (Sys.file_exists typedtree_file) then
     fail_owz "no cmt(i) file for %s" file;
+(*
   if Unix.((stat file).st_mtime > (stat typedtree_file).st_mtime) then
     fail_owz "cmt(i) file is older than source file";
+*)
 
   (* Read the typedtrees *)
   let files = read_all_files dirs in
@@ -428,12 +438,14 @@ let rename loc new_name file =
 	      old_name new_name
   in
 
-  let replaces = sort_replaces (defs @ occs) in
+  let replaces = sort_replaces files (defs @ occs) in
 
   try
     (* Replace lids in the source file *)
     List.iter
-      (function file, replaces -> Edit.edit replaces (Filename.basename file))
+      (function file, replaces ->
+	debugln "replace in %s" file;
+	Edit.edit replaces file)
       replaces;
     Printf.printf "Renamed %d definition(s) and %d reference(s) in %d file(s)"
       (List.length defs) (List.length occs) (List.length replaces)

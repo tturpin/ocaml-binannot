@@ -58,7 +58,7 @@ let cp file new_file =
 
 let edit eds file =
   let ic = open_in file in
-  let new_file, oc = Filename.open_temp_file file ".edited" in
+  let new_file, oc = Filename.open_temp_file (Filename.basename file) ".edited" in
   replace ic oc eds;
   close_out oc;
   close_in ic;
