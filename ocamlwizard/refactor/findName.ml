@@ -216,7 +216,7 @@ let get_occurrences lid2loc lid2env s =
 	    debugln "testing %s" (lid_to_str lid);
 	    let kind, env = check_same l in
 	    if kind <> Env.Annot then
-	      (loc, (env, kind)) :: acc
+	      (loc, lid, (env, kind)) :: acc
 	    else
 	      acc
       else acc)
@@ -232,7 +232,11 @@ let extract_longident (loc, text, (env, kind)) =
   in
     (loc, ast, (env, kind))
 
+let get_lids lidents paths ast =
+  get_occurrences lidents paths ast
+(*
 let get_lids env file lidents paths ast =
   List.map
     extract_longident
     (source_locations file (get_occurrences lidents paths ast))
+*)

@@ -29,32 +29,6 @@ open RenameLid
 open RenamePropagation
 
 (*
-(* The type of renaming conotexts, i.e., modules or module types of
-   which the renamed element is a member. *)
-type renaming_context =
-  | Persistent of Path.t (* a flat path starting with a persistent Id *)
-  | Local of Ident.t (* A "local" ident *)
-*)
-
-(* A filename (without extension), and its source file sort. *)
-type toplevel_item = string * [ `ml | `mli ]
-
-(* Identifiers for a set of compilation units. *)
-type absolute_id =
-  | Persistent of Ident.t
-  | NonPersistent of toplevel_item * Ident.t (* non-persistent Id *)
-
-(*
-let absolute path item id =
-  if Ident.persistent id then
-    
-  else
-    NonPersistent (item, id)
-*)
-
-type absolute_path = toplevel_item * Path.t (* maybe persistent root Id *)
-
-(*
 let rec path2lident = function
   | Pident i -> Lident (Ident.name i)
   | Pdot (p, n, _) -> Ldot (path2lident p, n)
@@ -170,19 +144,25 @@ let resolve item = function
 
 let check_lids renamed_kind id name' lids =
   List.iter
-    (function _, lid, (env, kind) ->
+    (function _, _, lid, env, kind ->
       check_lid renamed_kind id name' env kind lid)
     lids
 
 let rename_lids renamed_kind id name' lids =
-  List.fold_left (* this is a filter_map *)
-    (fun l (loc, lid, (env, kind)) ->
-      match rename_in_lid renamed_kind id name' env kind lid with
+  filter_map
+    (fun (source, loc, lid, env, kind) ->
+      match rename_in_lid renamed_kind id name' env kind source lid with
 	| Some lid ->
-	  (loc.loc_start.pos_cnum, loc.loc_end.pos_cnum, Util.lid_to_str lid)
-	  :: l
-	| None -> l)
-    []
+	  Some (
+	    loc,
+(*
+	    source,
+	    loc.loc_start.pos_cnum,
+	    loc.loc_end.pos_cnum,
+*)
+	    Util.lid_to_str lid
+	  )
+	| None -> None)
     (List.rev lids)
 
 let classify_source f =
@@ -230,7 +210,7 @@ let read_cmi file =
     close_in ic;
     fail_owz "error reading cmi file"
   end;
-  let (_name, (sign : Typedtree.signature)) = input_value ic in
+  let (_name, (sign : Types.signature)) = input_value ic in
   let _crcs = input_value ic in
   let _flags = input_value ic in
   close_in ic;
@@ -299,23 +279,33 @@ let string_table_union t t' =
       t
 
 let find_id_defs files ids name =
-  List.fold_right
-    (fun (loc, id) l ->
+  filter_map
+    (fun (loc, id) ->
       match loc with
-	| `pers _ -> l
-	| `source f ->
-(*
-	  debugln "Rename %s in %s"(Ident.name id) f;
-*)
+	| `pers _ -> None
+	| `source (fname, _ as f) ->
+	  debugln "Rename %s in %s"(Ident.name id) fname;
 	  let _, idents, _, _, _ = List.assoc f files in
-	  let loc =
-	    try Locate.ident_def idents id
-	    with Not_found -> fail "ident %s not found" (Ident.name id)
-	  in
-	  (loc, name) :: l
+	    try
+	      let loc =
+		Locate.ident_def idents id
+	      in
+	      Some (loc, name)
+	    with Not_found ->
+	      None
+	(* Why three idents defs in renameProp ? *)
+(*
+	      fail "ident %s not found" (Ident.name id)
+*)
 	| _ -> invalid_arg "find_id_defs")
     ids
-    []
+
+let get_lids files =
+  List.concat
+    (List.map
+       (function source, (ast, loc, lloc, lid2env, cmi) ->
+	 List.map (function loc, lid, (env, kind) -> source, loc, lid, env, kind) (get_lids lloc lid2env ast))
+       files)
 
 let fix_case kind =
   match kind with
@@ -347,20 +337,20 @@ let rename_in_files env renamed_kind id loc name' files =
 
   (* Check that useful renamed signature members are not masked. *)
   check_renamed_implicit_references renamed_kind ids name' implicit_refs;
-(*
+
   (* Collect all lids *)
-  let lids = get_lids env file lid2loc paths typedtree in
+  let lids = get_lids files in
 
   (* Check that our new name will not capture other occurrences *)
-  check_lids renamed_kind ids name' lids;
+  check_lids renamed_kind (Ident.name id) name' lids;
 
   (* Compute renamed lids, checking that they are not captured *)
   let occ_replaces = rename_lids renamed_kind ids name' lids in
-*)
-  def_replaces(*, occ_replaces *)
+
+  def_replaces, occ_replaces
 
 (* Renaming entry point: user interface... *)
-let rename loc name' file =
+let rename loc new_name file =
 
   backup file;
 
@@ -383,9 +373,6 @@ let rename loc name' file =
 
   (* Read the typedtrees *)
   let files = read_all_files file in
-(*
-  let s, idents, lidents, paths = read_typedtree (function s -> s) typedtree_file in
-*)
   let s, idents, lidents, paths, _ = List.assoc (prefix, source_kind) files in
 
   (* Get the "initial" id to rename and its sort and location *)
@@ -395,31 +382,37 @@ let rename loc name' file =
   in
   let loc = Locate.ident_def idents id in
 
-  let name = Ident.name id in
+  let old_name = Ident.name id in
 
-  let name' = fix_case renamed_kind name' in
+  let new_name = fix_case renamed_kind new_name in
+
+  let defs, occs =
+    try
+      rename_in_files env renamed_kind id (prefix, source_kind) new_name files
+    with
+	Masked_by (renamed, id) ->
+	  Location.print Format.std_formatter loc;
+	  if renamed then
+	    fail_owz
+	      "This existing definition of %s would capture an occurrence of %s"
+	      new_name old_name
+	  else
+	    fail_owz
+	      "This definition of %s that you are trying to rename would \
+                 capture an occurrence of an existing definition of %s"
+	      old_name new_name
+  in
+
+  let replaces = sort_replaces (defs @ occs) in
 
   try
-    let replaces = rename_in_files env renamed_kind id (prefix, source_kind) name' files in
-    let replaces = sort_replaces replaces in
-
     (* Replace lids in the source file *)
     List.iter
       (function file, replaces -> Edit.edit replaces (Filename.basename file))
       replaces;
-(*
-    Printf.printf "Renamed %d definition(s) and %d reference(s)"
-      (List.length def_replaces) (List.length occ_replaces)
-*)
+    Printf.printf "Renamed %d definition(s) and %d reference(s) in %d file(s)"
+      (List.length defs) (List.length occs) (List.length replaces)
   with
-      Masked_by (renamed, id) ->
-	Location.print Format.std_formatter loc;
-	if renamed then
-	  fail_owz
-	    "This existing definition of %s would capture an occurrence of %s"
-	    name' name
-	else
-	  fail_owz
-	    "This definition of %s that you are trying to rename would \
-                 capture an occurrence of an existing definition of %s"
-	    name name'
+      e ->
+	Printf.printf "Renaming failed while editing the files !\n";
+	raise e

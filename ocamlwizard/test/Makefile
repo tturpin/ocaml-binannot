@@ -133,9 +133,9 @@ errors_comp.ml: errors.ml errors_no_dollar.ml $(OWZ)
 # Renaming
 ##########
 
-%_rres.ml: %.ml %_no_dollar.ml %_no_dollar.cmt $(OWZ)
+%_rres.ml: %.ml %_no_dollar.ml $(OWZ)
 	mv $(subst .ml,_no_dollar.ml, $<) $@
-	mv $(subst .ml,_no_dollar.cmt, $<) $(subst .ml,.cmt, $@)
+	../../ocamlc.opt -c -annot $@
 	- $(OCAMLWIZARD) refactor -rename \
 	`grep -o -b \\\\$$ $< | cut -d : -f 1`-\
 	`tail -c +2 $< | grep -o -b € | cut -d : -f 1` \
@@ -143,6 +143,8 @@ errors_comp.ml: errors.ml errors_no_dollar.ml $(OWZ)
 	cat ../../.ocamlwizard-stdout >>$@
 	/bin/echo -e \\n >>$@
 
+#	mv $(subst .ml,_no_dollar.cmt, $<) $(subst .ml,.cmt, $@)
+#	mv $(subst .ml,_no_dollar.cmi, $<) $(subst .ml,.cmi, $@)
 
 # Old
 

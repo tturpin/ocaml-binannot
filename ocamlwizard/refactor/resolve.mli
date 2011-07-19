@@ -17,15 +17,31 @@
 
 (** Different sort of names, and their bindings. *)
 
+type source_kind = [`ml | `mli]
+
+(** A source file is given by its (non-capitalized) prefix and source kind. *)
+type source_file = string * source_kind
+
+(** The context for interpreting an ident is either a persistent module
+    (whose name is capitalized) or a source file *)
+type ident_context = [`pers of string | `source of source_file]
+
+(** These names should be really unique. *)
+type global_ident = ident_context * Ident.t
+
+val source2string : source_file -> string
+val context2string : ident_context -> string
+
 val kind2str : Env.path_sort -> string
 
 val parse_lid : Env.path_sort -> string -> Longident.t
 
 (* not used outside Resolve
 val lookup : Env.path_sort -> Longident.t -> Env.t -> Path.t
-val sig_item : Env.path_sort -> Types.signature_item -> Ident.t option
 val summary_item : ...
 *)
+
+val sig_item : Env.path_sort -> Types.signature_item -> Ident.t option
 
 (* Turns Not_found into a Failure with the unbound name *)
 val wrap_lookup : ('a -> string) -> string -> ('a -> 'b -> 'c) -> 'a -> 'b -> 'c
@@ -35,14 +51,14 @@ val wrap_lookup : ('a -> string) -> string -> ('a -> 'b -> 'c) -> 'a -> 'b -> 'c
 exception Abstract_modtype
 
 (** Get the signature (or functor signature) corresponding to a module type *)
-val modtype :
+val modtype_old :
   Env.t -> Types.module_type ->
   [ `func of Ident.t * Types.module_type * Types.module_type
   | `sign of Types.signature ]
 
 (** Same thing, but we keep track of the top-level module in which the
     paths should be interpreted. *)
-val modtype' :
+val modtype :
   ([> `pers of string ] as 'a) -> Env.t -> Types.module_type ->
   'a *
     [ `func of Ident.t * Types.module_type * Types.module_type
@@ -74,11 +90,21 @@ val resolve_modtype :
     of ids in environment env, i.e., if the object directly denoted by
     lid is named with one of ids. This indicates that the rightmost
     name in lid needs renaming (assuming we are renaming ids). *)
+(*
 val resolves_to : Env.path_sort -> Env.t -> Longident.t -> Ident.t list -> bool
+*)
+val resolves_to :
+  Env.path_sort -> Env.t -> ident_context -> Longident.t -> global_ident list -> bool
 
 (** Retrieve a module or modtype in a signature from its name *)
 val lookup_in_signature :
   Env.path_sort -> string -> Types.signature -> Types.signature_item
+
+val add_environments :
+  Env.t -> Types.signature -> (Env.t * Types.signature_item) list
+
+val lookup_in_signature' :
+  Env.path_sort -> string -> (Env.t * Types.signature_item) list -> Env.t * Types.signature_item
 
 (** Retrieve an element in a signature from its name *)
 val find_in_signature :
@@ -104,13 +130,13 @@ exception Masked_by of bool * Ident.t
 
     Raise (Masked_by id) if masking would occur. *)
 val check :
-  Env.path_sort -> Ident.t list -> string -> Env.t -> Env.summary ->
-  renamed:bool -> unit
-
+  Env.path_sort -> Env.t -> Env.summary -> renamed:bool ->
+  fst:string -> snd:string -> unit
+ 
 (** Similar to check, but for a signature. *)
 val check_in_sig :
-  Env.path_sort -> Ident.t list -> string -> Types.signature ->
-  renamed:bool -> unit
+  Env.path_sort -> Types.signature_item list -> renamed:bool ->
+  fst:string -> snd:string -> unit
 
 (** Test if an id belongs to a list of ids *)
 val is_one_of : Ident.t -> Ident.t list -> bool

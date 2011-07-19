@@ -13,5 +13,5 @@ module type M = sig
   module type U = Y.T
 
 end
-Renamed 1 definition(s) and 2 reference(s)
+Renamed 1 definition(s) and 2 reference(s) in 1 file(s)
 

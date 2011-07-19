@@ -15,5 +15,5 @@ module O = Y.M
 module type U = Y.T
 let _ = match Y.A with Y.A -> ()
 let _ = match {Y.a = ()} with {Y.a = ()} -> ()
-Renamed 1 definition(s) and 9 reference(s)
+Renamed 1 definition(s) and 9 reference(s) in 1 file(s)
 

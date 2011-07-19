@@ -21,6 +21,24 @@ open Env
 open Util
 open Env
 
+type source_kind = [`ml | `mli]
+
+type source_file = string * source_kind
+
+type ident_context = [`pers of string | `source of source_file]
+
+type global_ident = ident_context * Ident.t
+
+let source2string (prefix, kind) =
+  prefix ^ 
+    match kind with
+      | `ml -> ".ml"
+      | `mli -> ".mli"
+
+let context2string = function
+  | `pers m -> m ^ "(cmi)"
+  | `source s -> source2string s
+
 let wrap_lookup to_string name lookup x e =
   try lookup x e
   with Not_found -> failwith ("unbound " ^ name ^ " " ^ to_string x)
@@ -104,41 +122,50 @@ exception Abstract_modtype
 let rec resolve_modtype env path =
   match wrap_lookup Path.name "module type" find_modtype path env with
   | Modtype_abstract -> raise Abstract_modtype
-  | Modtype_manifest mt -> modtype env mt
+  | Modtype_manifest mt -> modtype_old env mt
 
-and modtype env = function
+and modtype_old env = function
   | Mty_ident p -> resolve_modtype env p
   | Mty_signature s -> `sign s
   | Mty_functor (id, t, t') -> `func (id, t, t')
 
+let global modname path =
+  let m = Path.head path in
+  if Ident.persistent m then `pers (Ident.name m) else modname
+
 (* Return the signature of a given (extended) module type path *)
 let rec resolve_modtype' modname env path =
-  let modname =
-    let m = Path.head path in
-    if Ident.persistent m then `pers (Ident.name m) else modname
-  in
+  let modname = global modname path in
   match wrap_lookup Path.name "module type" find_modtype path env with
     | Modtype_abstract -> raise Abstract_modtype
-    | Modtype_manifest mt -> modtype' modname env mt
+    | Modtype_manifest mt -> modtype modname env mt
 
-and modtype' modname env = function
+and modtype modname env = function
   | Mty_ident p -> resolve_modtype' modname env p
   | Mty_signature s -> modname, `sign s
   | Mty_functor (id, t, t') -> modname, `func (id, t, t')
 
 let modtype_signature env m =
-  match modtype env m with
-  | `sign s -> s
-  | `func _ -> invalid_arg "modtype_signature"
+  match modtype_old env m with
+    | `sign s -> s
+    | `func _ -> invalid_arg "modtype_signature"
+
+let modtype_signature' modname env m =
+  match modtype modname env m with
+    | source, `sign s -> source, s
+    | _, `func _ -> invalid_arg "modtype_signature"
 
 let modtype_functor env m =
-  match modtype env m with
+  match modtype_old env m with
   | `func f -> f
   | `sign _ -> invalid_arg "modtype_signature"
 
 (* Return the signature of a given (extended) module path *)
 let resolve_module env path =
   modtype_signature env (wrap_lookup Path.name "module" find_module path env)
+
+let resolve_module' modname env path =
+  modtype_signature' modname env (wrap_lookup Path.name "module" find_module path env)
 
 (* unused *)
 let resolve_module_lid env lid =
@@ -148,59 +175,61 @@ let resolve_module_lid env lid =
 
 let is_one_of id = List.exists (Ident.same id)
 
-exception FoundName of Ident.t
-exception FoundIdent of Ident.t
+exception Found of int * Ident.t
 
-let first_of_in_id ids name id =
-  if is_one_of id ids then
-    raise (FoundIdent id)
-  else if Ident.name id = name then
-    raise (FoundName id)
+(* We assume that the kind is correct *)
+let first_of_in_id names id =
+  let name = Ident.name id in
+  Array.iteri
+    (fun i n ->
+      if name = n then
+	raise (Found (i, id)))
+    names
 
 (* The type itself is excluded *)
-let first_of_in_type_decl kind ids name tdecl =
+let first_of_in_type_decl kind names tdecl =
   match kind, tdecl.type_kind with
     | Constructor, Type_variant constrs ->
       List.iter
-	(function id, _ -> first_of_in_id ids name id)
+	(function id, _ -> first_of_in_id names id)
 	constrs
     | Label, Type_record (fields, _) ->
       List.iter
-	(function id, _, _ -> first_of_in_id ids name id)
+	(function id, _, _ -> first_of_in_id names id)
 	fields
     | _ -> ()
 
-let first_of_in_sig kind ids name sg =
+let first_of_in_sig kind names sg =
   List.iter
     (function item ->
       (match sig_item kind item with
 	| Some id ->
-	  first_of_in_id ids name id
+	  first_of_in_id names id
 	| None -> ());
       (match item with
 	| Sig_type (s, tdecl, _) ->
-	  first_of_in_type_decl kind ids name tdecl
+	  first_of_in_type_decl kind names tdecl
 	| _ -> ()))
     (List.rev sg);
   raise Not_found
 
-let rec first_of kind ids name env = function
+let rec first_of kind names env = function
   | Env_empty -> raise Not_found
   | Env_open (s, p) ->
     let sign = resolve_module env p in
     (try
-       first_of_in_sig kind ids name sign
+       first_of_in_sig kind names sign
      with
 	 Not_found ->
-	   first_of kind ids name env s)
+	   first_of kind names env s)
   | summary ->
     (match summary_item kind summary with
       | Some id ->
-	  first_of_in_id ids name id
+	  first_of_in_id names id
       | None -> ());
     (match summary with
       | Env_type (s, _, tdecl) ->
-	first_of_in_type_decl kind ids name tdecl
+	first_of_in_type_decl kind names tdecl
       | _ -> ());
     match summary with
       | Env_value (s, _, _)
@@ -210,7 +239,7 @@ let rec first_of kind ids name env = function
       | Env_modtype (s, _, _)
       | Env_class (s, _, _)
       | Env_cltype (s, _, _)
-	-> first_of kind ids name env s
+	-> first_of kind names env s
       | Env_open _ | Env_empty _ -> assert false
 
 (* Old implementation ; does not work for fields and constructors
@@ -227,6 +256,15 @@ let field_resolves_to kind env path name ids =
       Abstract_modtype -> assert false
 *)
 
+let add_environments env sg =
+  let _, sg =
+    List.fold_left
+      (fun (env, sg) item -> Env.add_item item env, (env, item) :: sg)
+      (env, [])
+      sg
+  in
+  List.rev sg
+
 let lookup_in_signature kind name sg =
   if kind = Module || kind = Modtype then
     List.find
@@ -237,53 +275,65 @@ let lookup_in_signature kind name sg =
   else
     invalid_arg "lookup_in_signature"
 
+let lookup_in_signature' kind name sg =
+  if kind = Module || kind = Modtype then
+    List.find
+      (function _, item -> match sig_item kind item with
+	| Some id -> Ident.name id = name
+	| None -> false)
+      sg
+  else
+    invalid_arg "lookup_in_signature"
+
+
 let find_in_signature kind name sg =
   try
-    first_of_in_sig kind [] name sg
+    first_of_in_sig kind [|name|] sg
   with
-    | FoundName id -> id
-    | FoundIdent _ -> assert false
+    | Found (0, id) -> id
+    | Found _ -> assert false
 
 (* True if p.name means id *)
-let member_resolves_to kind env path name ids =
+let member_resolves_to kind env modname path name ids =
   try
-    is_one_of
-      (find_in_signature kind name (resolve_module env path))
+    let modname, sg = resolve_module' modname env path in
+    List.mem
+      (modname, find_in_signature kind name sg)
       ids
   with
     | Not_found -> false
 
 (* Test whether a p reffers to id in environment env. This indicates
    that the rightmost name in lid needs renaming. *)
-let resolves_to kind env lid ids =
+let resolves_to kind env modname lid ids =
   match lookup kind lid env with
-    | Pident id' -> is_one_of id' ids
-    | Pdot (p, n, _) -> member_resolves_to kind env p n ids
+    | Pident id' as p -> List.mem (global modname p,  id') ids
+    | Pdot (p, n, _) -> member_resolves_to kind env (global modname p) p n ids
     | Papply _ -> invalid_arg "resolves_to"
 
 exception Masked_by of bool * Ident.t
 
 (* Check that the renaming of one of ids in name is not masked in the env. *)
 
-let check_in ~renamed first_of arg =
+let check_in ~renamed first_of ~fst ~snd =
   try
-    ignore (first_of arg);
+    ignore (first_of [|fst ; snd|]);
     assert false
   with
-      (FoundIdent _ | FoundName _) as e ->
-	match renamed, e with
-	  | (true, FoundIdent _ | false, FoundName _) -> ()
-	  | (true, FoundName id | false, FoundIdent id) -> raise (Masked_by (renamed, id))
+      Found (i, id) ->
+	match renamed, i with
+	  | (true, 0 | false, 1) -> ()
+	  | (true, 1 | false, 0) -> raise (Masked_by (renamed, id))
 	  | _ -> assert false
 
-let check kind id name env summary =
+let check kind env summary =
   try
-    check_in (first_of kind id name env) summary
+    check_in (function names -> first_of kind names env summary)
   with
       Not_found -> invalid_arg "ckeck_in_sig"
 
-and check_in_sig kind id name sg =
+and check_in_sig kind sg =
   try
-    check_in (first_of_in_sig kind id name) sg
+    check_in (function names -> first_of_in_sig kind names sg)
   with
       Not_found -> invalid_arg "ckeck_in_sig"

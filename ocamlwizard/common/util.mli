@@ -58,3 +58,5 @@ exception OwzFailure of string
 
 val fail_owz : ('a, unit, string, 'b) format4 -> 'a
 val fail : ('a, unit, string, 'b) format4 -> 'a
+
+val filter_map : ('a -> 'b option) -> 'a list -> 'b list

@@ -7,6 +7,6 @@ end
 include M
 
 let _ = y
-File "renameIncludeNewCaptured_no_dollar.ml", line 4, characters 6-7:
+File "renameIncludeNewCaptured_rres.ml", line 4, characters 6-7:
 This definition of x that you are trying to rename would capture an occurrence of an existing definition of y
 

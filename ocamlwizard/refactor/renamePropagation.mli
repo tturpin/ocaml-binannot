@@ -21,19 +21,7 @@
 (* should not be here *)
 val sig_item_id : Types.signature_item -> Ident.t
 
-type source_kind = [`ml | `mli]
-
-(** A source file is given by its (non-capitalized) prefix and source kind. *)
-type source_file = string * source_kind
-
-(** The context for interpreting an ident is either a persistent module
-    (whose name is capitalized) or a source file *)
-type ident_context = [`pers of string | `source of source_file]
-
-(** These names should be really unique. *)
-type global_ident = ident_context * Ident.t
-
-type signature = ident_context * Types.signature
+type signature = Resolve.ident_context * Types.signature
 
 module ConstraintSet : Set.S
   with type elt = signature * signature
@@ -53,21 +41,23 @@ module IncludeSet : Set.S
     elements to those idents. *)
 val propagate_all_files :
   Env.t -> Env.path_sort -> Ident.t ->
-  (source_file * (TypedtreeOps.typedtree * 'a * 'b * 'c * Typedtree.signature))
+  (Resolve.source_file *
+     (TypedtreeOps.typedtree * 'a * 'b * 'c * Types.signature))
     list -> ConstraintSet.t * IncludeSet.t
 (* means id is bound to sg.(name id), unless we were wrong about the sort. *)
 
 val propagate :
-  source_file -> Env.path_sort -> Ident.t ->
-  (source_file * (TypedtreeOps.typedtree * 'a * 'b * 'c * Typedtree.signature))
+  Resolve.source_file -> Env.path_sort -> Ident.t ->
+  (Resolve.source_file *
+     (TypedtreeOps.typedtree * 'a * 'b * 'c * Types.signature))
     list -> ConstraintSet.t -> IncludeSet.t ->
-  global_ident list
-  * ([ `certain | `maybe ] * Types.signature * global_ident) list
+  Resolve.global_ident list
+  * ([ `certain | `maybe ] * Types.signature * Resolve.global_ident) list
 
 val check_renamed_implicit_references :
-  Env.path_sort -> global_ident list -> string ->
-  ([ `certain | `maybe ] * Types.signature * global_ident) list -> unit
+  Env.path_sort -> Resolve.global_ident list -> string ->
+  ([ `certain | `maybe ] * Types.signature * Resolve.global_ident) list -> unit
 
 val check_other_implicit_references :
-  Env.path_sort -> global_ident list -> string ->
+  Env.path_sort -> Resolve.global_ident list -> string ->
   ConstraintSet.t -> IncludeSet.t -> unit
