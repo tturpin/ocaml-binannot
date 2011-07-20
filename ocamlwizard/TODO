@@ -1,12 +1,14 @@
-- Rename: replace in multiple files
 - Grep: should be easy to implement using rename
+
+- Rename: provide three propagation options: none, mli, full
 - Rename: return a list of files that emacs should revert
-- Rename: check that we always lookup in the right environment
 - Rename: rename type variables, argument labels, polymorphic variants, methods
 - Rename: test propagation for constrs, fields, exceptions...
+- Rename: propagate type redefinitions...
 - Rename: collect all occurrences in a or-pattern
 - Rename: retrieve a definition from an occurrence
 - Rename: warn about potential future captures
+
 - Binannot: only record locs and envs if annot is set
 - Completion: Use a best qualification for labels
 - Match_cases completion: indent the cases correctly

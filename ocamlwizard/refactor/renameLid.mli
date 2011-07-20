@@ -30,5 +30,5 @@ val rename_in_lid :
     longident would be captured by one of the renamed idents if we
     applied the given renaming. *)
 val check_lid :
-  Env.path_sort -> string -> string ->
-  Env.t -> Env.path_sort -> Longident.t -> unit
+  Env.path_sort -> Resolve.global_ident list -> string ->
+  Env.t -> Env.path_sort -> Resolve.source_file -> Longident.t -> unit

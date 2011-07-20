@@ -29,10 +29,9 @@ type ident_context = [`pers of string | `source of source_file]
 (** These names should be really unique. *)
 type global_ident = ident_context * Ident.t
 
+val kind2string : Env.path_sort -> string
 val source2string : source_file -> string
 val context2string : ident_context -> string
-
-val kind2str : Env.path_sort -> string
 
 val parse_lid : Env.path_sort -> string -> Longident.t
 
@@ -50,14 +49,10 @@ val wrap_lookup : ('a -> string) -> string -> ('a -> 'b -> 'c) -> 'a -> 'b -> 'c
     looking for the signature of an abstract module type. *)
 exception Abstract_modtype
 
-(** Get the signature (or functor signature) corresponding to a module type *)
-val modtype_old :
-  Env.t -> Types.module_type ->
-  [ `func of Ident.t * Types.module_type * Types.module_type
-  | `sign of Types.signature ]
+(** The following functions keep track of the context in which the
+    idents and paths should be interpreted. *)
 
-(** Same thing, but we keep track of the top-level module in which the
-    paths should be interpreted. *)
+(** Get the signature (or functor signature) corresponding to a module type *)
 val modtype :
   ([> `pers of string ] as 'a) -> Env.t -> Types.module_type ->
   'a *
@@ -65,12 +60,14 @@ val modtype :
     | `sign of Types.signature ]
 
 (** Same as modtype, but the result must be a signature. *)
-val modtype_signature : Env.t -> Types.module_type -> Types.signature
+val modtype_signature :
+  ident_context -> Env.t -> Types.module_type ->
+  ident_context * Types.signature
 
 (** Same as modtype, but the result must be a functor. *)
 val modtype_functor :
-  Env.t -> Types.module_type ->
-  Ident.t * Types.module_type * Types.module_type
+  ident_context -> Env.t -> Types.module_type ->
+  ident_context * (Ident.t * Types.module_type * Types.module_type)
 
 (* Unused outside of this module
 (** See modtype_signature. *)
@@ -90,21 +87,17 @@ val resolve_modtype :
     of ids in environment env, i.e., if the object directly denoted by
     lid is named with one of ids. This indicates that the rightmost
     name in lid needs renaming (assuming we are renaming ids). *)
-(*
-val resolves_to : Env.path_sort -> Env.t -> Longident.t -> Ident.t list -> bool
-*)
 val resolves_to :
   Env.path_sort -> Env.t -> ident_context -> Longident.t -> global_ident list -> bool
 
 (** Retrieve a module or modtype in a signature from its name *)
 val lookup_in_signature :
-  Env.path_sort -> string -> Types.signature -> Types.signature_item
+  Env.path_sort -> string -> (Env.t * Types.signature_item) list ->
+  Env.t * Types.signature_item
 
+(** Insert the environment before each signature item in a signature. *)
 val add_environments :
   Env.t -> Types.signature -> (Env.t * Types.signature_item) list
-
-val lookup_in_signature_with_envs :
-  Env.path_sort -> string -> (Env.t * Types.signature_item) list -> Env.t * Types.signature_item
 
 (** Retrieve an element in a signature from its name *)
 val find_in_signature :
@@ -113,7 +106,7 @@ val find_in_signature :
 (** Raised by check to signal an impossible renaming due to a masking
     of an existing occurrence of the new name, or of a renamed
     occurrence (the boolean specifies if it is a renamed occurrence). *)
-exception Masked_by of bool * Ident.t
+exception Masked_by of bool * global_ident
 
 (** Check that the renaming of a list of idents (with the same name)
     into a new name would not change the meaning of a reference in a
@@ -130,13 +123,10 @@ exception Masked_by of bool * Ident.t
 
     Raise (Masked_by id) if masking would occur. *)
 val check :
-  Env.path_sort -> Env.t -> Env.summary -> renamed:bool ->
-  fst:string -> snd:string -> unit
- 
+  Env.path_sort -> ident_context * Env.t * Env.summary ->
+  renamed:bool -> ids:global_ident list -> new_name:string -> unit
+  
 (** Similar to check, but for a signature. *)
 val check_in_sig :
-  Env.path_sort -> Types.signature_item list -> renamed:bool ->
-  fst:string -> snd:string -> unit
-
-(** Test if an id belongs to a list of ids *)
-val is_one_of : Ident.t -> Ident.t list -> bool
+  Env.path_sort -> ident_context * Types.signature_item list ->
+  renamed:bool -> ids:global_ident list -> new_name:string -> unit

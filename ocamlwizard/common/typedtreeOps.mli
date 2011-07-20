@@ -23,8 +23,6 @@ open Typedtree
     signature. *)
 type typedtree = [ `structure of structure | `signature of signature]
 
-type 'a sfun = typedtree -> 'a
-
 (** The common type for all typedtree nodes. *)
 type node = [
   `structure of structure
@@ -61,20 +59,26 @@ val node_kind : node -> string
 
 (** Traverse a typedtree, calling the provided enter and leave
     functions just before and just after each node, respectively. *)
-val iterator : enter:(node -> unit) -> leave:(node -> unit) -> unit sfun
+val iterator : enter:(node -> unit) -> leave:(node -> unit) -> typedtree -> unit
 
 (** Find the innermost node for which some condition holds. *)
-val find_map : [`outermost | `innermost] -> (node -> 'a option) -> 'a sfun
+val find_map : [`outermost | `innermost] -> (node -> 'a option) -> typedtree -> 'a
 
 (** Find all nodes satisfying some condition. *)
-val find_all_map : (node -> 'a option) -> 'a list sfun
+val find_all_map : (node -> 'a option) -> typedtree -> 'a list
 
 (** Finding only one sort of nodes: *)
 
 val find_pattern :
-  [`outermost | `innermost] -> (Typedtree.pattern -> 'a option) -> 'a sfun
+  [`outermost | `innermost] -> (Typedtree.pattern -> 'a option) -> typedtree -> 'a
 val find_expression :
-  [`outermost | `innermost] -> (Typedtree.expression -> 'a option) -> 'a sfun
+  [`outermost | `innermost] -> (Typedtree.expression -> 'a option) -> typedtree -> 'a
+
+
+(** Other *)
+
+val sig_item_id : Types.signature_item -> Ident.t
+
 
 (* Not used anymore
 module NodeTbl : Hashtbl.S with type key = node

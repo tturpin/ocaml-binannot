@@ -19,17 +19,9 @@
 
 open Typedtree
 
-(*
-val get_occurrences :
-  structure -> (Location.t * (Env.t * [ `exp_ident | `mod_ident ])) list
-*)
-
 (** Collect all the longident occurrences appearing in a file, with
     their location, sort, and lookup environment. *)
 val get_lids :
-(*
-  Env.t -> string ->
-*)
-  Location.t Longident.LongidentTbl.t -> Env.lid2env ->
-  [ `signature of Typedtree.signature | `structure of Typedtree.structure ]->
+  Location.t Longident.LongidentTbl.t -> Env.lid2env -> (Longident.t -> bool) ->
+  TypedtreeOps.typedtree ->
   (Location.t * Longident.t * (Env.t * Env.path_sort)) list

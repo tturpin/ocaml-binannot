@@ -15,6 +15,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
+open Types
 open Typedtree
 open Util
 
@@ -187,6 +188,16 @@ let find_pattern priority cond =
 
 let find_expression priority cond =
   find_map priority (function `expression e -> cond e | _ -> None)
+
+let sig_item_id = function
+  | Sig_value (i, _)
+  | Sig_type (i, _, _)
+  | Sig_exception (i, _)
+  | Sig_module (i, _, _)
+  | Sig_modtype (i, _)
+  | Sig_class (i, _, _)
+  | Sig_class_type (i, _, _)
+    -> i
 
 module NodeTbl = Hashtbl.Make
   (struct

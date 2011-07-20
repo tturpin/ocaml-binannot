@@ -22,13 +22,13 @@ val contains : Location.t -> int * int -> bool
 
     Warning: most node kinds are missing ! *)
 val locate : [`outermost | `innermost] -> int * int ->
-  TypedtreeOps.node TypedtreeOps.sfun
+  TypedtreeOps.typedtree -> TypedtreeOps.node
 
 (** Simliar to locate, but we return the first node along a path (in
     the sense of the given priority) for which the parameter function
     returns some result. *)
 val locate_map : [`outermost | `innermost] -> (TypedtreeOps.node -> 'a option) ->
-  int * int -> 'a TypedtreeOps.sfun
+  int * int -> TypedtreeOps.typedtree -> 'a
 
 (*
 (** The same as locate, but with exceptions *)

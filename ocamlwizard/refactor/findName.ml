@@ -192,16 +192,16 @@ let rec check_same = function
   | [x] -> x
   | (kind, env) :: ((kind', env') :: _ as l) ->
     if kind <> kind' then
-      failwith (Resolve.kind2str kind ^ " <> " ^ kind2str kind');
+      failwith (Resolve.kind2string kind ^ " <> " ^ kind2string kind');
     if env != env' then failwith "different environments";
     check_same l
   | [] -> invalid_arg "check_same"
 
-let get_occurrences lid2loc lid2env s =
+let get_lids lid2loc lid2env cond s =
   (* We should check that keys are bound only once *)
   Longident.LongidentTbl.fold
     (fun lid loc acc ->
-      if not (List.mem (lid_to_str lid) ["false" ; "()"]) then
+      if cond lid then
 	let envs = Env.LongidentTbl.find_all lid2env lid in
 	let envs = List.filter (function kind, _ -> kind <> Env.Annot) envs in
 	match envs with
@@ -223,6 +223,9 @@ let get_occurrences lid2loc lid2env s =
     lid2loc
     []
 
+(* Currently, we don't use extract_longident but instead we rely on
+   the longident table. *)
+
 let extract_longident (loc, text, (env, kind)) =
   let ast =
     try
@@ -230,13 +233,11 @@ let extract_longident (loc, text, (env, kind)) =
     with _ ->
       failwith ("error parsing the following ident: " ^ text)
   in
-    (loc, ast, (env, kind))
+  (loc, ast, (env, kind))
 
-let get_lids lidents paths ast =
-  get_occurrences lidents paths ast
 (*
-let get_lids env file lidents paths ast =
+  let get_lids env file lidents paths ast =
   List.map
-    extract_longident
-    (source_locations file (get_occurrences lidents paths ast))
+  extract_longident
+  (source_locations file (get_lids lidents paths ast))
 *)

@@ -142,10 +142,10 @@ let resolve item = function
 *)
 
 
-let check_lids renamed_kind id name' lids =
+let check_lids renamed_kind ids name' lids =
   List.iter
-    (function _, _, lid, env, kind ->
-      check_lid renamed_kind id name' env kind lid)
+    (function source, _, lid, env, kind ->
+      check_lid renamed_kind ids name' env kind source lid)
     lids
 
 let rename_lids renamed_kind id name' lids =
@@ -201,6 +201,8 @@ let read_typedtree sort file =
 	  _ -> fail_owz
 	    "ident location or path environment table not found in cmt(i)"
 
+let read_typedtree sort = Profile.time_call "read_typedtree" (read_typedtree sort)
+
 let read_cmi file =
   (* Copied from env.ml *)
   let ic = open_in_bin file in
@@ -216,47 +218,68 @@ let read_cmi file =
   close_in ic;
   sign
 
+let read_cmi = Profile.time_call "read_cmi" read_cmi
+
 (* Read the cmt (if any), cmti (if any), and cmi. *)
-let read_one_unit f =
+let read_unit f =
   let prefix = Filename.chop_extension f in
   debugln "parsing %s" prefix;
   let cmi = read_cmi (prefix ^ ".cmi") in
   let sort x = x in
-  let parse kind source parsetree l =
+  let parse kind source typedtree l =
     let source = prefix ^ source
-    and parsetree = prefix ^ parsetree in
+    and typedtree = prefix ^ typedtree in
     if Sys.file_exists source then (
-      if not (Sys.file_exists parsetree) then
-	fail_owz "error reading cmt(i) file for %s" f;
+
+      (* Check that everything is up-to-date *)
+      if Common_config.has_auto_save source then
+	fail_owz "file %s must be saved before renaming" source;
+      if not (Sys.file_exists typedtree) then
+	fail_owz "no cmt(i) file for %s" source;
+      if Unix.((stat source).st_mtime > (stat typedtree).st_mtime) then
+	fail_owz "cmt(i) file is older than source file";
+
       (* We should also check the modification times *)
-      let ast, loc, lloc, env = read_typedtree sort parsetree in
+      let ast, loc, lloc, env = read_typedtree sort typedtree in
       ((prefix, kind), (ast, loc, lloc, env, cmi)) :: l
     ) else
       l
   in
   parse `ml ".ml" ".cmt" (parse `mli ".mli" ".cmti" [])
 
-let read_all_files dirs =
+let read_one_unit = Profile.time_call "read_one_unit" read_unit
+
+let project_files dirs =
   List.fold_left
     (fun files d ->
       let fs = Array.to_list (Sys.readdir d) in
       let mls =
-	List.concat
-	  (filter_map
-	     (function f ->
-	       let open Filename in
-		   let f = concat d f in
-		   if (check_suffix f ".ml" &&
-			 not (Sys.file_exists (f ^ "i"))) ||
-		     check_suffix f ".mli" then
-		     Some (read_one_unit f)
-		   else
-		     None)
-	     fs)
+	filter_map
+	  (function f ->
+	    let open Filename in
+		let f = concat d f in
+		if check_suffix f ".ml" || check_suffix f ".mli" then
+		  Some f
+		else
+		  None)
+	  fs
       in
       files @ mls)
     []
     dirs
+
+let read_units files =
+  List.concat
+    (filter_map
+       (function f ->
+	 let open Filename in
+	 if check_suffix f ".ml" && not (Sys.file_exists (f ^ "i")) ||
+	   check_suffix f ".mli" then
+	   Some (read_one_unit f)
+	 else
+	   None)
+       files)
+
 
 let sort_replaces =
   List.sort
@@ -315,14 +338,16 @@ let find_id_defs files ids name =
       match loc with
 	| `pers _ -> None
 	| `source (fname, _ as f) ->
-	  debugln "Rename %s in %s"(Ident.name id) fname;
+	  debug "Rename %s in %s"(Ident.name id) fname;
 	  let _, idents, _, _, _ = List.assoc f files in
 	    try
 	      let loc =
 		Locate.ident_def idents id
 	      in
+	      debug " at " ; Location.print Format.err_formatter loc;
 	      Some (loc, name)
 	    with Not_found ->
+	      debugln " implicit";
 	      None
 	(* Why three idents defs in renameProp ? *)
 (*
@@ -331,12 +356,24 @@ let find_id_defs files ids name =
 	| _ -> invalid_arg "find_id_defs")
     ids
 
-let get_lids files =
+let get_lids filter files =
   List.concat
     (List.map
        (function source, (ast, loc, lloc, lid2env, cmi) ->
-	 List.map (function loc, lid, (env, kind) -> source, loc, lid, env, kind) (get_lids lloc lid2env ast))
+	 List.map
+	   (function loc, lid, (env, kind) ->
+	     source, loc, lid, env, kind) (get_lids lloc lid2env filter ast))
        files)
+
+let rec filter cond = function
+  | Longident.Lident x -> cond x
+  | Longident.Ldot (lid, x) -> filter cond lid || cond x
+  | Longident.Lapply (lid, lid') -> filter cond lid || filter cond lid'
+
+let filter old_name new_name lid =
+  let cond n = n = old_name || n = new_name in
+  filter cond lid &&
+    not (List.mem (lid_to_str lid) ["false" ; "()"])
 
 let fix_case kind =
   match kind with
@@ -353,37 +390,56 @@ let backup file =
 (* Rename an ident in a list of source files. *)
 let rename_in_files env renamed_kind id file new_name files =
 
+  Profile.time_push "constraints";
   (* Collect constraints requiring simultaneous renaming and deduce
      the minimal set of ids to rename *)
   let constraints, includes = constraints_all_files env renamed_kind id files in
+
+  Profile.time_switch_to "propagate";
   let ids, implicit_refs =
     propagate file renamed_kind id files constraints includes in
 
   debugln "found %d idents to rename" (List.length ids);
 
+  Profile.time_switch_to "find id defs";
   (* Compute the replacements for the *definitions* of the rename ids *)
   let def_replaces = find_id_defs files ids new_name in
 
+  Profile.time_switch_to "check other implicit";
   (* Check that our new name will not capture useful signature members *)
   check_other_implicit_references renamed_kind ids new_name constraints includes;
 
+  Profile.time_switch_to "check renamed implicit";
   (* Check that useful renamed signature members are not masked. *)
   check_renamed_implicit_references renamed_kind ids new_name implicit_refs;
 
+  Profile.time_switch_to "collect lids";
   (* Collect all lids *)
-  let lids = get_lids files in
+  let lids = get_lids (filter (Ident.name id) new_name) files in
 
+  Profile.time_switch_to "check other lids";
   (* Check that our new name will not capture other occurrences *)
-  check_lids renamed_kind (Ident.name id) new_name lids;
+  check_lids renamed_kind ids new_name lids;
 
+  Profile.time_switch_to "rename lids";
   (* Compute renamed lids, checking that they are not captured *)
   let occ_replaces = rename_lids renamed_kind ids new_name lids in
 
+  Profile.time_pop ();
   def_replaces, occ_replaces
+
+let make_absolute file =
+  if Filename.is_relative file then
+    Filename.concat (Sys.getcwd ()) file
+  else
+    file
 
 (* Renaming entry point: user interface... *)
 let rename loc new_name file =
 
+  let file = make_absolute file in
+
+  Profile.time_push "backup";
   backup file;
 
   (* Setup the environment *)
@@ -392,40 +448,46 @@ let rename loc new_name file =
   let env = initial_env () in (* Make sure that Pervasives is loaded *)
   debugln "load_path:"; List.iter (debugln "  %s") !Config.load_path;
 
-  (* Check that everything is up-to-date *)
-  if Common_config.has_auto_save file then
-    fail_owz "buffer must be saved before renaming";
   let source_kind = classify_source file in
-  let prefix = Filename.concat (Sys.getcwd ()) (Filename.chop_extension file) in
+  let prefix = Filename.chop_extension file in
   debugln "prefix = %s" prefix;
-  let typedtree_file = typedtree_file source_kind file in
-  if not (Sys.file_exists typedtree_file) then
-    fail_owz "no cmt(i) file for %s" file;
-(*
-  if Unix.((stat file).st_mtime > (stat typedtree_file).st_mtime) then
-    fail_owz "cmt(i) file is older than source file";
-*)
 
   (* Read the typedtrees *)
-  let files = read_all_files dirs in
+  Profile.time_switch_to "read all files";
+  let files =
+    match dirs with
+      | [] -> [file]
+      | _ -> project_files dirs
+  in
+  let files = read_units files in
   let s, idents, lidents, paths, _ = List.assoc (prefix, source_kind) files in
 
   (* Get the "initial" id to rename and its sort and location *)
+  Profile.time_switch_to "locate longident";
   let renamed_kind, id =
     try Locate.longident idents loc s
     with Not_found -> fail_owz "Cannot rename anything here"
   in
-  let loc = Locate.ident_def idents id in
 
   let old_name = Ident.name id in
 
   let new_name = fix_case renamed_kind new_name in
 
+  Profile.time_switch_to "rename in files";
   let defs, occs =
     try
       rename_in_files env renamed_kind id (prefix, source_kind) new_name files
     with
-	Masked_by (renamed, id) ->
+	Masked_by (renamed, (ctx, id)) ->
+	  let loc =
+	    match ctx with
+	      | `source source ->
+		(try
+		   let _, idents, _, _, _ = List.assoc source files in
+		   Locate.ident_def idents id
+		 with Not_found -> Location.none)
+	      | `pers _ -> assert false
+	  in
 	  Location.print Format.std_formatter loc;
 	  if renamed then
 	    fail_owz
@@ -438,8 +500,10 @@ let rename loc new_name file =
 	      old_name new_name
   in
 
+  Profile.time_switch_to "sort_replace";
   let replaces = sort_replaces files (defs @ occs) in
 
+  Profile.time_switch_to "apply renamings";
   try
     (* Replace lids in the source file *)
     List.iter
@@ -448,7 +512,9 @@ let rename loc new_name file =
 	Edit.edit replaces file)
       replaces;
     Printf.printf "Renamed %d definition(s) and %d reference(s) in %d file(s)"
-      (List.length defs) (List.length occs) (List.length replaces)
+      (List.length defs) (List.length occs) (List.length replaces);
+    Profile.time_pop ();
+    Profile.print_time_stats ()
   with
       e ->
 	Printf.printf "Renaming failed while editing the files !\n";

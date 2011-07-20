@@ -18,9 +18,6 @@
 (** Identifying idents which cannot be renamed independently of each
     other (due to signature matching in particular). *)
 
-(* should not be here *)
-val sig_item_id : Types.signature_item -> Ident.t
-
 type signature = Resolve.ident_context * Types.signature
 
 module ConstraintSet : Set.S
@@ -29,16 +26,8 @@ module ConstraintSet : Set.S
 module IncludeSet : Set.S
   with type elt = signature * Ident.t list
 
-(*
-(** Collect the set of signature inclusion constraints and include
-  statements for a structure. *)
-  val collect_signature_inclusions :
-  (ConstraintSet.t * IncludeSet.t) TypedtreeOps.sfun
-*)
-
-(** Return the minimal set of idents which may be renamed and contains
-    a given id, as well as the "implicit" bindings of signature
-    elements to those idents. *)
+(** Collect binding constraints for a set of files, to indicate which
+    idents must be renamed simultaneously. *)
 val constraints_all_files :
   Env.t -> Env.path_sort -> Ident.t ->
   (Resolve.source_file *
@@ -46,17 +35,21 @@ val constraints_all_files :
     list -> ConstraintSet.t * IncludeSet.t
 (* means id is bound to sg.(name id), unless we were wrong about the sort. *)
 
+(** Return the minimal set of idents which may be renamed and contains
+    a given id, as well as the "implicit" bindings of signature
+    elements to those idents. *)
 val propagate :
   Resolve.source_file -> Env.path_sort -> Ident.t ->
   (Resolve.source_file *
      (TypedtreeOps.typedtree * 'a * 'b * 'c * Types.signature))
     list -> ConstraintSet.t -> IncludeSet.t ->
   Resolve.global_ident list
-  * ([ `certain | `maybe ] * Types.signature * Resolve.global_ident) list
+  * ([ `certain | `maybe ] * signature * Resolve.global_ident) list
 
+(** Check the implicit bindings for capture. *)
 val check_renamed_implicit_references :
   Env.path_sort -> Resolve.global_ident list -> string ->
-  ([ `certain | `maybe ] * Types.signature * Resolve.global_ident) list -> unit
+  ([ `certain | `maybe ] * signature * Resolve.global_ident) list -> unit
 
 val check_other_implicit_references :
   Env.path_sort -> Resolve.global_ident list -> string ->

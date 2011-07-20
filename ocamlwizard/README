@@ -123,11 +123,13 @@ Refactoring:
   supported. Type variables, argument labels, and polymorphic variants
   are not supported either.
 
-  The replacement is intended to be complete in the current file, up
-  to the following known limitations:
+  The replacement is intended to be complete, up to the following known
+  limitations:
   - labels, e.g. let x = .. in f ~x
   - fields, e.g. let x = .. in {x}	or match .. with {x} -> ..
   - or-patterns, e.g. match .. with [], x | x, [] -> ..
+  - if an .ml file has no .mli, then renaming an element with the name of a
+    previously bound element will cause a capture error.
 
 
 - Command line interface

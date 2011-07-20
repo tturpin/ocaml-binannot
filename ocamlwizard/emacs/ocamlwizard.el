@@ -177,6 +177,10 @@
   (display-message-or-buffer buffer)
   )
 
+; We could append a (apply funname . args) item to the undo list of
+; each modified buffer, which would restore the state of all those
+; buffers (and pop the undo element from their lists).
+
 (defun ocamlwizard ()
   (interactive)
   (define-key (current-local-map) [f1] 'ocamlwizard-locate)

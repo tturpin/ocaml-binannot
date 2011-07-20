@@ -1,6 +1,6 @@
 LD_PATH=../../otherlibs/str:../../otherlibs/unix
 
-OCAMLWIZARD=ocamlwizard
+OCAMLWIZARD=ocamlwizard -ignore-project-file
 OWZ=../owz.opt
 
 R_CASES=renameSimple.ml renameSigNewCaptured.ml renameSigOldCaptured.ml \
@@ -136,11 +136,11 @@ errors_comp.ml: errors.ml errors_no_dollar.ml $(OWZ)
 %_rres.ml: %.ml %_no_dollar.ml $(OWZ)
 	mv $(subst .ml,_no_dollar.ml, $<) $@
 	../../ocamlc.opt -c -annot $@
-	- $(OCAMLWIZARD) refactor -rename \
+	- $(OCAMLWIZARD) -default-to-current-dir false refactor -rename \
 	`grep -o -b \\\\$$ $< | cut -d : -f 1`-\
 	`tail -c +2 $< | grep -o -b € | cut -d : -f 1` \
 	y $@
-	cat ../../.ocamlwizard-stdout >>$@
+	cat .ocamlwizard-stdout >>$@
 	/bin/echo -e \\n >>$@
 
 #	mv $(subst .ml,_no_dollar.cmt, $<) $(subst .ml,.cmt, $@)

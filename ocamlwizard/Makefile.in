@@ -171,6 +171,7 @@ CMO_COMMON =                           	\
 	$(PATH_COMMON)debug.cmo         \
 	$(PATH_COMMON)common_config.cmo \
 	$(PATH_COMMON)util.cmo          \
+	$(PATH_COMMON)profile.cmo          \
 	$(PATH_COMMON)edit.cmo          \
 	$(PATH_COMMON)owz_ref_printer.cmo	\
 	$(PATH_COMMON)stdr_types.cmo       	\
@@ -319,7 +320,7 @@ OLIBS = $(LIBS:.cma=.cmxa)
 
 #all: $(BIN).$(OCAMLBEST) stdlib
 
-all: $(BIN).byte $(BIN).opt
+all: $(BIN).byte $(BIN).opt profile
 
 ABSOLUTE_INCS = \
 -I `pwd`/$(PATH_DRIVER) \
@@ -402,6 +403,8 @@ $(BIN).byte: $(CMO_ALL)
 $(BIN).opt: $(CMX_ALL)
 	$(OCAMLOPT) $(OFLAGS) $(CMX_OCAML) $(OLIBS) $(CMX_ALL) -o $@
 
+profile: common/profile.cmx
+	$(OCAMLOPT) $(OFLAGS) $(OLIBS) $< -o $@
 
 $(CMO):$(CMO_COMPLETION)
 

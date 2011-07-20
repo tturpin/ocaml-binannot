@@ -5,6 +5,6 @@ module M = struct
 end
 
 let _ = M.x
-File "renameSigOldCaptured_rres.ml", line 3, characters 6-7:
+File "renameSigOldCaptured_rres.ml", line 4, characters 6-7:
 This existing definition of y would capture an occurrence of x
 

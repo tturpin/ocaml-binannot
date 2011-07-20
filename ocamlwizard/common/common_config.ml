@@ -49,6 +49,8 @@ let expand_loc = ref (-1, -1)
 let root_dir = ref ""
 let ignore_auto_save = ref false
 let find_project_dir = ref false
+let ignore_project_file = ref false
+let default_cwd = ref true
 
 let set_file f =
   if not (Sys.file_exists f) then raise (Arg.Bad (f ^ ": no such file"));
@@ -136,6 +138,10 @@ let project_dirs source =
   let dir = directory_of source in
   let dirs, suffix =
     try
+      if !ignore_project_file then
+	if  !find_project_dir then (
+	  print_endline "" ; exit 0
+	) else raise Not_found;
       let d, pf, suffix = find_project_file dir in
       if !find_project_dir then (
 	let d = if d = "" then "" else d ^ "/" in
@@ -144,7 +150,7 @@ let project_dirs source =
       Printf.eprintf "current dir w.r.t. project dirname: %s\n" suffix;
       project_directories d pf, Filename.concat d suffix
     with
-	Not_found -> [dir], Filename.current_dir_name
+	Not_found -> (if !default_cwd then [dir] else []), Filename.current_dir_name
   in
   prerr_endline "project directories:\n";
   List.iter (Printf.eprintf "  %s\n") dirs;
@@ -250,7 +256,13 @@ let options =
      ": print a backtrace in case of error");
 
     ("-find-project-dir", Set find_project_dir,
-     ": print the location of the project directory that would be used")
+     ": print the location of the project directory that would be used");
+
+    ("-ignore-project-file", Set ignore_project_file,
+     ": do not look for a project file");
+
+    ("-default-to-current-dir", Bool (( := ) default_cwd),
+     ": if no project file is found, consider . as the only project dir")
   ]
 
 let usage =" usage : ocamlwizard [common options] [command] [command's options]"

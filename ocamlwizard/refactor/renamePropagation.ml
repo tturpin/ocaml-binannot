@@ -20,16 +20,6 @@ open Types
 open Typedtree
 open Resolve
 
-let sig_item_id = function
-  | Sig_value (i, _)
-  | Sig_type (i, _, _)
-  | Sig_exception (i, _)
-  | Sig_module (i, _, _)
-  | Sig_modtype (i, _)
-  | Sig_class (i, _, _)
-  | Sig_class_type (i, _, _)
-    -> i
-
 type signature = ident_context * Types.signature
 
 module ConstraintSet =
@@ -107,7 +97,7 @@ and constraint_signature incs env f sg env' f' sg' =
       | Sig_module (id, t', _) ->
 	debugln "constraint Sig_module %s" (Ident.name id);
 	(match
-	    lookup_in_signature_with_envs Env.Module (Ident.name id) sg
+	    lookup_in_signature Env.Module (Ident.name id) sg
 	 with
 	   | env, Sig_module (_, t, _) ->
 	     constraint_modtype incs env f t env' f' t'
@@ -115,7 +105,7 @@ and constraint_signature incs env f sg env' f' sg' =
       | Sig_modtype (id, Modtype_manifest t') ->
 	debugln "constraint Sig_modtype %s" (Ident.name id);
 	(match
-	    lookup_in_signature_with_envs Env.Modtype (Ident.name id) sg
+	    lookup_in_signature Env.Modtype (Ident.name id) sg
 	 with
 	   | env, Sig_modtype (_, Modtype_manifest t) ->
 	     constraint_modtype incs env f t env' f' t'
@@ -132,19 +122,18 @@ let constraint_with_cmi incs env (prefix, _ as file) typedtree cmi =
 
 (* Collect the set of signature inclusion constraints implied by a typedtree. *)
 let collect_signature_inclusions incs includes file s =
-  let filename = `source file in
+  let ctx = `source file in
   let enter = function
     | `module_expr m  ->
       (match m.mod_desc with
 
-	(* TODO : fix environments here *)
 	| Tmod_constraint (m, t, cs, co) ->
-	  constraint_modtype incs m.mod_env filename m.mod_type m.mod_env filename t
+	  constraint_modtype incs m.mod_env ctx m.mod_type m.mod_env ctx t
 	(* what about cs and co ? *)
 
 	| Tmod_apply (f, m, co) ->
-	  let (_, t, _) = modtype_functor f.mod_env f.mod_type in
-	  constraint_modtype incs f.mod_env filename m.mod_type m.mod_env filename t
+	  let f_ctx, (_, t, _) = modtype_functor ctx f.mod_env f.mod_type in
+	  constraint_modtype incs f.mod_env ctx m.mod_type m.mod_env f_ctx t
 	(* what about co ? *)
 
 	| Tmod_unpack _ -> assert false (* TODO *)
@@ -162,11 +151,11 @@ let collect_signature_inclusions incs includes file s =
              struct include X end *)
 
 	  (try
-	     let sign = modtype_signature m.mod_env m.mod_type in
-	     includes := IncludeSet.add ((filename, sign), ids) !includes
+	     let sign = modtype_signature ctx m.mod_env m.mod_type in
+	     includes := IncludeSet.add (sign, ids) !includes
 	   with Abstract_modtype -> ())
 
-	(* TODO : exn_rebind, type... *)
+	(* TODO : type... *)
 	| Tstr_eval _
 	| Tstr_value _
 	| Tstr_primitive _
@@ -294,7 +283,7 @@ let propagate loc kind id files incs includes =
       debugln "bind %s in %s with %s in %s"
 	(Ident.unique_name id') (context2string modname')
 	(Ident.unique_name id) (context2string modname);
-      implicit_refs := (flag, sg, (modname', id')) :: !implicit_refs;
+      implicit_refs := (flag, (modname, sg), (modname', id')) :: !implicit_refs;
       Eq.add eq (modname, id) (modname', id')
     with Not_found -> invalid_arg "bind_id_to_member"
   in
@@ -333,12 +322,11 @@ let select_ids ctx =
    renaming will not be masked (i.e., that the bound signature items
    remain the same). *)
 let check_renamed_implicit_references renamed_kind ids name' implicit_refs =
-  let old = Ident.name (snd (List.hd ids)) in
   List.iter
     (function flag, sg, id ->
       try
 	if List.mem id ids then
-	  check_in_sig renamed_kind ~fst:old ~snd:name' sg ~renamed:true
+	  check_in_sig renamed_kind ~ids ~new_name:name' sg ~renamed:true
       with Not_found ->
 	assert (flag = `maybe))
     implicit_refs
@@ -347,22 +335,21 @@ let check_renamed_implicit_references renamed_kind ids name' implicit_refs =
    renaming will not be masked (i.e., that the bound signature items
    remain the same). *)
 let check_other_implicit_references renamed_kind ids name' constraints includes =
-  let old = Ident.name (snd (List.hd ids)) in
   ConstraintSet.iter
-    (function (_, sg), (_, sg') ->
+    (function sg, (_, sg') ->
       try
 	let _ = find_in_signature renamed_kind name' sg' in
-	check_in_sig renamed_kind ~fst:old ~snd:name' sg ~renamed:false
+	check_in_sig renamed_kind ~ids ~new_name:name' sg ~renamed:false
       with
 	  Not_found -> ())
     constraints;
   IncludeSet.iter
-    (function (_, sg), ids' ->
+    (function sg, ids' ->
        match List.filter (function id -> Ident.name id = name') ids' with
 	 | [] -> ()
 	 | _ ->
 	   try
-	     check_in_sig renamed_kind ~fst:old ~snd:name' sg ~renamed:false
+	     check_in_sig renamed_kind ~ids ~new_name:name' sg ~renamed:false
 	   with
 	       Not_found -> ()
 		   (* Because we don't know the sort od these ids *))
