@@ -514,12 +514,12 @@ source: .depend
 # documentation
 ###############
 
-.PHONY: doc
-doc: 
-	make -C doc
+#.PHONY: doc
+#doc: 
+#	make -C doc
 
-doc/version.tex: Makefile
-	printf '\\newcommand{\\version}{'$(VERSION)'}\n' > $@
+#doc/version.tex: Makefile
+#	printf '\\newcommand{\\version}{'$(VERSION)'}\n' > $@
 
 # installation
 ##############
@@ -570,14 +570,17 @@ config.status: configure
 configure: configure.in
 	autoconf 
 
-docu:
+doc:
 	rm -rf owz-doc
 	mkdir owz-doc
-	ocamldoc -I $(PATH_UTILS) -I $(PATH_PARSING)  \
-	-I $(PATH_TYPING) -I $(PATH_COMPLETION) -I $(PATH_OWZ) \
-	$(PATH_UTILS)*.ml $(PATH_PARSING)*.ml  \
-	$(PATH_TYPING)*.ml $(PATH_COMPLETION)*.ml $(PATH_OWZ)*.ml \
+	ocamldoc  $(INCLUDES) \
+	$(PATH_COMMON)*.ml $(PATH_COMPLETION)*.ml $(PATH_REFACTOR)*.ml \
+	$(PATH_OWZ)*.ml \
+	$(PATH_COMMON)*.mli $(PATH_COMPLETION)*.mli $(PATH_REFACTOR)*.mli \
+	$(PATH_OWZ)*.mli \
 	-v -d owz-doc -html
+
+#	$(PATH_UTILS)*.ml $(PATH_PARSING)*.ml $(PATH_TYPING)*.ml \
 
 dep:
 	$(OCAMLDEP) $(INCLUDES_NO_GRAPH) *.ml* */*.ml* */*/*.ml* | ocamldot | dot -Tps | gv -
