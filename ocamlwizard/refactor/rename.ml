@@ -149,11 +149,13 @@ let rename_lids renamed_kind id name' lids =
 let classify_source f =
   let open Filename in
     if
-      check_suffix f ".ml" then `ml
+      check_suffix f ".ml"
+	    (* || check_suffix f ".mll" || check_suffix f ".mly" *)
+    then `ml
     else if
       check_suffix f ".mli" then `mli
     else
-      invalid_arg "not an OCaml source file"
+      invalid "%s is not an OCaml source file" f
 
 let typedtree_file source_kind f =
   Filename.chop_extension f ^
@@ -282,6 +284,7 @@ let hashtbl_keys t =
     t
     []
 
+(*
 let source_of_loc files loc =
   let fname = loc.loc_start.pos_fname in
   let basename = Filename.basename fname in
@@ -291,6 +294,19 @@ let source_of_loc files loc =
 	 Filename.basename prefix = Filename.chop_extension basename &&
 	   classify_source fname = source_kind)
        files)
+*)
+
+let file_of_loc files loc =
+  let fname = loc.loc_start.pos_fname in
+  let basename = Filename.basename fname in
+  let modname = Filename.chop_extension basename in
+  let (prefix, _), _ =
+    List.find
+      (function (prefix, _), _ ->
+	Filename.basename prefix = modname)
+      files
+  in
+  Filename.concat (Filename.dirname prefix) basename
 
 (** Sort a list of locations by file and order. *)
 let sort_locations files locs =
@@ -298,7 +314,7 @@ let sort_locations files locs =
   List.iter
     (function loc ->
       let basename = Filename.basename loc.loc_start.pos_fname in
-      let (prefix, _) = source_of_loc files loc in
+      let prefix = file_of_loc files loc in
       let fname = Filename.concat (Filename.dirname prefix) basename in
       Hashtbl.add t fname loc)
     locs;
@@ -334,9 +350,7 @@ let find_id_defs files ids name =
 	  debug "Rename %s in %s"(Ident.name id) fname;
 	  let _, idents, _, _, _ = List.assoc f files in
 	  try
-	    let loc =
-	      Locate.ident_def idents id
-	    in
+	    let loc = Locate.loc_of_ident idents id in
 	    debug " at " ; Location.print Format.err_formatter loc;
 	    Some (loc, name)
 	  with Not_found ->
@@ -351,7 +365,7 @@ let get_lids filter files =
        (function source, (ast, loc, lloc, lid2env, cmi) ->
 	 List.map
 	   (function loc, lid, (env, kind) ->
-	     source, loc, lid, env, kind) (get_lids lloc lid2env filter ast))
+	     source, loc, lid, env, kind) (get_lids lloc lid2env filter))
        files)
 
 let rec filter cond = function
@@ -359,7 +373,7 @@ let rec filter cond = function
   | Longident.Ldot (lid, x) -> filter cond lid || cond x
   | Longident.Lapply (lid, lid') -> filter cond lid || filter cond lid'
 
-let filter old_name new_name lid =
+let filter old_name new_name lid _ =
   let cond n = n = old_name || n = new_name in
   filter cond lid &&
     not (List.mem (lid_to_str lid) ["false" ; "()"])
@@ -411,16 +425,19 @@ let read_program file =
   (prefix, source_kind), files, env, current, project_path
 
 (* Rename an ident in a list of source files. *)
-let rename_in_files env renamed_kind id file new_name files =
+let rename_in_files env renamed_kind id new_name files =
+
+  let old_name = Ident.name (snd id) in
 
   Profile.time_push "constraints";
   (* Collect constraints requiring simultaneous renaming and deduce
      the minimal set of ids to rename *)
-  let constraints, includes = constraints_all_files env renamed_kind id files in
+  let constraints, includes =
+    constraints_all_files env renamed_kind old_name files in
 
   Profile.time_switch_to "propagate";
   let ids, implicit_refs =
-    propagate file renamed_kind id files constraints includes in
+    propagate renamed_kind id files constraints includes in
 
   debugln "found %d idents to rename" (List.length ids);
 
@@ -438,7 +455,7 @@ let rename_in_files env renamed_kind id file new_name files =
 
   Profile.time_switch_to "collect lids";
   (* Collect all lids *)
-  let lids = get_lids (filter (Ident.name id) new_name) files in
+  let lids = get_lids (filter old_name new_name) files in
 
   Profile.time_switch_to "check other lids";
   (* Check that our new name will not capture other occurrences *)
@@ -452,12 +469,13 @@ let rename_in_files env renamed_kind id file new_name files =
   def_replaces, occ_replaces
 
 (* Collect an ident in a list of source files. *)
-let grep_in_files env kind id file files =
-  let constraints, includes = constraints_all_files env kind id files in
+let grep_in_files env kind id files =
+  let old_name = Ident.name (snd id) in
+  let constraints, includes = constraints_all_files env kind old_name files in
   let new_name = "invalid name" in
-  let ids, _ = propagate file kind id files constraints includes in
+  let ids, _ = propagate kind id files constraints includes in
   let defs = find_id_defs files ids new_name in
-  let lids = get_lids (filter (Ident.name id) new_name) files in
+  let lids = get_lids (filter old_name new_name) files in
   let occs = rename_lids kind ids new_name lids in
   List.map fst defs, List.map fst occs
 
@@ -465,18 +483,27 @@ let source_name = function
   | s, `ml -> s ^ ".ml"
   | s, `mli -> s ^ ".mli"
 
+let locate_ident_from_def_or_use files source loc =
+  let s, idents, lidents, paths, _ = List.assoc source files in
+  try
+    let _, lid, (env, kind) = FindName.lid_of_loc lidents paths loc in
+    kind, resolve kind env (`source source) lid
+  with Not_found ->
+    let kind, id = Locate.ident_definition idents loc s in
+    kind, (`source source, id)
+
 (* Renaming entry point: user interface... *)
 let rename_point loc new_name file =
 
   (* Read the program *)
   Profile.time_push "read program";
   let source, files, env, _, _ = read_program file in
-  let s, idents, lidents, paths, _ = List.assoc source files in
 
   (* Get the "initial" id to rename and its sort and location *)
   Profile.time_switch_to "locate longident";
-  let renamed_kind, id =
-    try Locate.longident idents loc s
+
+  let renamed_kind, (ctx, id) =
+    try locate_ident_from_def_or_use files source loc
     with Not_found -> fail_owz "Cannot rename anything here"
   in
 
@@ -487,7 +514,7 @@ let rename_point loc new_name file =
   Profile.time_switch_to "rename in files";
   let defs, occs =
     try
-      rename_in_files env renamed_kind id source new_name files
+      rename_in_files env renamed_kind (ctx, id) new_name files
     with
 	Masked_by (renamed, (ctx, id)) ->
 	  let loc =
@@ -495,7 +522,7 @@ let rename_point loc new_name file =
 	      | `source source ->
 		(try
 		   let _, idents, _, _, _ = List.assoc source files in
-		   Locate.ident_def idents id
+		   Locate.loc_of_ident idents id
 		 with Not_found -> Location.none)
 	      | `pers _ -> assert false
 	  in
@@ -536,15 +563,15 @@ let rename_point loc new_name file =
 let grep_point loc file =
 
   let source, files, env, _, rel = read_program file in
-  let s, idents, lidents, paths, _ = List.assoc source files in
 
-  let kind, id =
-    try Locate.longident idents loc s
+  let kind, (ctx, id) =
+    try locate_ident_from_def_or_use files source loc
     with Not_found -> fail_owz "No ident found here"
   in
+
   let name = Ident.name id in
 
-  let defs, occs = grep_in_files env kind id source files in
+  let defs, occs = grep_in_files env kind (ctx, id) files in
   let show occs =
     let occs = sort_locations files occs in
     List.iter
@@ -552,8 +579,7 @@ let grep_point loc file =
 	let lines = Array.of_list (lines_of file) in
 	List.iter
 	  (function loc ->
-	    let source = source_of_loc files loc in
-	    let pos_fname = source_name source in
+	    let pos_fname = file_of_loc files loc in
 (*
 	    let loc = { loc with loc_start = {loc.loc_start with pos_fname}} in
 	    Location.print Format.std_formatter loc;

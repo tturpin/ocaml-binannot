@@ -303,6 +303,7 @@ let fail_owz s = raise (OwzFailure s)
 
 let fail_owz s = Printf.ksprintf fail_owz s
 let fail s = Printf.ksprintf failwith s
+let invalid s = Printf.ksprintf invalid_arg s
 
 let rec filter_map f = function
   | [] -> []

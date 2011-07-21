@@ -29,7 +29,7 @@ module IncludeSet : Set.S
 (** Collect binding constraints for a set of files, to indicate which
     idents must be renamed simultaneously. *)
 val constraints_all_files :
-  Env.t -> Env.path_sort -> Ident.t ->
+  Env.t -> Env.path_sort -> string ->
   (Resolve.source_file *
      (TypedtreeOps.typedtree * 'a * 'b * 'c * Types.signature))
     list -> ConstraintSet.t * IncludeSet.t
@@ -39,7 +39,7 @@ val constraints_all_files :
     a given id, as well as the "implicit" bindings of signature
     elements to those idents. *)
 val propagate :
-  Resolve.source_file -> Env.path_sort -> Ident.t ->
+  Env.path_sort -> Resolve.global_ident ->
   (Resolve.source_file *
      (TypedtreeOps.typedtree * 'a * 'b * 'c * Types.signature))
     list -> ConstraintSet.t -> IncludeSet.t ->

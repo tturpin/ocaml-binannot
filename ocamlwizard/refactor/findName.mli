@@ -22,6 +22,11 @@ open Typedtree
 (** Collect all the longident occurrences appearing in a file, with
     their location, sort, and lookup environment. *)
 val get_lids :
-  Location.t Longident.LongidentTbl.t -> Env.lid2env -> (Longident.t -> bool) ->
-  TypedtreeOps.typedtree ->
+  Location.t Longident.LongidentTbl.t -> Env.lid2env ->
+  (Longident.t -> Location.t -> bool) ->
   (Location.t * Longident.t * (Env.t * Env.path_sort)) list
+
+(** Return the lid at a given location. *)
+val lid_of_loc :
+  Location.t Longident.LongidentTbl.t -> Env.lid2env -> int * int ->
+  Location.t * Longident.t * (Env.t * Env.path_sort)

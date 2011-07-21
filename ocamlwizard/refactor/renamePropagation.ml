@@ -179,10 +179,9 @@ let constraints_one_file incs includes env kind name (file, (ast, _, _, _, cmi))
   constraint_with_cmi incs env file ast cmi;
   debugln "OK"
 
-let constraints_all_files env kind id files =
+let constraints_all_files env kind name files =
   let incs = ref ConstraintSet.empty
   and includes = ref IncludeSet.empty in
-  let name = Ident.name id in
   List.iter (constraints_one_file incs includes env kind name) files;
   !incs, !includes
 
@@ -272,8 +271,8 @@ let propagate_includes bind_id_to_member ambiguous kind name includes =
 	  ambiguous := (modname, find_in_signature kind name sg) :: !ambiguous)
     includes
 
-let propagate loc kind id files incs includes =
-  let name = Ident.name id in
+let propagate kind id files incs includes =
+  let name = Ident.name (snd id) in
   let eq = Hashtbl.create 10 in
   let implicit_refs = ref []
   and ambiguous = ref [] in
@@ -290,7 +289,7 @@ let propagate loc kind id files incs includes =
   propagate_constraints bind_id_to_member kind name incs;
   propagate_includes bind_id_to_member ambiguous kind name includes;
 
-  let ids = Eq.find eq (`source loc, id) in
+  let ids = Eq.find eq id in
   (* Check if propagation reached an unlocalised id *)
   List.iter
     (function loc, id ->

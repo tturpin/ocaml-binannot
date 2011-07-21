@@ -90,6 +90,9 @@ val resolve_modtype :
 val resolves_to :
   Env.path_sort -> Env.t -> ident_context -> Longident.t -> global_ident list -> bool
 
+val resolve :
+  Env.path_sort -> Env.t -> ident_context -> Longident.t -> global_ident
+
 (** Retrieve a module or modtype in a signature from its name *)
 val lookup_in_signature :
   Env.path_sort -> string -> (Env.t * Types.signature_item) list ->

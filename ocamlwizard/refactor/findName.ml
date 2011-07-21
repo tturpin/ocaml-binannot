@@ -197,11 +197,11 @@ let rec check_same = function
     check_same l
   | [] -> invalid_arg "check_same"
 
-let get_lids lid2loc lid2env cond s =
+let get_lids lid2loc lid2env cond =
   (* We should check that keys are bound only once *)
   Longident.LongidentTbl.fold
     (fun lid loc acc ->
-      if cond lid then
+      if cond lid loc then
 	let envs = Env.LongidentTbl.find_all lid2env lid in
 	let envs = List.filter (function kind, _ -> kind <> Env.Annot) envs in
 	match envs with
@@ -222,6 +222,12 @@ let get_lids lid2loc lid2env cond s =
       else acc)
     lid2loc
     []
+
+let lid_of_loc lid2loc lid2env loc =
+  match get_lids lid2loc lid2env (fun _ loc' -> Locate.contains loc' loc) with
+    | [] -> raise Not_found
+    | [id] -> id
+    | _ -> failwith "found two longidents with the same location"
 
 (* Currently, we don't use extract_longident but instead we rely on
    the longident table. *)

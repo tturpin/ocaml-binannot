@@ -161,10 +161,10 @@ let modtype_functor modname env m =
     | _, `sign _ -> invalid_arg "modtype_signature"
 
 (* Return the signature of a given (extended) module path *)
-let resolve_module env path =
+let resolve_module0 env path =
   modtype_signature0 env (wrap_lookup Path.name "module" find_module path env)
 
-let resolve_module' modname env path =
+let resolve_module modname env path =
   modtype_signature modname env (wrap_lookup Path.name "module" find_module path env)
 
 (* unused *)
@@ -213,7 +213,7 @@ let first_of_in_sig kind names sg =
 let rec first_of kind names env = function
   | Env_empty -> raise Not_found
   | Env_open (s, p) ->
-    let sign = resolve_module env p in
+    let sign = resolve_module0 env p in
     (try
        first_of_in_sig kind names sign
      with
@@ -266,23 +266,31 @@ let find_in_signature kind name sg =
     | Found (0, id) -> id
     | Found _ -> assert false
 
+let resolve_member kind env modname path name =
+  let modname, sg = resolve_module modname env path in
+  modname, find_in_signature kind name sg
+
 (* True if p.name means id *)
 let member_resolves_to kind env modname path name ids =
   try
-    let modname, sg = resolve_module' modname env path in
-    List.mem
-      (modname, find_in_signature kind name sg)
-      ids
+    List.mem (resolve_member kind env modname path name) ids
   with
     | Not_found -> false
+
+(* We should write resolves_to using resolve_lid *)
+let resolve kind env modname lid =
+  match lookup kind lid env with
+    | Pident id -> modname, id
+    | Pdot (p, n, _) -> resolve_member kind env (global modname p) p n
+    | Papply _ -> invalid_arg "resolves_lid"
 
 (* Test whether a p reffers to id in environment env. This indicates
    that the rightmost name in lid needs renaming. *)
 let resolves_to kind env modname lid ids =
-  match lookup kind lid env with
-    | Pident id' as p -> List.mem (global modname p,  id') ids
-    | Pdot (p, n, _) -> member_resolves_to kind env (global modname p) p n ids
-    | Papply _ -> invalid_arg "resolves_to"
+  try
+    List.mem (resolve kind env modname lid) ids
+  with
+    | Not_found -> false
 
 exception Masked_by of bool * global_ident
 

@@ -110,13 +110,14 @@ the test cases for a detailed overview of the current behavior.
 Refactoring:
 ............
 
-- Renaming (C-c C-o r): rename an identifier through a single .ml or
-  .mli file. The cursor must be placed on the *definition* of the
-  value (for example, a let binding or a pattern). Renaming takes care
-  of necessary propagation (e.g., when distinct values with the same
-  name need to be renamed consistently because this name appears in a
-  common interface), and capture is detected. Undoing works in emacs.
-  Backups are made in case anything goes wrong.
+- Renaming (C-c C-o r): rename an identifier through an OCaml
+  program. The cursor must be placed on an ident definition or
+  reference (for example, a let binding or a pattern). Renaming takes
+  care of necessary propagation (e.g., when distinct values with the
+  same name need to be renamed consistently because this name appears
+  in a common interface), and capture is detected. Undoing works in
+  emacs only for the current buffer. Backups are made in case anything
+  goes wrong.
 
   Renaming is implemented for: values, types, modules (non-recursive),
   module types, fields, constructors, and exceptions. Objects are not
@@ -130,6 +131,14 @@ Refactoring:
   - or-patterns, e.g. match .. with [], x | x, [] -> ..
   - if an .ml file has no .mli, then renaming an element with the name of a
     previously bound element will cause a capture error.
+
+
+Browsing:
+.........
+
+- Grep (C-c C-o g) display a clickable list (compile minor mode) of
+  the connected definitions and occurrences of the ident under the
+  cursor. Invocation is the same as for renaming.
 
 
 - Command line interface

@@ -37,13 +37,13 @@ val locate_map_exn : [`outermost | `innermost] -> (node -> 'a) ->
 *)
 
 (** Return the location of a longident. Objects are not implemented. *)
-val longident :
+val ident_definition :
   Location.string_table -> int * int ->
   [ `signature of Typedtree.signature | `structure of Typedtree.structure ] ->
   Env.path_sort * Ident.t
 
 (** Return the location of the definition of an ident. *)
-val ident_def :
+val loc_of_ident :
 (*
   [ `signature of Typedtree.signature | `structure of Typedtree.structure ] ->
 *)
