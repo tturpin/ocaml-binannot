@@ -15,6 +15,13 @@
 ;                                                                        ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defun ocamlwizard-buffer ()
+  "create a new empty buffer for ocamlwizard, deleting existing one if any"
+  (setq buffer (get-buffer-create "*ocamlwizard*"))
+  (kill-buffer "*ocamlwizard*")
+  (get-buffer-create "*ocamlwizard*")
+)
+
 (defun ocamlwizard-locate ()
   "locate declaration/definition of an Ocaml identifier using Ocamlwizard"
   (interactive)
@@ -44,16 +51,13 @@
 (defun ocamlwizard-match-with-completion ()
   "complete an Ocaml match construct using Ocamlwizard"
   (interactive)
-  (setq buffer (get-buffer-create "*ocamlwizard*"))
-  (save-excursion
-    (set-buffer buffer)
-    (erase-buffer))
+  (setq buffer (ocamlwizard-buffer))
 ;  (save-excursion
-    (setq end (point))
-    (re-search-backward "[^ \t\n]")
-    (forward-char 1)
-    (setq start (point))
-    (delete-char (- end start))
+  (setq end (point))
+  (re-search-backward "[^ \t\n]")
+  (forward-char 1)
+  (setq start (point))
+  (delete-char (- end start))
 ;)
   (do-auto-save)
   (setq exit-status 
@@ -75,10 +79,7 @@
 (defun ocamlwizard-path-completion ()
   "complete an Ocaml identifier using Ocamlwizard"
   (interactive)
-  (setq buffer (get-buffer-create "*ocamlwizard*"))
-  (save-excursion
-    (set-buffer buffer)
-    (erase-buffer))
+  (setq buffer (ocamlwizard-buffer))
   (do-auto-save)
   (setq exit-status 
 	(call-process "ocamlwizard" nil buffer nil "completion" "-printer" "ocaml-pp"
@@ -97,7 +98,6 @@
     (display-message-or-buffer buffer))
 )
 
-
 (defun ocamlwizard-expand-patvar ()
   "expands a pattern-matching variable using Ocamlwizard"
   (interactive)
@@ -111,12 +111,11 @@
     (search-forward "->")
     (setq arrow (point)))
   (setq file (buffer-name))
-  (setq buffer (get-buffer-create "*ocamlwizard*"))
+  (setq buffer (ocamlwizard-buffer))
   (do-auto-save)
   (save-excursion
     (set-buffer buffer)
-    (compilation-minor-mode 1)
-    (erase-buffer))
+    (compilation-minor-mode 1))
   ; don't put this inside save-excursion, or pwd will be incorrect
   (setq exit-status 
 	(call-process 
@@ -141,15 +140,14 @@
 
 
 (defun ocamlwizard-rename (name)
-  "rename a value using Ocamlwizard"
+  "rename an identifier using Ocamlwizard"
   (interactive "sRename with: ")
   (setq pos (point))
   (setq file (buffer-name))
-  (setq buffer (get-buffer-create "*ocamlwizard*"))
+  (setq buffer (ocamlwizard-buffer))
   (save-excursion
     (set-buffer buffer)
-    (compilation-minor-mode 1)
-    (erase-buffer))
+    (compilation-minor-mode 1))
   (do-auto-save)
   (setq exit-status
 	(call-process 
@@ -177,6 +175,32 @@
   (display-message-or-buffer buffer)
   )
 
+(defun ocamlwizard-grep ()
+  "gerp an identifier using Ocamlwizard"
+  (interactive)
+  (setq pos (point))
+  (setq file (buffer-name))
+  (setq buffer (ocamlwizard-buffer))
+  (save-excursion
+    (set-buffer buffer)
+    (compilation-minor-mode 1))
+  (do-auto-save)
+  (setq exit-status
+	(call-process
+	 "ocamlwizard" nil buffer nil
+	 "completion" "refactor" "-grep"
+	 (concat (int-to-string (- pos 1)) "-" (int-to-string pos))
+	 file))
+  (if (eq exit-status 0)
+      ; Thank you stackoverflow:
+      (progn
+	(save-excursion
+	  (set-buffer buffer)
+	  (compilation-minor-mode 1))
+	(display-buffer buffer))
+    (display-message-or-buffer buffer))
+  )
+
 ; We could append a (apply funname . args) item to the undo list of
 ; each modified buffer, which would restore the state of all those
 ; buffers (and pop the undo element from their lists).
@@ -188,4 +212,5 @@
   (define-key (current-local-map) [f12] 'ocamlwizard-path-completion)
   (define-key (current-local-map) [f11] 'ocamlwizard-expand-patvar)
   (define-key (current-local-map) "\C-c\C-or" 'ocamlwizard-rename)
+  (define-key (current-local-map) "\C-c\C-og" 'ocamlwizard-grep)
   )

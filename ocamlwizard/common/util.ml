@@ -311,3 +311,17 @@ let rec filter_map f = function
     match f t with
       | Some t -> t :: q
       | None -> q
+
+let rec parse_lines f =
+  try
+    let i = input_line f in
+      i :: parse_lines f
+  with
+      End_of_file -> []
+
+(* Get the lines of a text file (with end of lines). *)
+let lines_of f =
+  let c = open_in f in
+  let d = parse_lines c in
+    close_in c;
+    d

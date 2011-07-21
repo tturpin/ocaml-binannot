@@ -19,6 +19,7 @@ exception Exit_typing
 
 type refactor_option =
   | Rename of (int * int) * string * string
+  | Grep of (int * int) * string
   | Depend | Qualif
 type command =
     Nothing
@@ -42,8 +43,10 @@ val absolute_filenames : bool ref
 val qualid : Longident.t ref
 val loc : (int * int) ref
 val expand_loc : (int * int) ref
+val list2path : string list -> string
+val prefix_by : string list -> string -> string
 val root_dir : string ref
-val project_dirs : string -> string list * string
+val project_dirs : string -> string list * string list * string list
 val search_dirs : string -> string list
 val i_dirs : unit -> string list
 val command : command ref

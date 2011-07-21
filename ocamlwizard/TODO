@@ -1,5 +1,4 @@
-- Grep: should be easy to implement using rename
-
+- Rename: make backups
 - Rename: provide three propagation options: none, mli, full
 - Rename: return a list of files that emacs should revert
 - Rename: rename type variables, argument labels, polymorphic variants, methods

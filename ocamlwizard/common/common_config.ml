@@ -103,26 +103,36 @@ let rec find_project_file d =
   let pf = Filename.concat d project_file_name in
   if Sys.file_exists pf then (
     if !debug then Printf.eprintf "Found project file in directory %s\n" d;
-    d, pf, Filename.current_dir_name
+    d, pf, [], []
   ) else if d = "/" then
     raise Not_found
   else
-      let d', pf, suffix = find_project_file (Filename.dirname d) in
-      d', pf, Filename.concat suffix (Filename.basename d)
+      let d', pf, suffix, rel = find_project_file (Filename.dirname d) in
+      d', pf, suffix @ [Filename.basename d],
+      Filename.parent_dir_name :: rel
+
 (*
-      let suffix = if suffix = Filename.current_dir_name then
+let find_project_file d =
+  let d, pf, suffix, rel = find_project_file d =
 *)
+
+let list2path = function
+  | [] -> Filename.current_dir_name
+  | t :: q -> List.fold_left Filename.concat t q
+
+let prefix_by l name =
+  if Filename.is_relative name then
+    List.fold_right Filename.concat l name
+  else
+    name
 
 (* Reads a project file, which is a list of directories (one by line),
    possibly relative to the directory containing the file. *)
 let project_directories d pf =
   List.map
-    (function l ->
-      if Filename.is_relative l then
-	Filename.concat d l
-      else
-	l)
+    (prefix_by d)
     (lines_of pf)
+
 
 let add_include_dirs arg = 
   include_dirs := (!include_dirs)@[arg]
@@ -136,33 +146,35 @@ let directory_of source =
 (* Very approximative ! *)
 let project_dirs source =
   let dir = directory_of source in
-  let dirs, suffix =
+  let dirs, suffix, rel =
     try
       if !ignore_project_file then
 	if  !find_project_dir then (
 	  print_endline "" ; exit 0
 	) else raise Not_found;
-      let d, pf, suffix = find_project_file dir in
+      let d, pf, suffix, rel = find_project_file dir in
       if !find_project_dir then (
 	let d = if d = "" then "" else d ^ "/" in
 	  print_endline d ; exit 0
       );
+(*
       Printf.eprintf "current dir w.r.t. project dirname: %s\n" suffix;
-      project_directories d pf, Filename.concat d suffix
+*)
+      project_directories rel pf, suffix, rel
     with
-	Not_found -> (if !default_cwd then [dir] else []), Filename.current_dir_name
+	Not_found -> (if !default_cwd then [dir] else []), [], []
   in
   prerr_endline "project directories:\n";
   List.iter (Printf.eprintf "  %s\n") dirs;
-  Printf.eprintf "absolute current dir: %s\n" suffix;
-  dirs, suffix
+  Printf.eprintf "absolute current dir: %s\n" (list2path suffix);
+  dirs, suffix, rel
 
 let search_dirs source =
   List.map
     (Misc.expand_directory Config.standard_library)
     !include_dirs
   @ [Config.standard_library]
-  @ fst (project_dirs source)
+  @ let dirs, _, _ = project_dirs source in dirs
 	
 let i_dirs () = 
   add_include_dirs Config.standard_library;
@@ -180,6 +192,7 @@ let set_parser = function
 
 type refactor_option = 
   | Rename of (int * int) * string * string
+  | Grep of (int * int) * string
   | Depend
   | Qualif
 
@@ -202,6 +215,9 @@ let parse_refactor_command = function
   | [| "-rename" ; loc ; name' ; file |] ->
     ignore (search_dirs file); (* for -print-project-dir *)
     Rename (get_loc loc "rename", name', file)
+  | [| "-grep" ; loc ; file |] ->
+    ignore (search_dirs file); (* for -print-project-dir *)
+    Grep (get_loc loc "rename", file)
   | [||] -> failwith "refactor : no command given"
   | c -> failwith ("invalid refactor command " ^ c.(0))
 

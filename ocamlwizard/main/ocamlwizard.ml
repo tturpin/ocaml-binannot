@@ -93,7 +93,9 @@ let main () =
     | Refactor r ->
       (match r with
 	| Rename (loc, name', file) ->
-	    catch_owz (function () -> Rename.rename loc name' file ; exit 0)
+	    catch_owz (function () -> Rename.rename_point loc name' file ; exit 0)
+	| Grep (loc, file) ->
+	    catch_owz (function () -> Rename.grep_point loc file ; exit 0)
 	| Depend | Qualif -> failwith "not yet")
 
     | Locate -> failwith "not yet"

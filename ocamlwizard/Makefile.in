@@ -605,7 +605,7 @@ clean:
 	cd $(PATH_COMPLETION) ; $(rmcmd)
 	rm $(GENERATED)
 	rm -f $(BIN).byte $(BIN).opt $(BIN_GUI).* $(BIN_SCAN).* $(BIN_ANNOT).*
-	rm -f */*.backup_* */*/*.backup_*
+	rm -f profile */*.backup_* */*/*.backup_*
 
 #	make -C standard_library clean
 

@@ -28,12 +28,6 @@ open FindName
 open RenameLid
 open RenamePropagation
 
-(*
-let rec path2lident = function
-  | Pident i -> Lident (Ident.name i)
-  | Pdot (p, n, _) -> Ldot (path2lident p, n)
-  | Papply (p, p') -> Lapply (path2lident p, path2lident p')
-*)
 
 (*
 type exp_exp =
@@ -133,14 +127,6 @@ let expression ctx exprs e = match e.exp_desc with
   | Texp_pack _
   | Texp_open _ ->  ()
 *)
-(*
-let resolve item = function
-    | Pident i -> item, i
-    | Pdot (p, n, _) ->
-      let item, i = resolve p in
-    | Papply (p, p') -> assert false
-*)
-
 
 let check_lids renamed_kind ids name' lids =
   List.iter
@@ -155,11 +141,6 @@ let rename_lids renamed_kind id name' lids =
 	| Some lid ->
 	  Some (
 	    loc,
-(*
-	    source,
-	    loc.loc_start.pos_cnum,
-	    loc.loc_end.pos_cnum,
-*)
 	    Util.lid_to_str lid
 	  )
 	| None -> None)
@@ -249,6 +230,8 @@ let read_unit f =
 
 let read_one_unit = Profile.time_call "read_one_unit" read_unit
 
+(* Given a set of directories, return the set of (qualified) source
+   file names contained in those directories. *)
 let project_files dirs =
   List.fold_left
     (fun files d ->
@@ -268,24 +251,19 @@ let project_files dirs =
     []
     dirs
 
+(* Read a list of (qualified) compilation unit names. *)
 let read_units files =
   List.concat
     (filter_map
        (function f ->
 	 let open Filename in
-	 if check_suffix f ".ml" && not (Sys.file_exists (f ^ "i")) ||
-	   check_suffix f ".mli" then
-	   Some (read_one_unit f)
-	 else
-	   None)
+	     if check_suffix f ".ml" && not (Sys.file_exists (f ^ "i")) ||
+	       (* do not duplicate units which have both a .ml and .mli *)
+	       check_suffix f ".mli" then
+	       Some (read_one_unit f)
+	     else
+	       None)
        files)
-
-
-let sort_replaces =
-  List.sort
-    (* This comparison is total because def locations are either
-       disjoint or identical *)
-    (fun (x, _, _) (y, _, _) -> compare  x y)
 
 let rec remove_duplicates = function
   | x :: (y :: _ as l) ->
@@ -304,33 +282,48 @@ let hashtbl_keys t =
     t
     []
 
-let sort_replaces files replaces =
+let source_of_loc files loc =
+  let fname = loc.loc_start.pos_fname in
+  let basename = Filename.basename fname in
+  fst
+    (List.find
+       (function (prefix, source_kind), _ ->
+	 Filename.basename prefix = Filename.chop_extension basename &&
+	   classify_source fname = source_kind)
+       files)
+
+(** Sort a list of locations by file and order. *)
+let sort_locations files locs =
   let t = Hashtbl.create 2 in
   List.iter
-    (function loc, rep ->
+    (function loc ->
       let basename = Filename.basename loc.loc_start.pos_fname in
-      let (prefix, _), _ =
-	List.find
-	  (function (prefix, _ ), _ ->
-	    Filename.basename prefix = Filename.chop_extension basename)
-	  files
-      in
+      let (prefix, _) = source_of_loc files loc in
       let fname = Filename.concat (Filename.dirname prefix) basename in
-      Hashtbl.add t fname
-	(loc.loc_start.pos_cnum, loc.loc_end.pos_cnum, rep))
-    replaces;
+      Hashtbl.add t fname loc)
+    locs;
   List.map
     (function f ->
-      f, remove_duplicates (sort_replaces (Hashtbl.find_all t f)))
+      f,
+      remove_duplicates
+	(List.sort
+	   (fun l l' -> compare l.loc_start.pos_cnum l'.loc_start.pos_cnum)
+	   (* This comparison is total because def locations are
+	      either disjoint or identical. *)
+	   (Hashtbl.find_all t f)))
     (hashtbl_keys t)
 
-let string_table_union t t' =
-  let open Location.StringTbl in
-      let t = copy t in
-      iter
-	(fun x l -> add t x l)
-	t';
-      t
+let sort_replaces files replaces =
+  let locs = List.map fst replaces in
+  List.map
+    (function f, locs ->
+      f,
+      List.map
+	(function loc ->
+	  let rep = List.assoc loc replaces in
+	  loc.loc_start.pos_cnum, loc.loc_end.pos_cnum, rep)
+	locs)
+    (sort_locations files locs)
 
 let find_id_defs files ids name =
   filter_map
@@ -340,19 +333,15 @@ let find_id_defs files ids name =
 	| `source (fname, _ as f) ->
 	  debug "Rename %s in %s"(Ident.name id) fname;
 	  let _, idents, _, _, _ = List.assoc f files in
-	    try
-	      let loc =
-		Locate.ident_def idents id
-	      in
-	      debug " at " ; Location.print Format.err_formatter loc;
-	      Some (loc, name)
-	    with Not_found ->
-	      debugln " implicit";
-	      None
-	(* Why three idents defs in renameProp ? *)
-(*
-	      fail "ident %s not found" (Ident.name id)
-*)
+	  try
+	    let loc =
+	      Locate.ident_def idents id
+	    in
+	    debug " at " ; Location.print Format.err_formatter loc;
+	    Some (loc, name)
+	  with Not_found ->
+	    debugln " implicit";
+	    fail "ident %s not found" (Ident.name id)
 	| _ -> invalid_arg "find_id_defs")
     ids
 
@@ -386,6 +375,40 @@ let backup file =
     failwith "bad luck"
   else
     Edit.cp file backup
+
+let make_absolute file =
+  if Filename.is_relative file then
+    Filename.concat (Sys.getcwd ()) file
+  else
+    file
+
+let read_program file =
+
+  let dirs, current, project_path = Common_config.project_dirs file in
+  let file =
+    Common_config.prefix_by (project_path @ current) (Filename.basename file) in
+
+  (* Setup the load path *)
+  Config.load_path := "" :: List.rev_append dirs (Clflags.std_include_dir ());
+  debugln "load_path:"; List.iter (debugln "  %s") !Config.load_path;
+
+  let source_kind = classify_source file in
+  let prefix = Filename.chop_extension file in
+  debugln "current = %s" (Common_config.list2path current);
+  debugln "rel = %s" (Common_config.list2path project_path);
+  debugln "prefix = %s" prefix;
+
+  (* Read the typedtrees *)
+  let files =
+    match dirs with
+      | [] -> [file]
+      | _ -> project_files dirs
+  in
+  let files = read_units files in
+
+  let env = initial_env () in (* Make sure that Pervasives is loaded *)
+
+  (prefix, source_kind), files, env, current, project_path
 
 (* Rename an ident in a list of source files. *)
 let rename_in_files env renamed_kind id file new_name files =
@@ -428,39 +451,27 @@ let rename_in_files env renamed_kind id file new_name files =
   Profile.time_pop ();
   def_replaces, occ_replaces
 
-let make_absolute file =
-  if Filename.is_relative file then
-    Filename.concat (Sys.getcwd ()) file
-  else
-    file
+(* Collect an ident in a list of source files. *)
+let grep_in_files env kind id file files =
+  let constraints, includes = constraints_all_files env kind id files in
+  let new_name = "invalid name" in
+  let ids, _ = propagate file kind id files constraints includes in
+  let defs = find_id_defs files ids new_name in
+  let lids = get_lids (filter (Ident.name id) new_name) files in
+  let occs = rename_lids kind ids new_name lids in
+  List.map fst defs, List.map fst occs
+
+let source_name = function
+  | s, `ml -> s ^ ".ml"
+  | s, `mli -> s ^ ".mli"
 
 (* Renaming entry point: user interface... *)
-let rename loc new_name file =
+let rename_point loc new_name file =
 
-  let file = make_absolute file in
-
-  Profile.time_push "backup";
-  backup file;
-
-  (* Setup the environment *)
-  let dirs, current = Common_config.project_dirs file in
-  Config.load_path := "" :: List.rev_append dirs (Clflags.std_include_dir ());
-  let env = initial_env () in (* Make sure that Pervasives is loaded *)
-  debugln "load_path:"; List.iter (debugln "  %s") !Config.load_path;
-
-  let source_kind = classify_source file in
-  let prefix = Filename.chop_extension file in
-  debugln "prefix = %s" prefix;
-
-  (* Read the typedtrees *)
-  Profile.time_switch_to "read all files";
-  let files =
-    match dirs with
-      | [] -> [file]
-      | _ -> project_files dirs
-  in
-  let files = read_units files in
-  let s, idents, lidents, paths, _ = List.assoc (prefix, source_kind) files in
+  (* Read the program *)
+  Profile.time_push "read program";
+  let source, files, env, _, _ = read_program file in
+  let s, idents, lidents, paths, _ = List.assoc source files in
 
   (* Get the "initial" id to rename and its sort and location *)
   Profile.time_switch_to "locate longident";
@@ -476,7 +487,7 @@ let rename loc new_name file =
   Profile.time_switch_to "rename in files";
   let defs, occs =
     try
-      rename_in_files env renamed_kind id (prefix, source_kind) new_name files
+      rename_in_files env renamed_kind id source new_name files
     with
 	Masked_by (renamed, (ctx, id)) ->
 	  let loc =
@@ -504,11 +515,12 @@ let rename loc new_name file =
   let replaces = sort_replaces files (defs @ occs) in
 
   Profile.time_switch_to "apply renamings";
+  (* Replace lids in the source file *)
   try
-    (* Replace lids in the source file *)
     List.iter
       (function file, replaces ->
 	debugln "replace in %s" file;
+	Profile.time_call "backup" backup file;
 	Edit.edit replaces file)
       replaces;
     Printf.printf "Renamed %d definition(s) and %d reference(s) in %d file(s)"
@@ -519,3 +531,42 @@ let rename loc new_name file =
       e ->
 	Printf.printf "Renaming failed while editing the files !\n";
 	raise e
+
+(* Grep entry point: user interface... *)
+let grep_point loc file =
+
+  let source, files, env, _, rel = read_program file in
+  let s, idents, lidents, paths, _ = List.assoc source files in
+
+  let kind, id =
+    try Locate.longident idents loc s
+    with Not_found -> fail_owz "No ident found here"
+  in
+  let name = Ident.name id in
+
+  let defs, occs = grep_in_files env kind id source files in
+  let show occs =
+    let occs = sort_locations files occs in
+    List.iter
+      (function file, locs ->
+	let lines = Array.of_list (lines_of file) in
+	List.iter
+	  (function loc ->
+	    let source = source_of_loc files loc in
+	    let pos_fname = source_name source in
+(*
+	    let loc = { loc with loc_start = {loc.loc_start with pos_fname}} in
+	    Location.print Format.std_formatter loc;
+*)
+	    Printf.printf "%s:%d:" pos_fname loc.loc_start.pos_lnum;
+	    Printf.printf "%s\n" lines.(loc.loc_start.pos_lnum-1))
+	  locs)
+      occs
+  in
+  Printf.printf "OCamlWizard grep:\n\n";
+  Printf.printf "Definitions of %s %s:\n\n" (kind2string kind) name;
+  show defs;
+  Printf.printf "\nUses of %s %s:\n\n" (kind2string kind) name;
+  show occs;
+  Printf.printf "\nFound %d definition(s) and %d reference(s)\n"
+    (List.length defs) (List.length occs)
